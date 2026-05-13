@@ -1,0 +1,23 @@
+{
+  "name": "arkadia-user-plugins",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "yarn@1.22.22",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "preview": "node scripts/serve.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@arkadia/plugin-types": "https://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz",
+    "@types/node": "^24.0.0",
+    "chokidar": "^4.0.3",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.4"
+  }
+}
