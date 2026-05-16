@@ -104,9 +104,11 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     tag,
   );
 
-  return {
+  const info: PluginInfo = {
     name: 'My Alarms',
     version: '0.1.0',
     description: 'Visual and audio alerts for traps, undead types, and status effects',
   };
+  api.output.print(`[${info.name} v${info.version}] loaded`);
+  return info;
 }
