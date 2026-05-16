@@ -23,7 +23,7 @@ This builds every `src/plugins/*-plugin.ts` entry into `dist/`, starts a static 
 3. Add a local plugin URL to the Arkadia client, for example:
 
 ```text
-http://localhost:3030/starter-plugin.js
+http://localhost:3030/my-aliases-plugin.js
 ```
 
 4. Run fast checks locally:
@@ -49,7 +49,7 @@ Every file matching `src/plugins/**/*-plugin.ts` is treated as a deployable plug
 
 Examples:
 
-- `src/plugins/starter-plugin.ts` -> `dist/starter-plugin.js`
+- `src/plugins/my-aliases-plugin.ts` -> `dist/my-aliases-plugin.js`
 - `src/plugins/combat/loot-plugin.ts` -> `dist/combat/loot-plugin.js`
 
 Internal helpers can live anywhere else under `src/` and be imported normally.
@@ -63,7 +63,7 @@ The workflow in `.github/workflows/deploy.yml` publishes the `dist/` directory t
 After enabling Pages in the repository settings, your plugin URLs will look like:
 
 ```text
-https://<user>.github.io/<repo>/starter-plugin.js
+https://<user>.github.io/<repo>/my-aliases-plugin.js
 ```
 
 The build also generates:
