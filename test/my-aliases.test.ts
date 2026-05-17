@@ -31,7 +31,7 @@ describe('my-aliases plugin', () => {
 
     expect(footerComponents).toHaveLength(1);
     expect(footerComponents[0].id).toBe('targets');
-    expect(footerComponents[0].initialContent).toContain('cel1');
+    expect(footerComponents[0].initialContent).toContain('INIT');
     expect(footerComponents[0].initialContent).toContain('cel2');
     expect(footerComponents[0].initialContent).toContain('cel3');
     expect(footerComponents[0].initialContent).toContain('cel4');
