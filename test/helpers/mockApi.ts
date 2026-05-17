@@ -111,7 +111,7 @@ export function createMockApi(options?: { room?: any }) {
       print: vi.fn(),
     },
     ui: {
-      registerFooterComponent: vi.fn((id: string, content: string) => {
+      registerFooterComponent: vi.fn((id: string, content: string, _position?: 'start' | 'end' | number) => {
         const handle = {
           element: {} as HTMLSpanElement,
           setContent: vi.fn(),
