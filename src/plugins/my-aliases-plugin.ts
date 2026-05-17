@@ -43,7 +43,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     const borderColor = api.colors.fromHex('#4b5563');
 
     const entries: [string, string][] = [
-      ['alias!', 'show this help'],
+      ['?alias', 'show this help'],
       ['b* presets', 'b_wsiowe bakb bbod bcz bgb bgrz bhas bjas bkis bkur bryb bstr bszcz bu bwy bzbo bzol'],
       ['c [target]', 'zabij CEL (or named target)'],
       ['c1 / c2 / c3 / c4', 'attack target 1–4'],
@@ -119,8 +119,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   // ── aliases (alphabetical) ───────────────────────────────────────────────
 
-  // #region alias!
-  api.aliases.register(/^alias!$/, () => {
+  // #region ?alias
+  api.aliases.register(/^\?alias$/, () => {
     printHelp();
     return true;
   });
