@@ -95,24 +95,15 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   // ── target state ─────────────────────────────────────────────────────────
 
-  const ORDINALS = ['1. ', '2. ', '3. ', '4. '];
-  const targets = ['cel1', 'cel2', 'cel3', 'cel4'];
+  const ORDINALS = ['', '2. ', '3. ', '4. '];
+  const targets = ['INIT', 'cel2', 'cel3', 'cel4'];
 
-  const renderTargetFooter = () =>
-    targets
-      .map((t, i) => `<span style="opacity:0.6">[t${i + 1}]</span> ${t}`)
-      .join(' <span style="opacity:0.4">|</span> ');
+  const renderTargetFooter = () => (targets[0] ? `CEL: ${targets[0]}` : '');
 
   const footerHandle = api.ui.registerFooterComponent('targets', renderTargetFooter(), 'start');
 
   const updateFooter = () => {
     footerHandle.setContent(renderTargetFooter());
-  };
-
-  const printTargets = () => {
-    for (let i = 0; i < 4; i++) {
-      api.output.print(`[t${i + 1}] ${targets[i]}`);
-    }
   };
 
   // ── triggers ─────────────────────────────────────────────────────────────
@@ -326,13 +317,11 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   api.aliases.register(/^set(?:\s+(.+))?$/, (matches) => {
     const target = matches?.[1]?.trim();
     if (!target) {
-      printTargets();
       return true;
     }
     for (let i = 0; i < 4; i++) {
       targets[i] = `${ORDINALS[i]}${target}`;
     }
-    printTargets();
     updateFooter();
     return true;
   });
@@ -343,11 +332,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     api.aliases.register(new RegExp(`^set${n}(?:\\s+(.+))?$`), (matches) => {
       const what = matches?.[1]?.trim();
       if (!what) {
-        api.output.print(`[t${n}] ${targets[i]}`);
         return true;
       }
       targets[i] = what;
-      api.output.print(`[t${n}] ${targets[i]}`);
       updateFooter();
       return true;
     });
