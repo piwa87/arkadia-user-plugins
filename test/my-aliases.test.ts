@@ -25,6 +25,47 @@ describe('my-aliases plugin', () => {
     expect(result).toEqual({ text: 'Statek z wolna doplywa do brzegu.', appliedRange: [0, 33] });
   });
 
+  it('registers a footer component showing all 4 default targets on init', async () => {
+    const { api, footerComponents } = createMockApi();
+    await init(api);
+
+    expect(footerComponents).toHaveLength(1);
+    expect(footerComponents[0].id).toBe('targets');
+    expect(footerComponents[0].initialContent).toContain('cel1');
+    expect(footerComponents[0].initialContent).toContain('cel2');
+    expect(footerComponents[0].initialContent).toContain('cel3');
+    expect(footerComponents[0].initialContent).toContain('cel4');
+  });
+
+  it('updates the footer when set alias changes all targets', async () => {
+    const { api, aliases, footerComponents } = createMockApi();
+    await init(api);
+
+    const setAlias = aliases.find((a) => a.pattern.test('set goblin'));
+    setAlias!.callback(['set goblin', 'goblin'] as unknown as RegExpMatchArray);
+
+    const { setContent } = footerComponents[0].handle;
+    expect(setContent).toHaveBeenCalledTimes(1);
+    const content = (setContent as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    expect(content).toContain('goblin');
+  });
+
+  it('updates the footer when set1–set4 aliases change individual targets', async () => {
+    const { api, aliases, footerComponents } = createMockApi();
+    await init(api);
+
+    for (let n = 1; n <= 4; n++) {
+      const setNAlias = aliases.find((a) => a.pattern.test(`set${n} dragon`));
+      expect(setNAlias).toBeDefined();
+      setNAlias!.callback([`set${n} dragon`, 'dragon'] as unknown as RegExpMatchArray);
+    }
+
+    const { setContent } = footerComponents[0].handle;
+    expect(setContent).toHaveBeenCalledTimes(4);
+    const lastContent = (setContent as ReturnType<typeof vi.fn>).mock.calls[3][0] as string;
+    expect(lastContent).toContain('dragon');
+  });
+
   it('registers aliases for the CMUD movement macros with random delay', async () => {
     const { api, aliases, oneTimeTriggers } = createMockApi();
     await init(api);
