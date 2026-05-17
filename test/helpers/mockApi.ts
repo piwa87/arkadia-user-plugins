@@ -30,6 +30,17 @@ export interface RegisteredCommandHook {
   priority?: number;
 }
 
+export interface MockFooterComponent {
+  id: string;
+  initialContent: string;
+  handle: {
+    element: HTMLSpanElement;
+    setContent: ReturnType<typeof vi.fn>;
+    setVisible: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+}
+
 export function createMockLine(text: string) {
   const line: any = {
     text,
@@ -49,6 +60,7 @@ export function createMockApi(options?: { room?: any }) {
   const oneTimeTriggers: RegisteredOneTimeTrigger[] = [];
   const aliases: RegisteredAlias[] = [];
   const commandHooks: RegisteredCommandHook[] = [];
+  const footerComponents: MockFooterComponent[] = [];
   const room = options?.room;
 
   const api = {
@@ -98,8 +110,20 @@ export function createMockApi(options?: { room?: any }) {
     output: {
       print: vi.fn(),
     },
+    ui: {
+      registerFooterComponent: vi.fn((id: string, content: string, _position?: 'start' | 'end' | number) => {
+        const handle = {
+          element: {} as HTMLSpanElement,
+          setContent: vi.fn(),
+          setVisible: vi.fn(),
+          remove: vi.fn(),
+        };
+        footerComponents.push({ id, initialContent: content, handle });
+        return handle;
+      }),
+    },
     AnsiAwareBuffer: MockAnsiAwareBuffer,
   } as unknown as PluginApi;
 
-  return { api, triggers, oneTimeTriggers, aliases, commandHooks };
+  return { api, triggers, oneTimeTriggers, aliases, commandHooks, footerComponents };
 }

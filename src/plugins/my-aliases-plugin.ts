@@ -98,6 +98,17 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['1. ', '2. ', '3. ', '4. '];
   const targets = ['cel1', 'cel2', 'cel3', 'cel4'];
 
+  const renderTargetFooter = () =>
+    targets
+      .map((t, i) => `<span style="opacity:0.6">[t${i + 1}]</span> ${t}`)
+      .join(' <span style="opacity:0.4">|</span> ');
+
+  const footerHandle = api.ui.registerFooterComponent('targets', renderTargetFooter(), 'start');
+
+  const updateFooter = () => {
+    footerHandle.setContent(renderTargetFooter());
+  };
+
   const printTargets = () => {
     for (let i = 0; i < 4; i++) {
       api.output.print(`[t${i + 1}] ${targets[i]}`);
@@ -322,6 +333,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
       targets[i] = `${ORDINALS[i]}${target}`;
     }
     printTargets();
+    updateFooter();
     return true;
   });
 
@@ -336,6 +348,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
       }
       targets[i] = what;
       api.output.print(`[t${n}] ${targets[i]}`);
+      updateFooter();
       return true;
     });
   }
