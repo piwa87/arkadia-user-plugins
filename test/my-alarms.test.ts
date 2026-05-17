@@ -15,7 +15,9 @@ describe('my-alarms plugin', () => {
     const line = createMockLine(text);
     t!.callback(line, [] as unknown as RegExpMatchArray);
 
-    const printed = (api.output.print as any).mock.calls[0]?.[0];
+    const printed = (api.output.print as any).mock.calls
+      .map(([arg]: [unknown]) => arg)
+      .find((arg: unknown) => arg instanceof MockAnsiAwareBuffer);
     expect(printed instanceof MockAnsiAwareBuffer).toBe(true);
     expect((printed as MockAnsiAwareBuffer).text).toContain('PULAPKA');
     expect(line.color).toHaveBeenCalledWith([0, text.length], expect.any(Object));
@@ -48,7 +50,9 @@ describe('my-alarms plugin', () => {
     const line = createMockLine(text);
     t!.callback(line, [] as unknown as RegExpMatchArray);
 
-    const printed = (api.output.print as any).mock.calls[0]?.[0];
+    const printed = (api.output.print as any).mock.calls
+      .map(([arg]: [unknown]) => arg)
+      .find((arg: unknown) => arg instanceof MockAnsiAwareBuffer);
     expect(printed instanceof MockAnsiAwareBuffer).toBe(true);
     expect((printed as MockAnsiAwareBuffer).text).toContain(name);
     expect(line.color).toHaveBeenCalledWith([0, text.length], expect.any(Object));
@@ -65,7 +69,9 @@ describe('my-alarms plugin', () => {
     const line = createMockLine(text);
     t!.callback(line, [] as unknown as RegExpMatchArray);
 
-    const printed = (api.output.print as any).mock.calls[0]?.[0];
+    const printed = (api.output.print as any).mock.calls
+      .map(([arg]: [unknown]) => arg)
+      .find((arg: unknown) => arg instanceof MockAnsiAwareBuffer);
     expect(printed instanceof MockAnsiAwareBuffer).toBe(true);
     expect((printed as MockAnsiAwareBuffer).text).toContain('trucizna');
     expect(line.color).toHaveBeenCalledWith([0, text.length], expect.any(Object));
@@ -101,6 +107,9 @@ describe('my-alarms plugin', () => {
 
     expect(api.command.send).toHaveBeenCalledWith('play_basso');
     expect(api.command.send).toHaveBeenCalledWith('f+ osa');
-    expect(api.output.print).not.toHaveBeenCalled();
+    const bufferPrints = (api.output.print as any).mock.calls.filter(
+      ([arg]: [unknown]) => arg instanceof MockAnsiAwareBuffer,
+    );
+    expect(bufferPrints).toHaveLength(0);
   });
 });

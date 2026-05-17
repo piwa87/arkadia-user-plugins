@@ -5,7 +5,6 @@ import { registerTextAlias as _registerTextAlias } from '../lib/registerTextAlia
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'starterPlugin';
   const accent = api.colors.fromHex('#d97706');
-  const bla = api.colors.fromRgb(219, 39, 119);
   const arrivalPattern = /(.* (?:z wolna doplywa|przybija) do brzegu\.)/i;
 
   // ── helpers ──────────────────────────────────────────────────────────────

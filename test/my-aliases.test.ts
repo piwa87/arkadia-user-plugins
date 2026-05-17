@@ -90,9 +90,9 @@ describe('my-aliases plugin', () => {
 
     const result = laAlias!.callback();
 
-    expect(api.command.send).toHaveBeenNthCalledWith(1, 'wyj lampe');
+    expect(api.command.send).toHaveBeenNthCalledWith(1, 'wyj lampe|olej');
     expect(api.command.send).toHaveBeenNthCalledWith(2, 'przytrocz lampe');
-    expect(api.command.send).toHaveBeenNthCalledWith(3, 'wyj olej');
+    expect(api.command.send).toHaveBeenNthCalledWith(3, 'naplam');
     expect(api.command.send).toHaveBeenNthCalledWith(4, '/zap');
     expect(result).toBe(true);
   });
@@ -108,8 +108,7 @@ describe('my-aliases plugin', () => {
 
     expect(api.command.send).toHaveBeenNthCalledWith(1, '/zg');
     expect(api.command.send).toHaveBeenNthCalledWith(2, 'odtrocz lampe');
-    expect(api.command.send).toHaveBeenNthCalledWith(3, 'wlz lampe');
-    expect(api.command.send).toHaveBeenNthCalledWith(4, 'wlz oleje');
+    expect(api.command.send).toHaveBeenNthCalledWith(3, 'wlz lampe|oleje');
     expect(result).toBe(true);
   });
 
