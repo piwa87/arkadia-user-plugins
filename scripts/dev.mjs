@@ -14,8 +14,9 @@ async function rebuild(reason) {
   building = true;
   try {
     const outputs = await buildProject();
-    console.log(`[build] ${reason}`);
-    outputs.forEach((output) => console.log(`- ${output}`));
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    console.log(`✓ [build] ${reason} at ${time}`);
+    outputs.forEach((output) => console.log(`  - ${output}`));
   } catch (error) {
     console.error("[build] failed", error);
   } finally {

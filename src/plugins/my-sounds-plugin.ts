@@ -29,12 +29,13 @@ function printSoundsList(api: PluginApi) {
     api.output.print(line);
   });
 
-  const helpBuf = new api.AnsiAwareBuffer('\nUse: s+ (enable), s- (disable), ?sounds (show list), ?alias (show all aliases)');
+  const helpBuf = new api.AnsiAwareBuffer(
+    '\nUse: s+ (enable), s- (disable), ?sounds (show list), ?alias (show all aliases)',
+  );
   api.output.print(helpBuf);
 }
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
-  const tag = 'mySounds';
   soundManager = new SoundManager();
 
   // Register all sounds
@@ -42,46 +43,36 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     soundManager.register(name, base64);
   });
 
-  // Listen for s+ and s- commands from aliases
-  api.triggers.register(
-    /^sig Dzwieki (ON|OFF)$/,
-    (line) => {
-      const isOn = line.text.includes('ON');
-      soundManager.setSoundEnabled(isOn);
-      return line;
-    },
-    tag,
-  );
+  // Register s+ and s- aliases to toggle sounds
+  api.aliases.register(/^s\+$/, () => {
+    soundManager.setSoundEnabled(true);
+    api.output.print('Sounds enabled');
+    return true;
+  });
+
+  api.aliases.register(/^s-$/, () => {
+    soundManager.setSoundEnabled(false);
+    api.output.print('Sounds disabled');
+    return true;
+  });
 
   // Handle ?sounds command - show all available sound aliases
-  api.triggers.register(
-    /^\?sounds\s*$/i,
-    () => {
-      printSoundsList(api);
-      return null; // Hide the trigger line
-    },
-    tag,
-  );
+  api.aliases.register(/^\?sounds$/i, () => {
+    printSoundsList(api);
+    return true;
+  });
 
-  // Handle play_* aliases - listen for echoed commands
-  api.triggers.register(
-    /^(play_\w+)\s*$/i,
-    (line) => {
-      const alias = line.text.trim().toLowerCase();
-      const config = SOUND_ALIASES[alias];
-
-      if (config) {
-        if (config.debounce > 0) {
-          soundManager.playDebounced(config.name, config.debounce, config.volume);
-        } else {
-          soundManager.play(config.name, config.volume);
-        }
+  // Register play_* aliases
+  Object.entries(SOUND_ALIASES).forEach(([alias, config]) => {
+    api.aliases.register(new RegExp(`^${alias}$`, 'i'), () => {
+      if (config.debounce > 0) {
+        soundManager.playDebounced(config.name, config.debounce, config.volume);
+      } else {
+        soundManager.play(config.name, config.volume);
       }
-
-      return line;
-    },
-    tag,
-  );
+      return true;
+    });
+  });
 
   const info: PluginInfo = {
     name: 'My Sounds',

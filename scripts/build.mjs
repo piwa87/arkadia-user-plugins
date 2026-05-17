@@ -1,5 +1,6 @@
 import { buildProject } from "./lib.mjs";
 
 const outputs = await buildProject();
-console.log("Built plugins:");
-outputs.forEach((output) => console.log(`- ${output}`));
+const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+console.log(`✓ Built plugins at ${time}:`);
+outputs.forEach((output) => console.log(`  - ${output}`));
