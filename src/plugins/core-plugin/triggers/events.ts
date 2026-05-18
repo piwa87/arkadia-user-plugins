@@ -1,16 +1,12 @@
-import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
+import type { PluginApi } from '@arkadia/plugin-types';
 
-export async function init(api: PluginApi): Promise<PluginInfo> {
-  const tag = 'myAlarms';
+export function setupEventTriggers(api: PluginApi): void {
+  const tag = 'eventTriggers';
 
-  // ── colors ────────────────────────────────────────────────────────────────
-
-  const cyanColor = api.colors.fromHex('#22d3ee'); // trap tile
-  const dangerColor = api.colors.fromHex('#ef4444'); // poison
-  const undeadColor = api.colors.fromHex('#a78bfa'); // undead type lines
-  const alertColor = api.colors.fromHex('#fbbf24'); // printed alert text
-
-  // ── helpers ───────────────────────────────────────────────────────────────
+  const cyanColor = api.colors.fromHex('#22d3ee');
+  const dangerColor = api.colors.fromHex('#ef4444');
+  const undeadColor = api.colors.fromHex('#a78bfa');
+  const alertColor = api.colors.fromHex('#fbbf24');
 
   const colorLine = (line: any, color: any) => line.color([0, line.text.length], color);
 
@@ -19,8 +15,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     buf.color([0, text.length], color);
     api.output.print(buf);
   };
-
-  // ── triggers ──────────────────────────────────────────────────────────────
 
   // Trap tile (blekitni_plyta)
   api.triggers.register(
@@ -103,12 +97,4 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     },
     tag,
   );
-
-  const info: PluginInfo = {
-    name: 'My Alarms',
-    version: '0.1.0',
-    description: 'Visual and audio alerts for traps, undead types, and status effects',
-  };
-  api.output.print(`[${info.name} v${info.version}] loaded`);
-  return info;
 }

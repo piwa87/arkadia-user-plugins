@@ -75,9 +75,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   });
 
   const info: PluginInfo = {
-    name: 'My Sounds',
+    name: 'Piot Sounds by Piot',
     version: '0.2.0',
-    description: 'Sound effects system with debouncing - type ?sounds for list',
+    description: 'Moje dzwieki, ?sounds = pomoc',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);
   api.output.print('Type ?sounds to see available sound aliases, s+ to enable, s- to disable');

@@ -1,14 +1,9 @@
-import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
-import { registerTextAlias } from '../lib/registerTextAlias';
+import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../../lib/registerTextAlias';
 
-export async function init(api: PluginApi): Promise<PluginInfo> {
-  const tag = 'jensEmocje';
-
-  // ── aliases (alphabetical) ───────────────────────────────────────────────
-
+export function setupEmoteAliases(api: PluginApi): void {
   // #region ce
   api.aliases.register(/^ce$/, () => {
-    // original had GMCP daylight check for Buongiorno/Buonasera — not implemented
     api.command.send('powiedz Buongiorno');
     api.command.send('uklon sie uprzejmie');
     return true;
@@ -126,12 +121,4 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   // #region zd
   registerTextAlias(api, /^zd(?:\s+(.+))?$/, 'zdziw sie');
-
-  const info: PluginInfo = {
-    name: 'Jens Emocje',
-    version: '0.1.0',
-    description: 'Emote aliases',
-  };
-  api.output.print(`[${info.name} v${info.version}] loaded`);
-  return info;
 }
