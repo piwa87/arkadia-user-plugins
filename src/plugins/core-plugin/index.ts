@@ -6,6 +6,7 @@ import { setupBattleAliases } from './aliases/battle';
 import { setupCombatAliases } from './aliases/combat';
 import { setupEmoteAliases } from './aliases/emotes';
 import { setupEquipmentAliases } from './aliases/equipment';
+import { setupOptionsAliases } from './aliases/options';
 import { setupTravelAliases } from './aliases/travel';
 import { setupHelpAliases } from './aliases/help';
 
@@ -25,6 +26,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupCombatAliases(api, targets, ORDINALS, updateFooter);
   setupEmoteAliases(api);
   setupEquipmentAliases(api);
+  setupOptionsAliases(api);
   setupTravelAliases(api, armArrivalTrigger);
   setupHelpAliases(api);
 
