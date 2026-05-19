@@ -15,6 +15,16 @@ import { setupMail } from './modules/mail';
 import { setupGaging } from './modules/gaging';
 import { setupDropMagic } from './modules/drop-magic';
 import { setupAstrolabium } from './modules/astrolabium';
+import { setupSigns } from './modules/signs';
+import { setupHints } from './modules/hints';
+import { setupKeygiverColors } from './modules/keygiver-colors';
+import { setupNpcOrders } from './modules/npc-orders';
+import { setupHelp } from './modules/help';
+import { setupTeamSearch } from './modules/team-search';
+import { setupCombatTime } from './modules/combat-time';
+import { setupLocations } from './modules/locations';
+import { setupFatigue } from './modules/fatigue';
+import { setupSwiatynia } from './modules/swiatynia';
 
 interface RaState {
   orders: Record<string, any>;
@@ -30,6 +40,7 @@ interface RaState {
     preText?: string;
     postText?: string;
   };
+  autoSwitchReleasingGuards?: boolean;
   timeouts: number[];
 }
 
@@ -41,7 +52,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     keygiverDrops: [],
     keys: [],
     timeouts: [],
-    mail: {}
+    mail: {},
   };
 
   const cleanups: Array<() => void> = [];
@@ -63,12 +74,23 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanups.push(setupGaging(api));
   cleanups.push(setupDropMagic(api, state));
   cleanups.push(setupAstrolabium(api));
+  cleanups.push(setupSigns(api, state));
+  cleanups.push(setupHints(api));
+  cleanups.push(setupKeygiverColors(api));
+  cleanups.push(setupNpcOrders(api));
+  cleanups.push(setupHelp(api));
+  cleanups.push(setupTeamSearch(api));
+  cleanups.push(setupCombatTime(api));
+  cleanups.push(setupLocations(api));
+  cleanups.push(setupFatigue(api));
+  cleanups.push(setupSwiatynia(api));
 
   api.output.print('[My RA Plugin] Loaded');
 
   return {
     name: 'My RA Plugin',
     version: '0.1.0',
-    description: 'RA Plugin - Stones, Orders, Dining, Carriage, Detox, Misc, Enemies, Keygivers, Team, Cemetery, Kurhany, Stan, Mail, Gaging, DropMagic, Astrolabium',
+    description:
+      'RA Plugin - Stones, Orders, Dining, Carriage, Detox, Misc, Enemies, Keygivers, Team, Cemetery, Kurhany, Stan, Mail, Gaging, DropMagic, Astrolabium',
   };
 }
