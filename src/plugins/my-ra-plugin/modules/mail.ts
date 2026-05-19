@@ -39,7 +39,7 @@ function toRomanNumerals(value: number): string {
 
 function createLocationContent(api: PluginApi): string {
   const room = api.map.getRoom();
-  const roomId = room?.id || 0;
+  const roomId = Number(room?.id) || 0;
   return `Dalsze informacje wydaja sie slabo czytelne. Mozesz rozroznic jedynie nastepujace znaki: ${toRomanNumerals(roomId)}`;
 }
 
