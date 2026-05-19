@@ -25,6 +25,11 @@ import { setupCombatTime } from './modules/combat-time';
 import { setupLocations } from './modules/locations';
 import { setupFatigue } from './modules/fatigue';
 import { setupSwiatynia } from './modules/swiatynia';
+import { setupCalendar } from './modules/calendar';
+import { setupTraverse } from './modules/traverse';
+import { setupSelling } from './modules/selling';
+import { setupWindow } from './modules/window';
+import { setupAdmin } from './modules/admin';
 
 interface RaState {
   orders: Record<string, any>;
@@ -42,6 +47,8 @@ interface RaState {
   };
   autoSwitchReleasingGuards?: boolean;
   timeouts: number[];
+  money?: any;
+  bankTransactionCost: number;
 }
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
@@ -53,6 +60,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     keys: [],
     timeouts: [],
     mail: {},
+    bankTransactionCost: 0,
   };
 
   const cleanups: Array<() => void> = [];
@@ -84,12 +92,18 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanups.push(setupLocations(api));
   cleanups.push(setupFatigue(api));
   cleanups.push(setupSwiatynia(api));
+  cleanups.push(setupCalendar(api));
+  cleanups.push(setupTraverse(api));
+  cleanups.push(setupSelling(api, state));
+  cleanups.push(setupWindow(api, state));
+  cleanups.push(setupAdmin(api, state));
 
   api.output.print('[My RA Plugin] Loaded');
 
   return {
     name: 'My RA Plugin',
     version: '0.1.0',
+    author: 'Piot (Muhahaha)',
     description:
       'RA Plugin - Stones, Orders, Dining, Carriage, Detox, Misc, Enemies, Keygivers, Team, Cemetery, Kurhany, Stan, Mail, Gaging, DropMagic, Astrolabium',
   };

@@ -34,7 +34,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupEventTriggers(api);
 
   const info: PluginInfo = {
-    name: 'Piot Core by Piot',
+    name: 'Piot Core',
     version: '0.2.0',
     author: 'Piot',
     description: 'Aliasy, cele i pomocnicze funkcje',
