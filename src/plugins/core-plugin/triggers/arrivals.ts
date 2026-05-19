@@ -32,7 +32,7 @@ export function setupArrivalTrigger(
   api.triggers.register(
     arrivalPattern,
     (line, matches) => {
-      const range = findMatchRange(line.text, matches[0]);
+      const range = findMatchRange(line.text, matches?.[0] || line.text);
       return range ? line.color(range, accent) : line;
     },
     tag,

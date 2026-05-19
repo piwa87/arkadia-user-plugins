@@ -209,7 +209,7 @@ export function setupStones(api: PluginApi): () => void {
     api.triggers.register(
       new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
       (line, matches) => {
-        const matchText = matches[0];
+        const matchText = matches?.[0] || name;
         const idx = line.text.indexOf(matchText);
         if (idx === -1) return line;
         const effectText = ` (${info.effect})`;

@@ -88,7 +88,7 @@ export function setupDining(api: PluginApi): () => void {
       for (const food of FOOD_ITEMS) {
         parent.registerChild(
           food.pattern,
-          (line) => {
+          (line: any) => {
             eatFood(food.command);
             return line;
           },
