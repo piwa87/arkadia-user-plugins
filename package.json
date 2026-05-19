@@ -13,7 +13,6 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@arkadia/plugin-types": "https://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz",
     "@types/node": "^24.0.0",
     "chokidar": "^4.0.3",
     "esbuild": "^0.28.0",
