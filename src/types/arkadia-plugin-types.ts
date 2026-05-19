@@ -51,7 +51,8 @@ export interface FooterComponentHandle {
 
 /** A map room. */
 export interface Room {
-  id: string | number;
+  /** Unique room identifier (numeric ID represented as a string). */
+  id: string;
   area: string;
   [key: string]: unknown;
 }
@@ -120,7 +121,13 @@ export type EventCallback = (...args: unknown[]) => void;
 
 /** Options for trigger registration. */
 export interface TriggerOptions {
-  /** Number of lines to keep the trigger context open, used by parent triggers. */
+  /**
+   * Keeps the trigger's match context open for the given number of subsequent lines.
+   * Used with parent triggers so that child triggers can fire on lines that follow
+   * the parent match. For example, { stayOpenLines: 20 } keeps the context open
+   * for up to 20 lines after the parent pattern matches, allowing child triggers
+   * to detect food items in the room description that follows.
+   */
   stayOpenLines?: number;
 }
 
