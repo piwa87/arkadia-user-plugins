@@ -36,6 +36,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const info: PluginInfo = {
     name: 'Piot Core by Piot',
     version: '0.2.0',
+    author: 'Piot',
     description: 'Aliasy, cele i pomocnicze funkcje',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);

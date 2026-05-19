@@ -1,1 +1,1 @@
-export const PASSWORD = 'kota1masz';
+// export const PASSWORD = '';
