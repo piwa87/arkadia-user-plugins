@@ -5,6 +5,10 @@
 "@arkadia/plugin-types@../arkadia-web-client-extension/plugin-types":
   version "1.0.0"
 
+"@arkadia/plugin-types@http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz":
+  version "1.0.0-20260519115811"
+  resolved "http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz#30ea54bfa81b65565925c0cb08dece97416465bc"
+
 "@emnapi/core@1.10.0":
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.10.0.tgz#380ccc8f2412ea22d1d972df7f8ee23a3b9c7467"
