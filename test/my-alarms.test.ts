@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { init } from '../src/plugins/my-alarms-plugin';
+import { setupEventTriggers } from '../src/plugins/core-plugin/triggers/events';
 import { createMockApi, createMockLine, MockAnsiAwareBuffer } from './helpers/mockApi';
 
-describe('my-alarms plugin', () => {
+describe('core-plugin event triggers', () => {
   it('highlights trap tile line and prints PULAPKA warning', async () => {
     const { api, triggers } = createMockApi();
-    await init(api);
+    setupEventTriggers(api);
 
     const text = 'Jedna z nich jest jednak lekko wcisnieta, wyraznie odznaczajac sie od pozostalych.';
     const t = triggers.find((tr) => (tr.pattern as RegExp).test(text));
     expect(t).toBeDefined();
-    expect(t!.tag).toBe('myAlarms');
+    expect(t!.tag).toBe('eventTriggers');
 
     const line = createMockLine(text);
     t!.callback(line, [] as unknown as RegExpMatchArray);
@@ -42,7 +42,7 @@ describe('my-alarms plugin', () => {
     ],
   ])('identifies undead coffin type: %s', async (name, text) => {
     const { api, triggers } = createMockApi();
-    await init(api);
+    setupEventTriggers(api);
 
     const t = triggers.find((tr) => (tr.pattern as RegExp).test(text));
     expect(t).toBeDefined();
@@ -60,7 +60,7 @@ describe('my-alarms plugin', () => {
 
   it('highlights poison line and prints trucizna warning', async () => {
     const { api, triggers } = createMockApi();
-    await init(api);
+    setupEventTriggers(api);
 
     const text = 'Czujesz, ze do twego ciala dostaje sie trucizna.';
     const t = triggers.find((tr) => (tr.pattern as RegExp).test(text));
@@ -79,7 +79,7 @@ describe('my-alarms plugin', () => {
 
   it('substitutes eating warning with a green OK response', async () => {
     const { api, triggers } = createMockApi();
-    await init(api);
+    setupEventTriggers(api);
 
     const text = 'Nie dasz rady tego juz zjesc';
     const t = triggers.find((tr) => (tr.pattern as RegExp).test(text));
@@ -96,7 +96,7 @@ describe('my-alarms plugin', () => {
 
   it('plays sound and flees when sarcophagus closes', async () => {
     const { api, triggers } = createMockApi();
-    await init(api);
+    setupEventTriggers(api);
 
     const text = 'Kamienna plyta sarkofagu z glosnym zgrzytem zostaje zasunieta';
     const t = triggers.find((tr) => (tr.pattern as RegExp).test(text));
@@ -113,3 +113,4 @@ describe('my-alarms plugin', () => {
     expect(bufferPrints).toHaveLength(0);
   });
 });
+
