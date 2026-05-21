@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import type { KondycjeState } from '../triggers/kondycje';
+import type { KondycjeState } from './kondycje_triggers';
 
 export function setupKondycjeAliases(api: PluginApi, state: KondycjeState): void {
   // k — show condition of all characters + fatigue
@@ -25,37 +25,27 @@ export function setupKondycjeAliases(api: PluginApi, state: KondycjeState): void
     return true;
   });
 
-  // zla+ — enable the bad-condition (w zlej kondycji) alert for the player
-  api.aliases.register(/^zla\+$/, () => {
-    state.playerBadCondEnabled = true;
-    return true;
-  });
-
-  // zla- — disable the bad-condition alert (also clears any pending escape direction)
-  api.aliases.register(/^zla-$/, () => {
-    state.playerBadCondEnabled = false;
-    return true;
-  });
-
-  // forma! — enable barely-alive (ledwo zyw) auto-assist trigger
-  api.aliases.register(/^forma!$/, () => {
-    state.playerLedwoEnabled = true;
-    api.command.send('sig Wspomaganie formy wlaczone.');
-    return true;
-  });
-
   // kon — test all 7 HP states for a male and female character via /fake
-  api.aliases.register(/^kon$/, () => {
+  api.aliases.register(/^kon\!$/, () => {
     const states = [
-      'ledwo zyw', 'ciezko rann', 'w zlej kondycji',
-      'rann', 'lekko rann', 'w dobrym stanie', 'w swietnej kondycji',
+      'ledwo zyw',
+      'ciezko rann',
+      'w zlej kondycji',
+      'rann',
+      'lekko rann',
+      'w dobrym stanie',
+      'w swietnej kondycji',
     ];
-    const maleSuffix   = ['y', 'y', '', 'y', 'y', '', ''];
+    const maleSuffix = ['y', 'y', '', 'y', 'y', '', ''];
     const femaleSuffix = ['a', 'a', '', 'a', 'a', '', ''];
+
+    api.command.send('');
+    api.command.send(`/fake Jestes w swietnej kondycji.`);
 
     for (let i = 0; i < states.length; i++) {
       api.command.send(`/fake Bohater jest ${states[i]}${maleSuffix[i]}.`);
     }
+    api.command.send('');
     for (let i = 0; i < states.length; i++) {
       api.command.send(`/fake Bohaterka jest ${states[i]}${femaleSuffix[i]}.`);
     }

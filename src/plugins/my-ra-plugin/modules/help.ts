@@ -29,7 +29,6 @@ export function setupHelp(api: PluginApi): () => void {
     entry(api, '/woz', 'pokazuje aktualne informacje o wozie');
     entry(api, '/zaslon+', 'wlacza puszczanie zaslon po rozkazach');
     entry(api, '/zaslon-', 'wylacza puszczanie zaslon po rozkazach');
-    entry(api, '/stan', 'oblicza potrzebny wiek do tygodniowego idla');
     entry(api, '/ddaj <przedmiot>', 'daje przedmiot kazdemu w druzynie');
     entry(api, '/ddajz <zloto>', 'daje zloto kazdemu w druzynie');
     entry(api, '/czas_walki', 'pokazuje czas trwania walki');

@@ -1,16 +1,17 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupArrivalTrigger } from './triggers/arrivals';
 import { setupEventTriggers } from './triggers/events';
-import { createKondycjeState, setupKondycjeTriggers } from './triggers/kondycje';
 import { setupFooter } from './ui/footer';
 import { setupBattleAliases } from './aliases/battle';
 import { setupCombatAliases } from './aliases/combat';
 import { setupEmoteAliases } from './aliases/emotes';
 import { setupEquipmentAliases } from './aliases/equipment';
-import { setupKondycjeAliases } from './aliases/kondycje';
 import { setupOptionsAliases } from './aliases/options';
 import { setupTravelAliases } from './aliases/travel';
 import { setupHelpAliases } from './aliases/help';
+import { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
+import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
+import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'corePlugin';
@@ -35,10 +36,13 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
 
-  // Set up kondycja (HP condition) triggers and aliases
+  // Set up kondycje (HP condition) triggers and aliases
   const kondycjeState = createKondycjeState();
   setupKondycjeTriggers(api, kondycjeState);
   setupKondycjeAliases(api, kondycjeState);
+
+  const zmeczenieState = createZmeczenieState();
+  setupZmeczenieTriggers(api, zmeczenieState);
 
   const info: PluginInfo = {
     name: 'Piot Core',

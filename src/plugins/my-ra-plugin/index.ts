@@ -10,7 +10,6 @@ import { setupKeygivers } from './modules/keygivers';
 import { setupTeam } from './modules/team';
 import { setupCmentarzCampo } from './modules/cmentarz-campo';
 import { setupKurhanyTilea } from './modules/kurhany-tilea';
-import { setupStan } from './modules/stan';
 import { setupMail } from './modules/mail';
 import { setupGaging } from './modules/gaging';
 import { setupDropMagic } from './modules/drop-magic';
@@ -77,7 +76,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanups.push(setupTeam(api));
   cleanups.push(setupCmentarzCampo(api));
   cleanups.push(setupKurhanyTilea(api));
-  cleanups.push(setupStan(api));
   cleanups.push(setupMail(api, state));
   cleanups.push(setupGaging(api));
   cleanups.push(setupDropMagic(api, state));

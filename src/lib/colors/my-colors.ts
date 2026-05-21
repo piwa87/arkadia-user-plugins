@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import type { FormatStateSnapshot } from '@arkadia/plugin-types';
+import { bgColorsHex, type BgColorNumber } from './my-bg-colors';
 
 // Custom CMud colors (0-15 indexed)
 // RGB versions
@@ -91,11 +92,11 @@ export const createColorFormat = (colIndex: ColorNumber, api: PluginApi): Format
 
 export const createColorWithBackground = (
   fgIndex: ColorNumber,
-  bgIndex: ColorNumber,
+  bgIndex: BgColorNumber,
   api: PluginApi
 ): FormatStateSnapshot => {
   return {
     foreground: api.colors.fromHex(colorsHex[fgIndex]).foreground,
-    background: api.colors.fromHex(colorsHex[bgIndex]).foreground,
+    background: api.colors.fromHex(bgColorsHex[bgIndex]).foreground,
   };
 };

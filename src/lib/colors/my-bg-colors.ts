@@ -3,7 +3,7 @@ import type { FormatStateSnapshot } from '@arkadia/plugin-types';
 
 // Custom CMud background colors (0-7 indexed)
 // RGB versions
-export const bg0_rgb = 'rgb(0, 0, 0)';
+export const bg0_rgb = 'rgb(14, 14, 14)';
 export const bg1_rgb = 'rgb(0, 0, 128)';
 export const bg2_rgb = 'rgb(36, 36, 36)';
 export const bg3_rgb = 'rgb(75, 44, 44)';
@@ -13,7 +13,7 @@ export const bg6_rgb = 'rgb(14, 69, 28)';
 export const bg7_rgb = 'rgb(68, 68, 68)';
 
 // Hex versions
-export const bg0 = '#000000';
+export const bg0 = '##0e0e0e';
 export const bg1 = '#000080';
 export const bg2 = '#242424';
 export const bg3 = '#4b2c2c';
