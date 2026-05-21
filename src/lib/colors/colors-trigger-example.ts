@@ -17,7 +17,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   api.triggers.register(
     /Jestes ledwo zywy/i,
     (line) => {
-      return line.color([0, line.length], createColorWithBackground(15, 8, api));
+      return line.color([0, line.length], createColorWithBackground(15, 4, api));
     },
     tag,
   );
