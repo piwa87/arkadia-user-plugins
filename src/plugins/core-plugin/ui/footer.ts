@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { c9 } from '../../../lib/colors';
+import { col8 } from '../../../lib/my-colors';
 
 export function setupFooter(
   api: PluginApi,
@@ -9,7 +9,7 @@ export function setupFooter(
 } {
   const renderContent = () => {
     if (!targets[0]) return '';
-    return `CEL: <span style="color: ${c9};">${targets[0]}</span>`;
+    return `CEL: <span style="color: ${col8};">${targets[0]}</span>`;
   };
 
   const footerHandle = api.ui.registerFooterComponent('targets', renderContent(), 'start');
