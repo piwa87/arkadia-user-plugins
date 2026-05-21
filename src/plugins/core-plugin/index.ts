@@ -1,6 +1,7 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupArrivalTrigger } from './triggers/arrivals';
 import { setupEventTriggers } from './triggers/events';
+import { setupAtakiTriggers } from './triggers/ataki';
 import { setupFooter } from './ui/footer';
 import { setupBattleAliases } from './aliases/battle';
 import { setupCombatAliases } from './aliases/combat';
@@ -35,6 +36,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
+  setupAtakiTriggers(api);
 
   // Set up kondycje (HP condition) triggers and aliases
   const kondycjeState = createKondycjeState();
