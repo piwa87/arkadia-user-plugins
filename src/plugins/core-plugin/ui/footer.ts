@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { col8 } from '../../../lib/my-colors';
+import { col8 } from '../../../lib/colors/my-colors';
 
 export function setupFooter(
   api: PluginApi,

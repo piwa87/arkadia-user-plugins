@@ -1,3 +1,6 @@
+import type { PluginApi } from '@arkadia/plugin-types';
+import type { FormatStateSnapshot } from '@arkadia/plugin-types';
+
 // Custom CMud colors (0-15 indexed)
 // RGB versions
 export const col0_rgb = 'rgb(128, 128, 128)';
@@ -77,3 +80,22 @@ export type ColorNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
 
 export const getColorRgb = (num: ColorNumber): string => colorsRgb[num];
 export const getColorHex = (num: ColorNumber): string => colorsHex[num];
+
+export const getMyColor = (colIndex: ColorNumber, api: PluginApi): FormatStateSnapshot => {
+  return api.colors.fromHex(colorsHex[colIndex]);
+};
+
+export const createColorFormat = (colIndex: ColorNumber, api: PluginApi): FormatStateSnapshot => {
+  return api.colors.fromHex(colorsHex[colIndex]);
+};
+
+export const createColorWithBackground = (
+  fgIndex: ColorNumber,
+  bgIndex: ColorNumber,
+  api: PluginApi
+): FormatStateSnapshot => {
+  return {
+    foreground: api.colors.fromHex(colorsHex[fgIndex]).foreground,
+    background: api.colors.fromHex(colorsHex[bgIndex]).foreground,
+  };
+};
