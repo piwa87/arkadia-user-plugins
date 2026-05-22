@@ -2,6 +2,7 @@ import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupArrivalTrigger } from './triggers/arrivals';
 import { setupEventTriggers } from './triggers/events';
 import { setupAtakiTriggers } from './triggers/ataki';
+import { setupLocationTriggers } from './triggers/location';
 import { setupFooter } from './ui/footer';
 import { setupBattleAliases } from './aliases/battle';
 import { setupCombatAliases } from './aliases/combat';
@@ -11,6 +12,8 @@ import { setupOptionsAliases } from './aliases/options';
 import { setupTravelAliases } from './aliases/travel';
 import { setupHelpAliases } from './aliases/help';
 import { setupBindAliases } from './aliases/bind';
+import { setupMapAliases } from './aliases/map';
+import { setupDebugAliases } from './aliases/debug';
 import { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
 import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
@@ -35,10 +38,13 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupTravelAliases(api, armArrivalTrigger);
   setupHelpAliases(api);
   setupBindAliases(api);
+  setupDebugAliases(api);
+  setupMapAliases(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
   setupAtakiTriggers(api);
+  setupLocationTriggers(api);
 
   // Set up kondycje (HP condition) triggers and aliases
   const kondycjeState = createKondycjeState();

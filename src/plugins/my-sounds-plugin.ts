@@ -81,6 +81,5 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     description: 'Moje dzwieki, ?sounds = pomoc',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);
-  api.output.print('Type ?sounds to see available sound aliases, s+ to enable, s- to disable');
   return info;
 }

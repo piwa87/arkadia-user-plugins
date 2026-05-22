@@ -58,24 +58,53 @@ src/plugins/combat/loot-plugin.ts →   dist/combat/loot-plugin.js
 
 ## Plugin API
 
-Plugins receive a `PluginApi` object from the client on load. The full API reference is in `docs/PLUGINS.md`. Key namespaces:
+Plugins receive a `PluginApi` object from the client on load. All namespaces:
 
-| Namespace | Purpose |
-|---|---|
-| `api.triggers` | Register regex/string/token triggers against game output |
-| `api.aliases` | Register custom commands (e.g. `/foo bar`) |
-| `api.output` | Print text to the game window |
-| `api.colors` | Create color states from hex/RGB |
-| `api.events` | Listen to and emit game events |
-| `api.command` | Send commands to the server |
-| `api.map` | Read current room / map position |
-| `api.team` | Team membership and leader info |
-| `api.gmcp` | Read raw GMCP data |
-| `api.objectListFilters` | Customise the object list appearance |
-| `api.buttonMacros` | Register stateful button macros |
-| `api.triggerMacros` | Register user-configurable trigger macros |
-| `api.AnsiAwareBuffer` | Build colored/formatted text buffers |
-| `api.ui` | Register footer/status-bar widgets |
+| Namespace | Purpose | Reference |
+| --- | --- | --- |
+| `api.triggers` | Register regex/string/token triggers against game output | `src/instructions/TRIGGERS_REFERENCE.md` |
+| `api.aliases` | Register custom commands (e.g. `al attack`) | `src/instructions/ALIASES_AND_COMMANDS_REFERENCE.md` |
+| `api.command` | Send commands to the server, tab-completion | `src/instructions/ALIASES_AND_COMMANDS_REFERENCE.md` |
+| `api.commandHooks` | Intercept and modify commands before processing | `src/instructions/ALIASES_AND_COMMANDS_REFERENCE.md` |
+| `api.output` | Print text to the game window | `src/instructions/TRIGGERS_REFERENCE.md` |
+| `api.colors` | Create color states from hex/RGB | `src/instructions/TRIGGERS_REFERENCE.md` |
+| `api.AnsiAwareBuffer` | Build colored/formatted text buffers | `src/instructions/TRIGGERS_REFERENCE.md` |
+| `api.events` | Listen to and emit game events | `src/instructions/EVENTS_REFERENCE.md` |
+| `api.map` | Read current room / map position / pathfinding | `src/instructions/MAP_AND_GMCP_API_REFERENCE.md` |
+| `api.gmcp` | Read raw GMCP data | `src/instructions/MAP_AND_GMCP_API_REFERENCE.md` |
+| `api.ui` | Footer widgets, popups, context/popup menus | `src/instructions/UI_REFERENCE.md` |
+| `api.bind` | Functional key bind management | `src/instructions/UI_REFERENCE.md` |
+| `api.team` | Team membership and leader info | `src/instructions/COMBAT_AND_OBJECTS_REFERENCE.md` |
+| `api.objects` | Objects/NPCs in current location | `src/instructions/COMBAT_AND_OBJECTS_REFERENCE.md` |
+| `api.attackQueue` | Attack queue management | `src/instructions/COMBAT_AND_OBJECTS_REFERENCE.md` |
+| `api.attackController` | Execute attacks with team coordination | `src/instructions/COMBAT_AND_OBJECTS_REFERENCE.md` |
+| `api.combat` | Combat helpers (draw weapon, etc.) | `src/instructions/COMBAT_AND_OBJECTS_REFERENCE.md` |
+| `api.objectListFilters` | Customise the object list appearance | `src/instructions/COMBAT_AND_OBJECTS_REFERENCE.md` |
+| `api.containers` | Put/take items from assigned bags | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.herbs` | Herb inventory management | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.prettyContainers` | Container item formatting/grouping | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.magics` | Magic item pattern database | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.magicKeys` | Magic key pattern database | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.settings` | Character and UI settings (read-only) | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.locationNotes` | Plugin-contributed map location notes | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.people` | People database (social list) | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.buttonMacros` | Register stateful button macros | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+| `api.triggerMacros` | Register user-configurable trigger macros | `src/instructions/GAME_SYSTEMS_REFERENCE.md` |
+
+## API Instruction Files
+
+Before implementing any new trigger, alias, event listener, or other plugin feature, **read the relevant instruction file** from `src/instructions/`:
+
+| File | What it covers |
+| --- | --- |
+| `TRIGGERS_REFERENCE.md` | Triggers, AnsiAwareBuffer, colors, output — **start here for any trigger work** |
+| `ALIASES_AND_COMMANDS_REFERENCE.md` | Aliases, sending commands, command hooks, cleanup pattern |
+| `EVENTS_REFERENCE.md` | Full event name list with payloads |
+| `MAP_AND_GMCP_API_REFERENCE.md` | Map API, GMCP API, room data types |
+| `UI_REFERENCE.md` | Footer components, popups, menus, functional bind |
+| `COMBAT_AND_OBJECTS_REFERENCE.md` | Combat, objects in room, attack queue/controller, object list |
+| `GAME_SYSTEMS_REFERENCE.md` | Containers, herbs, settings, people, macros, location notes |
+| `FUNCTIONAL_BIND_ALIAS_GUIDE.md` | Worked example: bind set/fire pattern |
 
 ## Plugin Structure
 
@@ -118,10 +147,11 @@ yarn test -- --watch   # watch mode
 - Use `yarn`, never `npm`
 - Import types with `import type` from `@arkadia/plugin-types`
 - All plugin code must compile to browser ESM (no Node.js APIs)
-- Use a unique `tag` string per plugin for trigger/alias cleanup
+- Use a unique `tag` string per plugin for trigger/alias cleanup — pass it to every `api.triggers.register()` call; call `api.triggers.removeByTag(tag)` in `destroy()`
 - Always return from trigger callbacks: modified `line`, original `line`, or `null` (to suppress)
-- In `destroy()`, remove any event listeners or intervals you created
-- See `docs/PLUGINS.md` for the full API reference and patterns
+- In `destroy()`, remove all event listeners, intervals, aliases, command hooks, and UI components registered during `init()`
+- Never include Polish characters in regex patterns — keep patterns ASCII-compatible
+- Read the relevant instruction file from `src/instructions/` before implementing any new feature
 
 ## Deployment
 
