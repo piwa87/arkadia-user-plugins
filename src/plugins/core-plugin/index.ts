@@ -10,6 +10,7 @@ import { setupEquipmentAliases } from './aliases/equipment';
 import { setupOptionsAliases } from './aliases/options';
 import { setupTravelAliases } from './aliases/travel';
 import { setupHelpAliases } from './aliases/help';
+import { setupBindAliases } from './aliases/bind';
 import { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
 import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
@@ -33,6 +34,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupOptionsAliases(api);
   setupTravelAliases(api, armArrivalTrigger);
   setupHelpAliases(api);
+  setupBindAliases(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
