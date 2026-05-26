@@ -158,6 +158,40 @@ api.colors.fromRgb(r, g, b): FormatStateSnapshot       // 0-255 each
 
 Pass the result as the `color` argument to any `AnsiAwareBuffer` method.
 
+### Project CMud color palette
+
+The codebase uses a fixed CMud color system with three helper files in `src/lib/colors/`:
+
+| File | What it contains | Type |
+| --- | --- | --- |
+| `my-colors.ts` | 16 foreground colors, indexed 0–15 | `ColorNumber` |
+| `my-bg-colors.ts` | 8 background colors, indexed 0–7 | `BgColorNumber` |
+| `my-ansi-colors.ts` | 128 combined fg+bg colors, indexed 0–127 | `AnsiColorNumber` |
+
+**Index mapping** for the combined palette: `ansi_index = (bg_index * 16) + fg_index`
+
+So color 115 → `bg = 7`, `fg = 3` (115 = 7×16 + 3).
+
+**When you know a color number (e.g. "color 115", "color 89"), always use:**
+
+```typescript
+import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+
+const color = getAnsiFormatState(115, api); // FormatStateSnapshot with fg + bg
+line.color([start, end], color);
+buf.color([0, buf.text.length], color);
+```
+
+**Foreground-only color by index:**
+
+```typescript
+import { getMyColor } from '../../../lib/colors/my-colors';
+
+const fg = getMyColor(3, api); // col3 foreground, no background change
+```
+
+**Do not hard-code hex values** for CMud colors — always look them up through these helpers so the palette stays consistent.
+
 ---
 
 ## Output

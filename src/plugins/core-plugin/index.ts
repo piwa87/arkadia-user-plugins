@@ -2,7 +2,9 @@ import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupArrivalTrigger } from './triggers/arrivals';
 import { setupEventTriggers } from './triggers/events';
 import { setupAtakiTriggers } from './triggers/ataki';
+import { setupZaslonTriggers } from './triggers/zaslon-triggers';
 import { setupLocationTriggers } from './triggers/location';
+import { setupMiscTriggers } from './triggers/misc';
 import { setupFooter } from './ui/footer';
 import { setupBattleAliases } from './aliases/battle';
 import { setupCombatAliases } from './aliases/combat';
@@ -14,9 +16,15 @@ import { setupHelpAliases } from './aliases/help';
 import { setupBindAliases } from './aliases/bind';
 import { setupMapAliases } from './aliases/map';
 import { setupDebugAliases } from './aliases/debug';
+import { setupTeamAliases } from './aliases/team';
+import { setupFlaskAliases } from './aliases/flask';
+import { setupLocationsAliases } from './aliases/locations';
+import { setupMiscAliases } from './aliases/misc';
 import { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
 import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
+import { setupBramyTriggers } from './bramy/bramy_triggers';
+import { setupBramyAliases } from './bramy/bramy_aliases';
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'corePlugin';
@@ -40,11 +48,17 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupBindAliases(api);
   setupDebugAliases(api);
   setupMapAliases(api);
+  setupTeamAliases(api);
+  setupFlaskAliases(api);
+  setupLocationsAliases(api);
+  setupMiscAliases(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
   setupAtakiTriggers(api);
+  setupZaslonTriggers(api);
   setupLocationTriggers(api);
+  setupMiscTriggers(api);
 
   // Set up kondycje (HP condition) triggers and aliases
   const kondycjeState = createKondycjeState();
@@ -53,6 +67,10 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   const zmeczenieState = createZmeczenieState();
   setupZmeczenieTriggers(api, zmeczenieState);
+
+  // Set up bramy (gates/doors) triggers and aliases
+  setupBramyTriggers(api);
+  setupBramyAliases(api);
 
   const info: PluginInfo = {
     name: 'Piot Core',

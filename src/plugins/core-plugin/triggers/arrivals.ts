@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { findMatchRange } from '../../../lib/findMatchRange';
+import { registerTempTrigger } from '../../../lib/registerTempTrigger';
 
 export function setupArrivalTrigger(
   api: PluginApi,
@@ -10,21 +11,8 @@ export function setupArrivalTrigger(
   const arrivalPattern = /(.* (?:z wolna doplywa|przybija) do brzegu\.)/i;
   const accent = api.colors.fromHex('#d97706');
 
-  const runAfterRandomDelay = (callback: () => void) => {
-    const delay = Math.floor(Math.random() * (2900 - 768 + 1)) + 768;
-    setTimeout(callback, delay);
-  };
-
   const armArrivalTrigger = (label: string, callback: () => void) => {
-    api.triggers.registerOneTime(
-      arrivalPattern,
-      (line) => {
-        runAfterRandomDelay(callback);
-        return line;
-      },
-      tag,
-    );
-
+    registerTempTrigger(api, arrivalPattern, 768, 2900, callback, tag);
     api.output.print(`Temp trigger armed: waiting for arrival (${label})`);
   };
 
