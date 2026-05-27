@@ -1,17 +1,17 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
-import { setupArrivalTrigger } from './triggers/arrivals';
 import { setupEventTriggers } from './triggers/events';
-import { setupAtakiTriggers } from './triggers/ataki';
 import { setupZaslonTriggers } from './triggers/zaslon-triggers';
 import { setupLocationTriggers } from './triggers/location';
 import { setupMiscTriggers } from './triggers/misc';
 import { setupFooter } from './ui/footer';
-import { setupBattleAliases } from './aliases/battle';
-import { setupCombatAliases } from './aliases/combat';
+import { setupArrivalTrigger } from './travel/travel_triggers';
+import { setupTravelAliases } from './travel/travel_aliases';
+import { setupCombatAliases } from './combat/combat_aliases';
+import { setupBattleAliases } from './combat/battle_aliases';
+import { setupAtakiTriggers } from './combat/ataki_triggers';
 import { setupEmoteAliases } from './aliases/emotes';
 import { setupEquipmentAliases } from './aliases/equipment';
 import { setupOptionsAliases } from './aliases/options';
-import { setupTravelAliases } from './aliases/travel';
 import { setupHelpAliases } from './aliases/help';
 import { setupBindAliases } from './aliases/bind';
 import { setupMapAliases } from './aliases/map';
@@ -27,6 +27,7 @@ import { setupBramyTriggers } from './bramy/bramy_triggers';
 import { setupBramyAliases } from './bramy/bramy_aliases';
 import { createCombatState, setupGmcpCombat } from './gmcp-combat/combat-state';
 import { megaphone, setupMgfnAlias } from './aliases/mgfn';
+import { createWeaponState, setupWeaponFetchAliases } from './jens/weaponfetch_aliases';
 
 let cleanupCombat: (() => void) | null = null;
 
@@ -75,6 +76,10 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Set up bramy (gates/doors) triggers and aliases
   setupBramyTriggers(api);
   setupBramyAliases(api);
+
+  // Jens: weapon fetching aliases
+  const weaponState = createWeaponState();
+  setupWeaponFetchAliases(api, weaponState);
 
   // Megaphone alias — must be registered before combat engine (darkness handler uses it)
   setupMgfnAlias(api);
