@@ -25,6 +25,10 @@ import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
 import { setupBramyTriggers } from './bramy/bramy_triggers';
 import { setupBramyAliases } from './bramy/bramy_aliases';
+import { createCombatState, setupGmcpCombat } from './gmcp-combat/combat-state';
+import { megaphone, setupMgfnAlias } from './aliases/mgfn';
+
+let cleanupCombat: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'corePlugin';
@@ -72,6 +76,13 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupBramyTriggers(api);
   setupBramyAliases(api);
 
+  // Megaphone alias — must be registered before combat engine (darkness handler uses it)
+  setupMgfnAlias(api);
+
+  // Set up GMCP combat state engine
+  const combatState = createCombatState();
+  cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
+
   const info: PluginInfo = {
     name: 'Piot Core',
     version: '0.2.0',
@@ -80,4 +91,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);
   return info;
+}
+
+export async function destroy(): Promise<void> {
+  cleanupCombat?.();
+  cleanupCombat = null;
 }
