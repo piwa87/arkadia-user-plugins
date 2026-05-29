@@ -90,7 +90,7 @@ describe('core-plugin event triggers', () => {
 
     expect(result).toBe(line);
     expect(line.replace).toHaveBeenCalledWith([0, text.length], '--> Jedzenie OK');
-    expect(line.color).toHaveBeenCalledWith([13, 15], 4);
+    expect(line.color).toHaveBeenCalledWith([13, 15], { type: 'hex', value: '#00aa04' });
     expect(line.text).toBe('--> Jedzenie OK');
   });
 
