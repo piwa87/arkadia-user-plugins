@@ -240,11 +240,11 @@ export function setupMiscAliases(api: PluginApi): void {
 
   // piek! - order bread at bakery
   api.aliases.register(/^piek!$/, () => {
-    api.command.send('otworz zalozona torbe');
-    for (let i = 0; i < 3; i++) api.command.send('zamow bulke');
-    for (let i = 0; i < 3; i++) api.command.send('zamow bagietke');
+    api.command.send('otm');
+    for (let i = 0; i < 2; i++) api.command.send('zamow bulke');
+    for (let i = 0; i < 2; i++) api.command.send('zamow bagietke');
     for (let i = 0; i < 2; i++) api.command.send('zamow chleb');
-    api.command.send('zamknij zalozona torbe');
+    api.command.send('ztm');
     return true;
   });
 
@@ -376,6 +376,31 @@ export function setupMiscAliases(api: PluginApi): void {
     return true;
   });
 
+  // #region hide+ - hide from association listing and stash signet ring
+  api.aliases.register(/^hide\+$/, () => {
+    api.command.send('opcje stowarzyszenie -');
+    api.command.send('snzsun');
+    return true;
+  });
+
+  // #region hide- - appear in association listing and wear signet ring
+  api.aliases.register(/^hide-$/, () => {
+    api.command.send('opcje stowarzyszenie +');
+    api.command.send('wsun kunsztowny sygnet na palec serdeczny');
+    return true;
+  });
+
+  // #region radoor [door] [direction] - open door with signet ring, go through, re-lock
+  api.aliases.register(/^radoor\s+(\S+)\s+(\S+)$/, (matches) => {
+    const co = matches![1];
+    const kier = matches![2];
+    api.command.send(`otworz ${co} kunsztownym sygnetem`);
+    api.command.send(kier);
+    api.command.send(`zamknij ${co}`);
+    api.command.send(`zamknij ${co} kunsztownym sygnetem`);
+    return true;
+  });
+
   api.aliases.register(/^rp\!/, () => {
     api.command.send('/reload-plugins');
     return true;
@@ -384,9 +409,18 @@ export function setupMiscAliases(api: PluginApi): void {
   // mran - send a random exit from the current room
   {
     const dirToCmd: Record<string, string> = {
-      north: 'n', south: 's', east: 'e', west: 'w',
-      northeast: 'ne', northwest: 'nw', southeast: 'se', southwest: 'sw',
-      up: 'u', down: 'd', in: 'in', out: 'out',
+      north: 'n',
+      south: 's',
+      east: 'e',
+      west: 'w',
+      northeast: 'ne',
+      northwest: 'nw',
+      southeast: 'se',
+      southwest: 'sw',
+      up: 'u',
+      down: 'd',
+      in: 'in',
+      out: 'out',
     };
 
     api.aliases.register(/^mran$/, () => {

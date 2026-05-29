@@ -39,16 +39,31 @@ export async function getPluginEntries() {
     .sort();
 }
 
+export async function getPrebuiltPlugins() {
+  const exists = await fs.stat(PLUGINS_DIR).then(() => true).catch(() => false);
+  if (!exists) return [];
+
+  const files = await walk(PLUGINS_DIR);
+  return files.filter((file) => file.endsWith(".js")).sort();
+}
+
+async function copyPrebuiltPlugins() {
+  const files = await getPrebuiltPlugins();
+  await Promise.all(files.map(async (file) => {
+    const relative = path.relative(PLUGINS_DIR, file);
+    const dest = path.join(DIST_DIR, toPosix(relative));
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    await fs.copyFile(file, dest);
+  }));
+  return files;
+}
+
 export function relativePluginOutput(filePath) {
   const relativePath = path.relative(PLUGINS_DIR, filePath);
   return toPosix(relativePath.replace(/\.ts$/, ".js"));
 }
 
-export async function generateIndex(entryPoints) {
-  const plugins = entryPoints.map((entryPoint) => ({
-    name: path.basename(entryPoint, ".ts"),
-    file: relativePluginOutput(entryPoint)
-  }));
+export async function generateIndex(plugins) {
 
   const pluginsJson = JSON.stringify({ plugins }, null, 2);
   await fs.writeFile(path.join(DIST_DIR, "plugins.json"), `${pluginsJson}\n`);
@@ -139,7 +154,8 @@ export async function generateIndex(entryPoints) {
 
 export async function buildProject() {
   const entryPoints = await getPluginEntries();
-  if (entryPoints.length === 0) {
+  const prebuiltCheck = await getPrebuiltPlugins();
+  if (entryPoints.length === 0 && prebuiltCheck.length === 0) {
     throw new Error("No plugin entry files found under src/plugins");
   }
 
@@ -159,6 +175,17 @@ export async function buildProject() {
     logLevel: "info"
   });
 
-  await generateIndex(entryPoints);
-  return entryPoints.map((entryPoint) => relativePluginOutput(entryPoint));
+  const prebuilt = await copyPrebuiltPlugins();
+
+  const compiledPlugins = entryPoints.map((f) => ({
+    name: path.basename(f, ".ts"),
+    file: relativePluginOutput(f),
+  }));
+  const prebuiltPlugins = prebuilt.map((f) => {
+    const rel = toPosix(path.relative(PLUGINS_DIR, f));
+    return { name: path.basename(f, ".js"), file: rel };
+  });
+
+  await generateIndex([...compiledPlugins, ...prebuiltPlugins]);
+  return [...compiledPlugins, ...prebuiltPlugins].map((p) => p.file);
 }

@@ -6,18 +6,40 @@ export function setupCombatAliases(
   ORDINALS: string[],
   updateFooter: () => void,
 ): void {
-  // #region c [target]
-  api.aliases.register(/^c(?:\s+(.+))?$/, (matches) => {
+  // #region z [target or 1-4]
+  api.aliases.register(/^z(?:\s+(.+))?$/, (matches) => {
     const arg = matches?.[1]?.trim();
-    api.command.send(`zabij ${arg ?? targets[0]}`);
+    let target: string;
+    if (!arg) {
+      target = targets[0];
+    } else {
+      const n = parseInt(arg, 10);
+      target = n >= 1 && n <= 4 && !isNaN(n) ? targets[n - 1] : arg;
+    }
+    api.command.send(`zabij ${target}`);
     return true;
   });
 
-  // #region c1 / c2 / c3 / c4
+  // #region z1 / z2 / z3 / z4
   for (let i = 0; i < 4; i++) {
     const n = i + 1;
+    api.aliases.register(new RegExp(`^z${n}$`), () => {
+      api.command.send(`z ${n}`);
+      return true;
+    });
+  }
+
+  // #region c — attack set enemy #1
+  api.aliases.register(/^c$/, () => {
+    api.command.send(`zabij ${targets[0]}`);
+    return true;
+  });
+
+  // #region c1 / c2 / c3 / c4 — delegate to z 1..4
+  for (let i = 0; i < 99; i++) {
+    const n = i + 1;
     api.aliases.register(new RegExp(`^c${n}$`), () => {
-      api.command.send(`c ${targets[i]}`);
+      api.command.send(`/z ${n}`);
       return true;
     });
   }
@@ -49,14 +71,12 @@ export function setupCombatAliases(
     });
   }
 
-  // #region kill [target]
-  api.aliases.register(/^kill(?:\s+(.+))?$/, (matches) => {
-    const target = matches?.[1]?.trim();
-    if (!target) {
-      return true;
-    }
-    api.command.send(`zabij ${target}`);
-    api.command.send('play_glass');
+  // #region dp - attack all 4 targets in reverse priority order
+  api.aliases.register(/^dp$/, () => {
+    api.command.send(`zabij ${targets[3]}`);
+    api.command.send(`zabij ${targets[2]}`);
+    api.command.send(`zabij ${targets[1]}`);
+    api.command.send(`zabij ${targets[0]}`);
     return true;
   });
 }

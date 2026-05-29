@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { getMyColor } from '../../../lib/colors/my-colors';
 
 export function setupEventTriggers(api: PluginApi): void {
   const tag = 'eventTriggers';
@@ -7,6 +8,7 @@ export function setupEventTriggers(api: PluginApi): void {
   const dangerColor = api.colors.fromHex('#ef4444');
   const undeadColor = api.colors.fromHex('#a78bfa');
   const alertColor = api.colors.fromHex('#fbbf24');
+  const jedzOkColor = getMyColor(4, api);
 
   const colorLine = (line: any, color: any) => line.color([0, line.text.length], color);
 
@@ -80,8 +82,21 @@ export function setupEventTriggers(api: PluginApi): void {
   api.triggers.register(
     /^(Nie sadzisz, zebys .* w stanie zjesc tyle|Nie dasz rady tego juz zjesc)\.?$/,
     (line) => {
-      line.replace([0, line.text.length], '--> Jedzenie OK');
-      line.color([13, 15], 4);
+      const msg = '--> Jedzenie OK';
+      line.replace([0, line.text.length], msg);
+      line.color([msg.indexOf('OK'), msg.indexOf('OK') + 2], jedzOkColor);
+      return line;
+    },
+    tag,
+  );
+
+  // Drinking limit warning
+  api.triggers.register(
+    /^Wypiles juz tak duzo, ze nie jestes w stanie wmusic w siebie wiecej\.?$/,
+    (line) => {
+      const msg = '--> Picie OK';
+      line.replace([0, line.text.length], msg);
+      line.color([msg.indexOf('OK'), msg.indexOf('OK') + 2], jedzOkColor);
       return line;
     },
     tag,

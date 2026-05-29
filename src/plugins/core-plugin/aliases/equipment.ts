@@ -220,9 +220,20 @@ export function setupEquipmentAliases(api: PluginApi): void {
   // #region rozkok2 - open 14 cocoons and take contents
   api.aliases.register(/^rozkok2$/, () => {
     const ordinals = [
-      '', 'drugi ', 'trzeci ', 'czwarty ', 'piaty ', 'szosty ', 'siodmy ',
-      'osmy ', 'dziewiaty ', 'dziesiaty ', 'jedenasty ', 'dwunasty ',
-      'trzynasty ', 'czternasty ',
+      '',
+      'drugi ',
+      'trzeci ',
+      'czwarty ',
+      'piaty ',
+      'szosty ',
+      'siodmy ',
+      'osmy ',
+      'dziewiaty ',
+      'dziesiaty ',
+      'jedenasty ',
+      'dwunasty ',
+      'trzynasty ',
+      'czternasty ',
     ];
     for (const ord of ordinals) {
       api.command.send(`rozerwij ${ord}kokon`);
@@ -236,6 +247,142 @@ export function setupEquipmentAliases(api: PluginApi): void {
     for (let i = 1; i <= 4; i++) {
       api.command.send(`wez jaja z ${i}. gniazda`);
     }
+    return true;
+  });
+
+  // #region otm1 - take coins from worn bag
+  api.aliases.register(/^otm1$/, () => {
+    api.command.send('wyj monety');
+    return true;
+  });
+
+  // #region otm - open coin pouch and take coins
+  api.aliases.register(/^otm$/, () => {
+    api.command.send('otworz przytroczona sakiewke');
+    api.command.send('wez monety z przytroczonej sakiewki');
+    return true;
+  });
+
+  // #region ztm - close coin pouch
+  api.aliases.register(/^ztm$/, () => {
+    api.command.send('zamknij przytroczona sakiewke');
+    return true;
+  });
+
+  // #region ned - disembark from raft or ship
+  api.aliases.register(/^ned$/, () => {
+    api.command.send('zejdz z tratwy');
+    api.command.send('zejdz ze statku');
+    return true;
+  });
+
+  // #region op - board transport: arm trigger, open pouch, buy ticket, board, close pouch
+  api.aliases.register(/^op$/, () => {
+    api.command.send('na_statek');
+    api.command.send('otm');
+    api.command.send('kup bilet');
+    api.command.send('wejdz na tratwe');
+    api.command.send('wejdz na statek');
+    api.command.send('ztm');
+    return true;
+  });
+
+  // #region sop - place animal on left shoulder
+  api.aliases.register(/^sop$/, () => {
+    api.command.send('umiesc zwierze na lewym ramieniu');
+    return true;
+  });
+
+  // #region napw - take a bag, fill it with remains, drop it
+  api.aliases.register(/^napw$/, () => {
+    api.command.send('wez worek');
+    api.command.send('otworz worek');
+    api.command.send('napelnij worek');
+    api.command.send('odloz worek');
+    return true;
+  });
+
+  // #region kolczyki+ - put on all earrings and nose piercing
+  api.aliases.register(/^kolczyki\+$/, () => {
+    api.command.send('koumiesc posrebrzany kulisty kolczyk w nosie');
+    api.command.send('koumiesc 1. diamentowy kolczyk w prawym uchu');
+    api.command.send('koumiesc 1. diamentowy kolczyk w prawym uchu');
+    api.command.send('koumiesc falisty kolczyk z heliodorem w prawym uchu');
+    api.command.send('koumiesc 1. diamentowy kolczyk w lewym uchu');
+    api.command.send('koumiesc 1. diamentowy kolczyk w lewym uchu');
+    api.command.send('koumiesc azurowy kolczyk z blekitna perla w lewym uchu');
+    return true;
+  });
+
+  // #region kolczyki- - remove all earrings and nose piercing
+  api.aliases.register(/^kolczyki-$/, () => {
+    api.command.send('kowyjmij posrebrzany kulisty kolczyk z nosa');
+    api.command.send('kowyjmij diamentowy kolczyk z prawego ucha');
+    api.command.send('kowyjmij diamentowy kolczyk z prawego ucha');
+    api.command.send('kowyjmij falisty kolczyk z prawego ucha');
+    api.command.send('kowyjmij diamentowy kolczyk z lewego ucha');
+    api.command.send('kowyjmij diamentowy kolczyk z lewego ucha');
+    api.command.send('kowyjmij azurowy kolczyk z lewego ucha');
+    return true;
+  });
+
+  // #region r+ - lay out cloak and sit on it to rest
+  api.aliases.register(/^r\+$/, () => {
+    api.command.send('zdejmij plaszcz');
+    api.command.send('rozloz plaszcz');
+    api.command.send('usiadz na plaszczu');
+    return true;
+  });
+
+  // #region r- - stand up, pick up cloak, wear and wrap it
+  api.aliases.register(/^r-$/, () => {
+    api.command.send('wstan');
+    api.command.send('wez plaszcz');
+    api.command.send('zpla');
+    api.command.send('otu');
+    return true;
+  });
+
+  // #region ktbuty - take yellow boots from up to 5 bodies
+  api.aliases.register(/^ktbuty$/, () => {
+    for (let i = 1; i <= 5; i++) {
+      api.command.send(`wez zolte buty z ${i}. ciala`);
+    }
+    return true;
+  });
+
+  // #region wple - transfer scraps and stones from bag into backpack
+  api.aliases.register(/^wple$/, () => {
+    api.command.send('wyj szczatki');
+    api.command.send('wyj kamienie');
+    api.command.send('wloz szczatki do plecaka');
+    api.command.send('wloz kamienie do plecaka');
+    api.command.send('zajrzyj do plecaka');
+    return true;
+  });
+
+  // #region luk - lock the revolving door with signet ring
+  api.aliases.register(/^luk$/, () => {
+    api.command.send('zamknij drzwi');
+    api.command.send('zamknij drzwi kunsztownym sygnetem');
+    return true;
+  });
+
+  // #region aabn - unlock and open the revolving door
+  api.aliases.register(/^aabn$/, () => {
+    api.command.send('otworz drzwi kunsztownym sygnetem');
+    api.command.send('otworz drzwi');
+    return true;
+  });
+
+  // #region zwal - refill bag, take out weapons and armor, equip both
+  api.aliases.register(/^zwal$/, () => {
+    api.command.send('napt');
+    api.command.send('wyj bronie');
+    api.command.send('wl je');
+    api.command.send('napt');
+    api.command.send('wyjzb');
+    api.command.send('wl je');
     return true;
   });
 }
