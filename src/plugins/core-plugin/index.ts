@@ -9,6 +9,7 @@ import { setupTravelAliases } from './travel/travel_aliases';
 import { setupCombatAliases } from './combat/combat_aliases';
 import { setupBattleAliases } from './combat/exp_bindy';
 import { setupAtakiTriggers } from './combat/ataki_triggers';
+import { setupCiosyKolory } from './combat/ciosy_kolory';
 import { setupEmoteAliases } from './aliases/emotes';
 import { setupEquipmentAliases } from './aliases/equipment';
 import { setupOptionsAliases } from './aliases/options';
@@ -63,6 +64,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
   setupAtakiTriggers(api);
+  setupCiosyKolory(api);
   setupZaslonTriggers(api);
   setupLocationTriggers(api);
   setupMiscTriggers(api);

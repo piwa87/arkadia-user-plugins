@@ -16,6 +16,7 @@ type TriggerCallback = (
 ```
 
 Return values:
+
 - **`line`** — keep the line as-is (pass-through)
 - **modified `line`** — show modified version
 - **`null`** — suppress the line entirely (hide from output)
@@ -182,13 +183,17 @@ line.color([start, end], color);
 buf.color([0, buf.text.length], color);
 ```
 
-**Foreground-only color by index:**
+**Foreground-only color by index (0–15):**
 
 ```typescript
 import { getMyColor } from '../../../lib/colors/my-colors';
 
 const fg = getMyColor(3, api); // col3 foreground, no background change
 ```
+
+**Mapping from MudScript/zMUD XML:** When porting aliases or triggers from XML that contain `%ansi(N)`, the number N maps directly to `getAnsiFormatState(N, api)`. For example, `%ansi(37)` → `getAnsiFormatState(37, api)`.
+
+**Trailing spaces with background colors:** When an ANSI color has a background, always include trailing spaces in the colored text to fill the background visually across the line — e.g. `' '.repeat(100)`. Omitting them cuts off the background at the last character.
 
 **Do not hard-code hex values** for CMud colors — always look them up through these helpers so the palette stays consistent.
 

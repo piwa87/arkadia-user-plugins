@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 
 export function setupBattleAliases(api: PluginApi): void {
   // #region b_wsiowe
@@ -113,4 +114,18 @@ export function setupBattleAliases(api: PluginApi): void {
     api.command.send('set zolnierza');
     return true;
   });
+
+  // #region next! - visual "N E X T" banner after an enemy dies
+  {
+    const nextColor = getAnsiFormatState(37, api);
+    const nextText = ' '.repeat(12) + 'N E X T' + ' '.repeat(100);
+
+    api.aliases.register(/^next!$/, () => {
+      const buf = new api.AnsiAwareBuffer(nextText);
+      buf.color([0, nextText.length], nextColor);
+      api.output.print(buf);
+      api.output.print('');
+      return true;
+    });
+  }
 }
