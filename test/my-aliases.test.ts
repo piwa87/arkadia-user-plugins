@@ -2,9 +2,20 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { init } from '../src/plugins/core-plugin/index';
 import { createMockApi, createMockLine, MockAnsiAwareBuffer } from './helpers/mockApi';
 
+function makeLocalStorageMock() {
+  const store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, val: string) => { store[key] = val; },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { for (const k in store) delete store[k]; },
+  };
+}
+
 describe('core-plugin aliases', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.stubGlobal('localStorage', makeLocalStorageMock());
   });
 
   afterEach(() => {

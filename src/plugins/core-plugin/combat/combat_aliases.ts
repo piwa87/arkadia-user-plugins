@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { storage } from '../../../lib/storage';
 
 export function setupCombatAliases(
   api: PluginApi,
@@ -53,6 +54,7 @@ export function setupCombatAliases(
     for (let i = 0; i < 4; i++) {
       targets[i] = `${ORDINALS[i]}${target}`;
     }
+    storage.set('targets', targets);
     updateFooter();
     return true;
   });
@@ -66,6 +68,7 @@ export function setupCombatAliases(
         return true;
       }
       targets[i] = what;
+      storage.set('targets', targets);
       updateFooter();
       return true;
     });

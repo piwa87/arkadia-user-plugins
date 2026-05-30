@@ -45,6 +45,7 @@ export function createMockLine(text: string) {
   const line: any = {
     text,
     color: vi.fn((range) => ({ text: line.text, appliedRange: range })),
+    colorWords: vi.fn(() => line),
     replace: vi.fn((range: [number, number], replacement: string) => {
       line.text = `${line.text.slice(0, range[0])}${replacement}${line.text.slice(range[1])}`;
       return line;
@@ -75,6 +76,11 @@ export function createMockApi(options?: { room?: any }) {
       registerOneTime: vi.fn((pattern, callback, tag) => {
         oneTimeTriggers.push({ pattern, callback, tag });
         return { pattern, callback, tag };
+      }),
+      removeByTag: vi.fn((tag: string) => {
+        const keep = triggers.filter((t) => t.tag !== tag);
+        triggers.length = 0;
+        triggers.push(...keep);
       }),
     },
     aliases: {

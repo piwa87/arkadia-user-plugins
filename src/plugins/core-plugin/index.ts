@@ -30,13 +30,15 @@ import { createCombatState, setupGmcpCombat } from './gmcp-combat/combat-state';
 import { megaphone, setupMgfnAlias } from './aliases/mgfn';
 import { createWeaponState, setupWeaponFetchAliases } from './jens/weaponfetch_aliases';
 import { setupDobywanieAliases } from './aliases/dobywanie';
+import { setupTmpk } from './tmpk/tmpk';
+import { storage } from '../../lib/storage';
 
 let cleanupCombat: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'corePlugin';
   const ORDINALS = ['', '2. ', '3. ', '4. '];
-  const targets = ['INIT', 'cel2', 'cel3', 'cel4'];
+  const targets = storage.get<string[]>('targets') ?? ['INIT', 'cel2', 'cel3', 'cel4'];
 
   // Set up footer component (needs targets by reference)
   const { update: updateFooter } = setupFooter(api, targets);
@@ -60,6 +62,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupLocationsAliases(api);
   setupMiscAliases(api);
   setupDobywanieAliases(api);
+  setupTmpk(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
