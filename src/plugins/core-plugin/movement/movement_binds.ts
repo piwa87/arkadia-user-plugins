@@ -30,6 +30,8 @@ export function setCenterCommand(cmd: string | null): void {
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 export function setupKeyboardBindings(api: PluginApi): void {
+  if (typeof window === 'undefined') return;
+
   keydownHandler = (e: KeyboardEvent) => {
     const active = document.activeElement as HTMLElement | null;
     const modalOpen = document.querySelector('.modal.show');
