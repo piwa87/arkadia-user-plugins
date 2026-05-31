@@ -10,11 +10,11 @@ import { setupCombatAliases } from './combat/combat_aliases';
 import { setupBattleAliases } from './combat/exp_bindy';
 import { setupAtakiTriggers } from './combat/ataki_triggers';
 import { setupCiosyKolory } from './combat/ciosy_kolory';
-import { setupEmoteAliases } from './aliases/emotes';
+import { setupEmoteAliases } from './jens/emotes';
 import { setupEquipmentAliases } from './aliases/equipment';
 import { setupOptionsAliases } from './aliases/options';
 import { setupHelpAliases } from './aliases/help';
-import { setupBindAliases } from './aliases/bind';
+import { setupBindAliases } from './aliases/f';
 import { setupMapAliases } from './aliases/map';
 import { setupDebugAliases } from './aliases/debug';
 import { setupTeamAliases } from './aliases/team';
@@ -30,6 +30,8 @@ import { createCombatState, setupGmcpCombat } from './gmcp-combat/combat-state';
 import { megaphone, setupMgfnAlias } from './aliases/mgfn';
 import { createWeaponState, setupWeaponFetchAliases } from './jens/weaponfetch_aliases';
 import { setupDobywanieAliases } from './aliases/dobywanie';
+import { setupMovementAliases } from './movement/movement_aliases';
+import { setupKeyboardBindings, teardownKeyboardBindings, setCenterCommand } from './movement/movement_binds';
 import { setupTmpk } from './tmpk/tmpk';
 import { storage } from '../../lib/storage';
 
@@ -62,6 +64,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupLocationsAliases(api);
   setupMiscAliases(api);
   setupDobywanieAliases(api);
+  setupMovementAliases(api);
+  setupKeyboardBindings(api);
+  setCenterCommand('c');
   setupTmpk(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
@@ -108,4 +113,5 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 export async function destroy(): Promise<void> {
   cleanupCombat?.();
   cleanupCombat = null;
+  teardownKeyboardBindings();
 }

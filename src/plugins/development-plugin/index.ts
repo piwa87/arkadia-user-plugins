@@ -24,3 +24,5 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   api.output.print(`[${info.name} v${info.version}] loaded — ?devhelp = lista aliasów`);
   return info;
 }
+
+export function destroy(): void {}

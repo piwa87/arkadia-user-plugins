@@ -4,7 +4,9 @@ import { registerTextAlias } from '../../../lib/registerTextAlias';
 export function setupEmoteAliases(api: PluginApi): void {
   // #region ce
   api.aliases.register(/^ce$/, () => {
-    api.command.send('powiedz Buongiorno');
+    const daylight = api.gmcp.get().room?.time?.daylight;
+    const greeting = daylight ? 'Buongiorno' : 'Buonasera';
+    api.command.send(`powiedz ${greeting}`);
     api.command.send('uklon sie uprzejmie');
     return true;
   });
@@ -65,17 +67,6 @@ export function setupEmoteAliases(api: PluginApi): void {
 
   // #region semig
   registerTextAlias(api, /^semig(?:\s+(.+))?$/, 'rdprzyciagnij uwage');
-
-  // #region superwejscie
-  api.aliases.register(/^superwejscie$/, () => {
-    api.command.send('chrzaknij dwornie');
-    api.command.send('podskocz fantazyjnie');
-    api.command.send('uklon sie zamaszyscie');
-    api.command.send('pokrec sie');
-    api.command.send('usiadz na drugiej kanapie');
-    api.command.send('przeciagnij sie rzesko');
-    return true;
-  });
 
   // #region usr1
   registerTextAlias(api, /^usr1(?:\s+(.+))?$/, 'rdusmiech na mysl o wyzwaniu');
