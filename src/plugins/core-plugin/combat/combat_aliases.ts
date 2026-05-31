@@ -37,7 +37,7 @@ export function setupCombatAliases(
   });
 
   // #region c1 / c2 / c3 / c4 — delegate to z 1..4
-  for (let i = 0; i < 99; i++) {
+  for (let i = 0; i < 4; i++) {
     const n = i + 1;
     api.aliases.register(new RegExp(`^c${n}$`), () => {
       api.command.send(`/z ${n}`);

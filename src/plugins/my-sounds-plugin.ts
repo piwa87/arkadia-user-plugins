@@ -5,19 +5,19 @@ import { SOUNDS } from './my-sounds-plugin/sounds-data';
 let soundManager: SoundManager;
 
 const SOUND_ALIASES: Record<string, { name: string; debounce: number; volume: number }> = {
-  play_glass: { name: 'glass', debounce: 1000, volume: 0.6 },
-  play_basso: { name: 'basso', debounce: 1000, volume: 0.7 },
+  play_glass: { name: 'glass', debounce: 2000, volume: 0.6 },
+  play_basso: { name: 'basso', debounce: 2000, volume: 0.7 },
   play_ding: { name: 'ding', debounce: 2000, volume: 0.6 },
-  play_tink: { name: 'tink', debounce: 1000, volume: 0.5 },
-  play_morse: { name: 'morse', debounce: 1000, volume: 0.5 },
-  play_ping: { name: 'ping', debounce: 1000, volume: 0.7 },
-  play_drums: { name: 'alarm', debounce: 1500, volume: 0.8 },
-  play_lowhp: { name: 'lowhp', debounce: 1000, volume: 0.7 },
-  play_alarm: { name: 'alarm', debounce: 1000, volume: 0.8 },
-  play_funk: { name: 'funk', debounce: 1000, volume: 0.6 },
-  play_wrog: { name: 'wrog', debounce: 1000, volume: 0.7 },
-  play_daytime: { name: 'daytime', debounce: 0, volume: 0.5 },
-  play_nighttime: { name: 'nighttime', debounce: 0, volume: 0.5 },
+  play_tink: { name: 'tink', debounce: 2000, volume: 0.5 },
+  play_morse: { name: 'morse', debounce: 2000, volume: 0.5 },
+  play_ping: { name: 'ping', debounce: 2000, volume: 0.7 },
+  play_drums: { name: 'alarm', debounce: 2000, volume: 0.8 },
+  play_lowhp: { name: 'lowhp', debounce: 6000, volume: 0.7 },
+  play_alarm: { name: 'alarm', debounce: 2000, volume: 0.8 },
+  play_funk: { name: 'funk', debounce: 2000, volume: 0.6 },
+  play_wrog: { name: 'wrog', debounce: 2000, volume: 0.7 },
+  play_daytime: { name: 'daytime', debounce: 1000, volume: 0.5 },
+  play_nighttime: { name: 'nighttime', debounce: 1000, volume: 0.5 },
 };
 
 function printSoundsList(api: PluginApi) {

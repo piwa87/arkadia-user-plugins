@@ -28,11 +28,13 @@ import { setupBramyTriggers } from './bramy/bramy_triggers';
 import { setupBramyAliases } from './bramy/bramy_aliases';
 import { createCombatState, setupGmcpCombat } from './gmcp-combat/combat-state';
 import { megaphone, setupMgfnAlias } from './aliases/mgfn';
-import { createWeaponState, setupWeaponFetchAliases } from './jens/weaponfetch_aliases';
-import { setupDobywanieAliases } from './aliases/dobywanie';
+import { createDobywanieState, setupDobywanieAliases } from './dobywanie/dobywanie_aliases';
 import { setupMovementAliases } from './movement/movement_aliases';
 import { setupKeyboardBindings, teardownKeyboardBindings, setCenterCommand } from './movement/movement_binds';
 import { setupTmpk } from './tmpk/tmpk';
+import { setupColActions } from './small_stuff/col_actions';
+import { setupColEkwipunek } from './small_stuff/col_ekwipunek';
+import { setupColEventy } from './small_stuff/col_eventy';
 import { storage } from '../../lib/storage';
 
 let cleanupCombat: (() => void) | null = null;
@@ -63,11 +65,15 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupFlaskAliases(api);
   setupLocationsAliases(api);
   setupMiscAliases(api);
-  setupDobywanieAliases(api);
+  const dobywanieState = createDobywanieState();
+  setupDobywanieAliases(api, dobywanieState);
   setupMovementAliases(api);
   setupKeyboardBindings(api);
   setCenterCommand('c');
   setupTmpk(api);
+  setupColActions(api);
+  setupColEkwipunek(api);
+  setupColEventy(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
@@ -88,10 +94,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Set up bramy (gates/doors) triggers and aliases
   setupBramyTriggers(api);
   setupBramyAliases(api);
-
-  // Jens: weapon fetching aliases
-  const weaponState = createWeaponState();
-  setupWeaponFetchAliases(api, weaponState);
 
   // Megaphone alias — must be registered before combat engine (darkness handler uses it)
   setupMgfnAlias(api);

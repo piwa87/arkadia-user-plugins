@@ -1,4 +1,5 @@
-import type { PluginApi, FormatStateSnapshot } from '@arkadia/plugin-types';
+import type { PluginApi } from '@arkadia/plugin-types';
+import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 
 const ACCUSATIVE: Record<string, string> = {
   krata: 'krate',
@@ -12,16 +13,10 @@ export function setupBramyTriggers(api: PluginApi): void {
 
   const skyblue = api.colors.fromHex('#87ceeb');
   const firebrick = api.colors.fromHex('#b22222');
-  const zamknieteColor: FormatStateSnapshot = {
-    foreground: api.colors.fromHex('#ffffff').foreground,
-    background: api.colors.fromHex('#008800').foreground,
-  };
-  const otwarteColor: FormatStateSnapshot = {
-    foreground: api.colors.fromHex('#ffffff').foreground,
-    background: api.colors.fromHex('#aa0000').foreground,
-  };
-  const cyanFg = api.colors.fromHex('#00aaaa');
-  const goldFg = api.colors.fromHex('#aaaa00');
+  const zamknieteColor = getAnsiFormatState(42, api);
+  const otwarteColor = getAnsiFormatState(41, api);
+  const cyanColor = getAnsiFormatState(6, api);
+  const goldColor = getAnsiFormatState(3, api);
 
   // Open door/gate in room description (e.g. "Otwarte drzwi prowadza...")
   api.triggers.register(
@@ -57,7 +52,7 @@ export function setupBramyTriggers(api: PluginApi): void {
   // Failed to open — show inline ZAMKNIETE! alert
   api.triggers.register(
     /^Probujesz otworzyc (.*), ale nie udaje ci sie to\.$/,
-    (line) => line.prepend('ZAMKNIETE! ', cyanFg),
+    (line) => line.prepend('ZAMKNIETE! ', cyanColor),
     tag,
   );
 
@@ -70,7 +65,7 @@ export function setupBramyTriggers(api: PluginApi): void {
       const cmd = `podnies ${accusative}`;
       api.bind.set(cmd);
       line.color([0, line.text.length], firebrick);
-      line.append(` [ ${api.bind.getLabel()} - ${cmd} ]`, goldFg);
+      line.append(` [ ${api.bind.getLabel()} - ${cmd} ]`, goldColor);
       return line;
     },
     tag,

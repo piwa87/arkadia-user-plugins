@@ -1,25 +1,29 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { storage } from '../../../lib/storage';
 
 // --- State ---
 
 export type WeaponType = 'maczuga' | 'miecz' | 'topor';
 
-export interface JensWeaponState {
-  /** gdzie_bron: true = weapon is drawn, false = put away */
+export interface DobywanieState {
+  /** true = weapon is drawn, false = put away */
   drawn: boolean;
   /** currently selected weapon (dob/db will draw this) */
   weapon: WeaponType;
-  /** czy_zb: true = armor is worn */
+  /** true = armor is worn */
   armorWorn: boolean;
 }
 
-export function createWeaponState(): JensWeaponState {
-  return { drawn: false, weapon: 'maczuga', armorWorn: true };
+const WEAPON_KEY = 'dobywanie_weapon';
+
+export function createDobywanieState(): DobywanieState {
+  const savedWeapon = storage.get<WeaponType>(WEAPON_KEY);
+  return { drawn: false, weapon: savedWeapon ?? 'maczuga', armorWorn: true };
 }
 
 // --- Private helpers ---
 
-function putAllAway(api: PluginApi, state: JensWeaponState): void {
+function putAllAway(api: PluginApi, state: DobywanieState): void {
   state.drawn = false;
   api.command.send('wloz miecz do nitowanej pochwy');
   api.command.send('wloz dobyta bron do swojego temblaka');
@@ -27,7 +31,7 @@ function putAllAway(api: PluginApi, state: JensWeaponState): void {
   api.command.send('otu');
 }
 
-function drawMace(api: PluginApi, state: JensWeaponState): void {
+function drawMace(api: PluginApi, state: DobywanieState): void {
   state.drawn = true;
   api.command.send('wez maczuge ze swojego temblaka');
   api.command.send('dobadz maczugi');
@@ -35,14 +39,14 @@ function drawMace(api: PluginApi, state: JensWeaponState): void {
   api.command.send('zaloz tarcze');
 }
 
-function drawSword(api: PluginApi, state: JensWeaponState): void {
+function drawSword(api: PluginApi, state: DobywanieState): void {
   state.drawn = true;
   api.command.send('wez miecz z nitowanej pochwy');
   api.command.send('dobadz miecza');
   api.command.send('zaloz tarcze');
 }
 
-function drawAxe(api: PluginApi, state: JensWeaponState): void {
+function drawAxe(api: PluginApi, state: DobywanieState): void {
   state.drawn = true;
   api.command.send('wez topor ze swojego temblaka');
   api.command.send('dobadz topora');
@@ -50,7 +54,7 @@ function drawAxe(api: PluginApi, state: JensWeaponState): void {
   api.command.send('zaloz tarcze');
 }
 
-function drawCurrent(api: PluginApi, state: JensWeaponState): void {
+function drawCurrent(api: PluginApi, state: DobywanieState): void {
   switch (state.weapon) {
     case 'maczuga':
       drawMace(api, state);
@@ -66,14 +70,14 @@ function drawCurrent(api: PluginApi, state: JensWeaponState): void {
 
 // --- Alias setup ---
 
-export function setupWeaponFetchAliases(api: PluginApi, state: JensWeaponState): void {
+export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): void {
   // dob / db — draw currently selected weapon
   api.aliases.register(/^(?:dob|db)$/, () => {
     drawCurrent(api, state);
     return true;
   });
 
-  // dobmc — draw mace explicitly (bypasses weapon selection)
+  // dobmc — draw mace explicitly
   api.aliases.register(/^dobmc$/, () => {
     drawMace(api, state);
     return true;
@@ -91,23 +95,24 @@ export function setupWeaponFetchAliases(api: PluginApi, state: JensWeaponState):
     return true;
   });
 
-  // dob1 — select mace as active weapon (draw with dob)
+  // dob1/dob2/dob3 — select active weapon (persisted to localStorage)
   api.aliases.register(/^dob1$/, () => {
     state.weapon = 'maczuga';
+    storage.set(WEAPON_KEY, 'maczuga');
     api.output.print('--> Macka');
     return true;
   });
 
-  // dob2 — select sword as active weapon
   api.aliases.register(/^dob2$/, () => {
     state.weapon = 'miecz';
+    storage.set(WEAPON_KEY, 'miecz');
     api.output.print('--> Miecz');
     return true;
   });
 
-  // dob3 — select axe as active weapon
   api.aliases.register(/^dob3$/, () => {
     state.weapon = 'topor';
+    storage.set(WEAPON_KEY, 'topor');
     api.output.print('--> Topor');
     return true;
   });
@@ -118,13 +123,13 @@ export function setupWeaponFetchAliases(api: PluginApi, state: JensWeaponState):
     return true;
   });
 
-  // dobs — draw dagger from sheath
+  // dobs — draw dagger from ornate scabbard
   api.aliases.register(/^dobs$/, () => {
     api.command.send('podobadz sztyletu z wyszukanej pochwy');
     return true;
   });
 
-  // opus — sheathe dagger
+  // opus — sheathe dagger into ornate scabbard
   api.aliases.register(/^opus$/, () => {
     api.command.send('powsun sztylet do wyszukanej pochwy');
     return true;
@@ -134,6 +139,7 @@ export function setupWeaponFetchAliases(api: PluginApi, state: JensWeaponState):
   api.aliases.register(/^skifb1$/, () => {
     putAllAway(api, state);
     state.weapon = 'maczuga';
+    storage.set(WEAPON_KEY, 'maczuga');
     api.output.print('--> Macka');
     drawMace(api, state);
     return true;
@@ -172,13 +178,11 @@ export function setupWeaponFetchAliases(api: PluginApi, state: JensWeaponState):
   // zb! — toggle armor set on/off
   api.aliases.register(/^zb!$/, () => {
     if (!state.armorWorn) {
-      // Dress: stow hat, take all armor from bag, wear it
       api.command.send('wlz kapelusz');
       api.command.send('wyj wszystkie zbroje');
       api.command.send('zaloz je');
       state.armorWorn = true;
     } else {
-      // Undress: stow all armor, wear hat and tilt it nonchalantly
       api.command.send('wlz wszystkie zbroje');
       api.command.send('wyj kapelusz');
       api.command.send('zaloz kapelusz');
