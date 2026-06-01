@@ -1,7 +1,7 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupMovementAliases } from './movement';
 import { setupCmudCombatAliases } from './combat';
-import { setupPartyShieldAliases } from './party-shield';
+import { setupPartyShieldAliases } from './testing/walka-zaslony';
 import { setupLootAliases } from './loot';
 import { setupMiscAliases } from './misc';
 import { setupHelpAlias } from './help';

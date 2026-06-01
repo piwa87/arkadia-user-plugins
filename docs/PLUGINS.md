@@ -662,7 +662,7 @@ api.objectListFilters.register("shorten", (context, result) => {
 
 **Typy TypeScript:**
 ```typescript
-import type { ObjectListEntryFilter } from "@web/objectListFilters";
+import type { ObjectListEntryFilter } from '@arkadia/plugin-types';
 
 const myFilter: ObjectListEntryFilter = (context, result) => {
   // Pełne wsparcie TypeScript z autocomplete!
@@ -779,12 +779,9 @@ api.buttonMacros.register({
   ],
   initialState: "off",
   onClick: (ctx) => {
-    // Najpierw przełącz stan
     ctx.stateCtx!.cycleState();
-
-    // Wykonaj akcję na podstawie NOWEGO stanu
-    // (cycleState przełącza, więc sprawdzamy poprzedni stan)
-    if (ctx.stateCtx!.state === "off") {
+    // state reflects the new (current) state after cycling
+    if (ctx.stateCtx!.state === "on") {
       ctx.client.sendCommand("autoheal wlacz");
     } else {
       ctx.client.sendCommand("autoheal wylacz");
@@ -805,15 +802,11 @@ api.buttonMacros.register({
   ],
   initialState: "balanced",
   onClick: (ctx) => {
-    // Przełącz na następny tryb
     ctx.stateCtx!.cycleState();
-
-    // Pobierz nowy tryb (po cycleState)
+    // stateIndex is already the new index after cycleState
     const modes = ["defensive", "balanced", "aggressive"];
-    const nextIndex = (ctx.stateCtx!.stateIndex + 1) % modes.length;
-    const nextMode = modes[nextIndex];
-
-    ctx.client.sendCommand(`tryb ${nextMode}`);
+    const currentMode = modes[ctx.stateCtx!.stateIndex];
+    ctx.client.sendCommand(`tryb ${currentMode}`);
   }
 });
 ```
@@ -850,7 +843,7 @@ const moveMode = api.buttonMacros.register({
   ],
   onClick: (ctx) => {
     ctx.stateCtx?.cycleState();
-    api.send(`ruch ${ctx.stateCtx?.state}`);
+    ctx.client.sendCommand(`ruch ${ctx.stateCtx?.state}`);
   }
 });
 
@@ -887,12 +880,9 @@ const combatMode = api.buttonMacros.register({
 });
 
 // Alias który zmienia stan przycisku
-api.aliases.register({
-  pattern: /^tryb (.+)$/,
-  handler: (match) => {
-    combatMode.setState(match[1]);
-    return `tryb ${match[1]}`;
-  }
+api.aliases.register(/^tryb (.+)$/, (match) => {
+  combatMode.setState(match[1]);
+  return false; // przepuść komendę do gry
 });
 ```
 
@@ -1058,7 +1048,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 Dla pełnego wsparcia TypeScript zainstaluj pakiet z typami:
 
 ```bash
-npm install http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz
+yarn add http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz
 ```
 
 Następnie importuj typy w swoim pluginie:
@@ -1084,7 +1074,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 ```
 
-Zobacz `plugin-types/README.md` i `plugin-types/index.d.ts` dla pełnej dokumentacji typów.
+Po instalacji pełna dokumentacja typów jest dostępna w `node_modules/@arkadia/plugin-types/index.d.ts`.
 
 ## Kompatybilność Wsteczna
 
@@ -1150,8 +1140,4 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
 ## Przykłady
 
-Zobacz katalog `examples/` w repozytorium dla kompletnych przykładów pluginów:
-- `simple-highlighter-plugin.ts` - Prosty plugin do podświetlania słów
-- `example-plugin.ts` - Kompleksowy przykład demonstrujący różne funkcje API
-- `combat-alert-plugin.ts` - Zaawansowany plugin śledzący statystyki walki
-- `object-list-filters-plugin.ts` - Plugin customizujący wygląd listy obiektów (ikony, kolory, HP)
+Zobacz katalog `src/plugins/` w repozytorium dla kompletnych przykładów pluginów.

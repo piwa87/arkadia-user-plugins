@@ -273,8 +273,15 @@ export function setupKondycjeTriggers(api: PluginApi, state: KondycjeState): voi
 
       const cleanName = charName.replace(/[\[\]]/g, '').toLowerCase();
       const teamNames = api.team.getMembers().map((m) => m.toLowerCase());
-      const teamIdx = teamNames.indexOf(cleanName);
-      const isParty = teamIdx >= 0;
+      const isParty = teamNames.includes(cleanName);
+      let teamIdx = -1;
+      if (isParty) {
+        const obj = api.objects
+          .getObjectsOnLocation()
+          .find((o) => o.__category === 'team' && o.desc?.toLowerCase() === cleanName);
+        const s = obj?.shortcut?.toUpperCase();
+        if (s && s >= 'A' && s <= 'Z') teamIdx = s.charCodeAt(0) - 65;
+      }
       const hpLevel = getHpLevel(hpBase);
       const attackerCount = getAttackerCount(attackerRaw);
 

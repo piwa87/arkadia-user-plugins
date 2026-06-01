@@ -147,7 +147,7 @@ yarn test -- --watch   # watch mode
 - Use `yarn`, never `npm`
 - Import types with `import type` from `@arkadia/plugin-types`
 - All plugin code must compile to browser ESM (no Node.js APIs)
-- Use a unique `tag` string per plugin for trigger/alias cleanup — pass it to every `api.triggers.register()` call; call `api.triggers.removeByTag(tag)` in `destroy()`
+- Use a unique `tag` string per plugin for trigger cleanup — pass it to every `api.triggers.register()` call; call `api.triggers.removeByTag(tag)` in `destroy()`. Aliases do **not** use tags — store the ID returned by `api.aliases.register()` and call `api.aliases.remove(id)` in `destroy()`
 - Always return from trigger callbacks: modified `line`, original `line`, or `null` (to suppress)
 - In `destroy()`, remove all event listeners, intervals, aliases, command hooks, and UI components registered during `init()`
 - Never include Polish characters in regex patterns — keep patterns ASCII-compatible

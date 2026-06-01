@@ -1,5 +1,5 @@
 import type { PluginApi, LocationObject } from '@arkadia/plugin-types';
-import { col2, col5, col6 } from '../../../lib/colors/my-colors';
+import { col6 } from '../../../lib/colors/my-colors';
 
 export type { LocationObject };
 
@@ -17,8 +17,6 @@ const SWARM_THRESHOLD = 4;
 const SWARM_ALERT_COOLDOWN = 5_000;
 
 const COL_SWARM = col6;
-const COL_COMBAT_START = col5;
-const COL_COMBAT_END = col2;
 
 function printBanner(api: PluginApi, text: string, color: string, lines = 3): void {
   const c = api.colors.fromHex(color);
@@ -79,14 +77,7 @@ export function setupGmcpCombat(
       set.add(attackerId);
     }
 
-    if (inCombat !== prevInCombat) {
-      printBanner(
-        api,
-        inCombat ? '   W A L C Z Y S Z !   ' : '   Nie walczysz.   ',
-        inCombat ? COL_COMBAT_START : COL_COMBAT_END,
-        1,
-      );
-    }
+    // printBanner disabled — state.inCombat is still updated above for external consumers
     prevInCombat = inCombat;
 
     // Darkness: read can_see_in_room from the raw GMCP cache using the avatar's object ID.

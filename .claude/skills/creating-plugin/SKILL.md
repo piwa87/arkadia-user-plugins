@@ -152,7 +152,7 @@ export async function destroy() {
 }
 ```
 
-Triggers and aliases registered with a `tag` are removed automatically — no manual cleanup needed for those.
+Triggers registered with a `tag` are removed automatically — no manual cleanup needed for those. Aliases must be removed by the ID returned from `api.aliases.register()`.
 
 ## Shared helpers
 

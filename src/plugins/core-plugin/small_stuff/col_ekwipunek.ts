@@ -15,47 +15,47 @@ export function setupColEkwipunek(api: PluginApi): void {
   );
 
   // Worn/equipped item lines
-  api.triggers.register(
-    /^(?:Przy lewym boku|Przy prawym boku|Przy prawej nodze|Przy lewej nodze|Na plecach) masz przypi\w+ .*\./,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^(?:Przy lewym boku|Przy prawym boku|Przy prawej nodze|Przy lewej nodze|Na plecach) masz przypi\w+ .*\./,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
-  api.triggers.register(
-    /^Ponad (?:twoim|jego|jej) .* ramieniem .*\./,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^Ponad (?:twoim|jego|jej) .* ramieniem .*\./,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
-  api.triggers.register(
-    /^Do pasa m(?:a|asz) przytroczone (.*)/,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^Do pasa m(?:a|asz) przytroczone (.*)/,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
-  api.triggers.register(
-    /^Trzym(?:a|asz) .* rece\.$/,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^Trzym(?:a|asz) .* rece\.$/,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
-  api.triggers.register(
-    /^M(?:a|asz) na sobie (.*)\.$/,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^M(?:a|asz) na sobie (.*)\.$/,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
-  api.triggers.register(
-    /^Nos(?:i|isz) .*, .*\.$/,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^Nos(?:i|isz) .*, .*\.$/,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
-  api.triggers.register(
-    /^Trzym(?:a|asz) oburacz .*\.$/,
-    (line) => line.color([0, line.text.length], worn),
-    TAG,
-  );
+  // api.triggers.register(
+  //   /^Trzym(?:a|asz) oburacz .*\.$/,
+  //   (line) => line.color([0, line.text.length], worn),
+  //   TAG,
+  // );
 
   // Equip/unequip action lines
   api.triggers.register(

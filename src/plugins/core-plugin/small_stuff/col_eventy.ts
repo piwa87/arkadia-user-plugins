@@ -40,30 +40,63 @@ export function setupColEventy(api: PluginApi): void {
     [/Marynarze sciagaja trap i fusta odbija od brzegu, kierujac sie ku pelnemu morzu\./, 'piraci sobie odplyneli'],
     [/Ciemnosc gestnieje wokol .* upiora!/, 'ciemnosc'],
     [/^Zaalarmowani zolnierze pojawiaja sie, aby wesprzec towarzysza\./, 'zwalilo sie wojsko'],
-    [/.* raptownie odskakuje do tylu, w kilku krokach dobiega do rzezbionego kredensu, odsuwa go i znika w ziejacym chlodem przejsciu\./, 'igor zwial'],
+    [
+      /.* raptownie odskakuje do tylu, w kilku krokach dobiega do rzezbionego kredensu, odsuwa go i znika w ziejacym chlodem przejsciu\./,
+      'igor zwial',
+    ],
     [/Tegi gluchy mezczyzna ciezko dyszac ucieka na wschod\./, 'klucznik zwial'],
-    [/Gladka tafla jeziora zaciaga sie nagle siecia zmarszczek, po czym, spietrzajac sie gwaltownie przy brzegu, wyrzuca z siebie obslizgle cielsko olbrzymiego stwora\./, 'kraken obecny'],
+    [
+      /Gladka tafla jeziora zaciaga sie nagle siecia zmarszczek, po czym, spietrzajac sie gwaltownie przy brzegu, wyrzuca z siebie obslizgle cielsko olbrzymiego stwora\./,
+      'kraken obecny',
+    ],
     [/^Z sufitu opuszczaja sie kolejne pajaki\./, 'pajaczki, wiecej pajaczow!'],
     [/stwor wywijajac na wszystkie strony dlugimi mackami zanurza sie w wodzie jeziora i odplywa\./, 'kraken zwial'],
     [/^Niematerialne uderzenie pozbawia cie na moment tchu\./, 'bruxa przywalila'],
     [/^Kultysci rozchodza sie, znikajac miedzy drzewami\./, 'kultysci zwiali'],
     [/.*przeciera dlonia wypisany kreda symbol i po chwili nie zostaje po nim sladu\./, 'symbol starty'],
-    [/Rozmyta wysmukla zjawa kobiety sklada rece w krzyz na piersiach i powoli zsuwa je do siebie, zamykajac dlonie w piesci. Po chwili, gwaltownym ruchem wyrzuca rece w twoim kierunku, wypuszczajac z ich wnetrza migotliwy pyl, ktory wpada ci w oczy.*/, 'blaviken slepota'],
+    [
+      /Rozmyta wysmukla zjawa kobiety sklada rece w krzyz na piersiach i powoli zsuwa je do siebie, zamykajac dlonie w piesci. Po chwili, gwaltownym ruchem wyrzuca rece w twoim kierunku, wypuszczajac z ich wnetrza migotliwy pyl, ktory wpada ci w oczy.*/,
+      'blaviken slepota',
+    ],
     [/Obumierajaca ziemia wokol .* wysysa energie ze wszystkiego co zyje, w tym i ciebie!/, 'upior jeb'],
-    [/^Zelezce twojego zasniedzialego obosiecznego topora wybucha nagle oslepiajacym swiatlem, ktore porownac mozna tylko do blasku tysiacy gwiazd migocacych na nocnym niebie. Gdy bron wygasa, w niczym nie przypomina juz starego, zasniedzialego oreza, jakim byla jeszcze przed chwila\./, 'gwiazdka rozpalona'],
-    [/^.*gnomka wypada z kokonu i laduje z hukiem na podlodze. Po krotkiej chwili dezorientacji zrywa sie jednak na nogi i jednym susem zeskakuje w dol przez otwor wiodacy na nizsze pietro, momentalnie znikajac ci z oczu\./, 'gnomka uwolniona'],
-    [/^Nagly powiew lodowatego powietrza sprawia, ze plomienie swiec przygasaja... by po krotkiej chwili rozblysnac blaskiem podwojnie intansywnym, ktory zdaje sie padac prosto na stojaca na srodku pomieszczenia demonice!/, 'demonica obecna'],
-    [/Na samym srodku posadzki znajduje sie obramowana blyszczacym, krwistoczerwonej barwy kamieniem, studnia. Saczy sie z niej demoniczne, czerwone swiatlo, rzucajace ulotne blyski na sciany komnaty i zdobiace je plaskorzezby./, 'studnia'],
-    [/^Powierze wokolo zaczyna ciemniec, zmieniajac sie w nieprzejrzysty opar. Gdy dym sie rozwiewa zauwazasz blada wyniosla kobiete./, 'minerwa obecna'],
-    [/.* krzyzuje rece na piersi, po czym zaczyna stawac sie coraz bledsza, prawie przejrzysta i w koncu znika!/, 'minerwa sie rozplynela'],
-    [/Szkaradny przygarbiony mezczyzna wyciaga reke w strone ciala .* i mamrocze jakies mroczne slowa. Po chwili zwloki rozdymaja sie i pekaja, rozrzucajac wokol gnijace wnetrznosci,/, 'nekromata jeb'],
+    [
+      /^Zelezce twojego zasniedzialego obosiecznego topora wybucha nagle oslepiajacym swiatlem, ktore porownac mozna tylko do blasku tysiacy gwiazd migocacych na nocnym niebie. Gdy bron wygasa, w niczym nie przypomina juz starego, zasniedzialego oreza, jakim byla jeszcze przed chwila\./,
+      'gwiazdka rozpalona',
+    ],
+    [
+      /^.*gnomka wypada z kokonu i laduje z hukiem na podlodze. Po krotkiej chwili dezorientacji zrywa sie jednak na nogi i jednym susem zeskakuje w dol przez otwor wiodacy na nizsze pietro, momentalnie znikajac ci z oczu\./,
+      'gnomka uwolniona',
+    ],
+    [
+      /^Nagly powiew lodowatego powietrza sprawia, ze plomienie swiec przygasaja... by po krotkiej chwili rozblysnac blaskiem podwojnie intansywnym, ktory zdaje sie padac prosto na stojaca na srodku pomieszczenia demonice!/,
+      'demonica obecna',
+    ],
+    [
+      /Na samym srodku posadzki znajduje sie obramowana blyszczacym, krwistoczerwonej barwy kamieniem, studnia. Saczy sie z niej demoniczne, czerwone swiatlo, rzucajace ulotne blyski na sciany komnaty i zdobiace je plaskorzezby./,
+      'studnia',
+    ],
+    [
+      /^Powierze wokolo zaczyna ciemniec, zmieniajac sie w nieprzejrzysty opar. Gdy dym sie rozwiewa zauwazasz blada wyniosla kobiete./,
+      'minerwa obecna',
+    ],
+    [
+      /.* krzyzuje rece na piersi, po czym zaczyna stawac sie coraz bledsza, prawie przejrzysta i w koncu znika!/,
+      'minerwa sie rozplynela',
+    ],
+    [
+      /Szkaradny przygarbiony mezczyzna wyciaga reke w strone ciala .* i mamrocze jakies mroczne slowa. Po chwili zwloki rozdymaja sie i pekaja, rozrzucajac wokol gnijace wnetrznosci,/,
+      'nekromata jeb',
+    ],
     [/^Z peknietej kulki z sykiem wydobywaja sie kleby gestego, czarnego dymu!/, 'kulka zostala rzucona'],
   ];
 
   for (const [pattern, msg] of ANNOUNCES) {
     api.triggers.register(
       pattern,
-      (line) => { megaphone(api, msg); return line; },
+      (line) => {
+        megaphone(api, msg);
+        return line;
+      },
       TAG,
     );
   }
@@ -80,7 +113,10 @@ export function setupColEventy(api: PluginApi): void {
   for (const pattern of ALERTS) {
     api.triggers.register(
       pattern,
-      (line) => { api.command.send('play_ding'); return col(line, c38); },
+      (line) => {
+        api.command.send('play_ding');
+        return col(line, c38);
+      },
       TAG,
     );
   }
@@ -95,12 +131,18 @@ export function setupColEventy(api: PluginApi): void {
 
   api.triggers.register(
     /Ogarnia cie burza piaskowa(?:\.|!)/,
-    (line) => { burzaOnBanner(); return line; },
+    (line) => {
+      burzaOnBanner();
+      return line;
+    },
     TAG,
   );
   api.triggers.register(
     /W mgnieniu oka przybierajace na sile podmuchy wiatru podrywaja w gore tumany piachu i kurzu\. Otacza cie burza piaskowa!/,
-    (line) => { burzaOnBanner(); return line; },
+    (line) => {
+      burzaOnBanner();
+      return line;
+    },
     TAG,
   );
   api.triggers.register(
@@ -116,12 +158,18 @@ export function setupColEventy(api: PluginApi): void {
 
   api.triggers.register(
     /(?:Z okolicznych dolin i kotlin bardzo szybko unosi sie biala i gesta mgla\. Widocznosc szybko sie pogarsza, robi sie zimno i wilgotno\.|Wokol ciebie panuje nienaturalny spokoj i cisza, gdy stoisz posrod bialych oblokow mgly, ktore ani mysla ustapic\.)/,
-    (line) => { say('     MGLA     MGLA      MGLA     MGLA     MGLA     MGLA     MGLA', c35); return line; },
+    (line) => {
+      say('     MGLA     MGLA      MGLA     MGLA     MGLA     MGLA     MGLA', c35);
+      return line;
+    },
     TAG,
   );
   api.triggers.register(
     /(?:Gwaltowne podmuchy wiatru rozrywaja gesta mgle wokol ciebie\. Biala sciana zaczyna rzednac by po chwili zniknac zupelnie\.)/,
-    (line) => { api.command.send('sig Mgla sie rozwiala!'); return line; },
+    (line) => {
+      api.command.send('sig Mgla sie rozwiala!');
+      return line;
+    },
     TAG,
   );
 
@@ -139,12 +187,18 @@ export function setupColEventy(api: PluginApi): void {
 
   api.triggers.register(
     /Z ciemnych chmur klebiacych sie nad twoja glowa zaczyna padac snieg, na poczatku powoli, ale z kazda chwila staje sie coraz gestszy\. Po paru minutach przestajesz widziec cokolwiek przez sciane bialego puchu sypiacego sie nieustannie z nieba\./,
-    (line) => { say('               SNIEZYCA   SNIEZYCA   SNIEZYCA   SNIEZYCA', c35); return line; },
+    (line) => {
+      say('               SNIEZYCA   SNIEZYCA   SNIEZYCA   SNIEZYCA', c35);
+      return line;
+    },
     TAG,
   );
   api.triggers.register(
     /Szalejaca sniezyca powoli sie uspokaja, przez chwile jeszcze sypie sniegiem ale po krotkim czasie nastepuja cisza i spokoj\. Chmury wciaz klebia sie nad twoja glowa, ale chyba narazie nie zapowiada sie na dalszy ciag nawalnicy\./,
-    (line) => { say('               SNIEZYCA     KONIEC      SNIEZYCA     SNIEZYCA    SNIEZYCA', c35); return line; },
+    (line) => {
+      say('               SNIEZYCA     KONIEC      SNIEZYCA     SNIEZYCA    SNIEZYCA', c35);
+      return line;
+    },
     TAG,
   );
 
@@ -158,11 +212,7 @@ export function setupColEventy(api: PluginApi): void {
   );
 
   // Empty container — prefix + tint original
-  api.triggers.register(
-    /^.* jest zupelnie pust.\./,
-    (line) => prependLabel(line, '[ zle ]', c38, c35),
-    TAG,
-  );
+  api.triggers.register(/^.* jest zupelnie pust.\./, (line) => prependLabel(line, '[ zle ]', c38, c35), TAG);
 
   // Spider web immobilization
   api.triggers.register(
@@ -214,11 +264,7 @@ export function setupColEventy(api: PluginApi): void {
   );
 
   // Max fatigue
-  api.triggers.register(
-    /^Jestes tak zmeczon., ze nie mozesz.*w tym kierunku\./,
-    (line) => col(line, c67),
-    TAG,
-  );
+  api.triggers.register(/^Jestes tak zmeczon., ze nie mozesz.*w tym kierunku\./, (line) => col(line, c67), TAG);
 
   // Aggressive plants
   api.triggers.register(
@@ -230,7 +276,11 @@ export function setupColEventy(api: PluginApi): void {
   // --- Heal item triggers (data-driven) ---
 
   const HEALS: [RegExp, string, ReturnType<typeof getAnsiFormatState>][] = [
-    [/Widzisz jak ogromny ognisty trojzab przysysa sie na moment do rany, a przez drzewce przebiegaja fale pulsujace w rytmie oszalalego serca napelniajace cie energia\./, '  widly lecza  ', c34],
+    [
+      /Widzisz jak ogromny ognisty trojzab przysysa sie na moment do rany, a przez drzewce przebiegaja fale pulsujace w rytmie oszalalego serca napelniajace cie energia\./,
+      '  widly lecza  ',
+      c34,
+    ],
     [/Czujesz jak uzdrawiajaca energia przepelnia twe cialo\./, '  plaszcz leczy  ', c34],
     [/Od twojego amuletu emanuje przyjemne cieplo\./, '  amulet leczy  ', c34],
     [/.*(?:a|to) wydobywajac.* sie z broni.*/, '  spec  ', c43],
@@ -251,12 +301,18 @@ export function setupColEventy(api: PluginApi): void {
 
   api.triggers.register(
     /Jedno z nich, zakonczone omszalym glazem trafia wprost w (.*)! Widzisz, jak bezwladnie odrywa sie od ziemi i wymachujac rekami przelatuje dosc spory kawalek, by tam gruchnac o ziemie\./,
-    (line) => { api.command.send('sig Ktos polecial!'); return line; },
+    (line) => {
+      api.command.send('sig Ktos polecial!');
+      return line;
+    },
     TAG,
   );
   api.triggers.register(
     /Jedno z nich, zakonczone omszalym glazem trafia wprost w ciebie! Bezwladnie odrywasz sie od ziemi i wymachujac rekami przelatujesz dosc spory kawalek, by gruchnac o ziemie\. Czujesz, jak wszystkie bebechy wywrocily sie w twoim ciele\./,
-    (line) => { api.command.send('sig Aucik!'); return line; },
+    (line) => {
+      api.command.send('sig Aucik!');
+      return line;
+    },
     TAG,
   );
 
@@ -266,7 +322,7 @@ export function setupColEventy(api: PluginApi): void {
     /^(?:Nie jestes w stanie dluzej czytac|.* konczy prace)\./,
     (line) => {
       api.command.send('play_tink');
-      setBind(api, 'napwsz');
+      // setBind(api, 'napwsz');
       return col(line, c43);
     },
     TAG,

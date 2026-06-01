@@ -11,6 +11,7 @@ import { setupBattleAliases } from './combat/exp_bindy';
 import { setupAtakiTriggers } from './combat/ataki_triggers';
 import { setupCiosyKolory } from './combat/ciosy_kolory';
 import { setupEmoteAliases } from './jens/emotes';
+import { setupPalenie } from './jens/palenie';
 import { setupEquipmentAliases } from './aliases/equipment';
 import { setupOptionsAliases } from './aliases/options';
 import { setupHelpAliases } from './aliases/help';
@@ -33,11 +34,13 @@ import { setupMovementAliases } from './movement/movement_aliases';
 import { setupKeyboardBindings, teardownKeyboardBindings, setCenterCommand } from './movement/movement_binds';
 import { setupTmpk } from './tmpk/tmpk';
 import { setupColActions } from './small_stuff/col_actions';
+import { setupColCialo } from './small_stuff/col_cialo';
 import { setupColEkwipunek } from './small_stuff/col_ekwipunek';
 import { setupColEventy } from './small_stuff/col_eventy';
 import { storage } from '../../lib/storage';
 
 let cleanupCombat: (() => void) | null = null;
+let cleanupPalenie: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'corePlugin';
@@ -54,6 +57,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupBattleAliases(api);
   setupCombatAliases(api, targets, ORDINALS, updateFooter);
   setupEmoteAliases(api);
+  cleanupPalenie = setupPalenie(api);
   setupEquipmentAliases(api);
   setupOptionsAliases(api);
   setupTravelAliases(api, armArrivalTrigger);
@@ -72,6 +76,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setCenterCommand('c');
   setupTmpk(api);
   setupColActions(api);
+  setupColCialo(api);
   setupColEkwipunek(api);
   setupColEventy(api);
 
@@ -115,5 +120,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 export async function destroy(): Promise<void> {
   cleanupCombat?.();
   cleanupCombat = null;
+  cleanupPalenie?.();
+  cleanupPalenie = null;
   teardownKeyboardBindings();
 }

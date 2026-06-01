@@ -22,7 +22,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // or: f+ get sword, equip sword, wield sword
   api.aliases.register(/^f\+\s+(.+)$/i, (matches) => {
     if (!matches?.[1]) {
-      api.output.print("Usage: f+ <command>", "system");
+      api.output.print("Usage: f+ <command>");
       return true;
     }
 
@@ -96,7 +96,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // ============================================================================
   api.aliases.register(/^f\+\s+(.+)$/i, (matches) => {
     if (!matches?.[1]) {
-      api.output.print("Usage: f+ <command>", "system");
+      api.output.print("Usage: f+ <command>");
       return true;
     }
 
@@ -192,7 +192,7 @@ The basic examples include a usage hint if the command is empty:
 
 ```typescript
 if (!matches?.[1]) {
-  api.output.print("Usage: f+ <command>", "system");
+  api.output.print("Usage: f+ <command>");
   return true;
 }
 ```
@@ -216,7 +216,7 @@ You can enhance the set command with more detailed feedback:
 ```typescript
 api.aliases.register(/^f\+\s+(.+)$/i, (matches) => {
   if (!matches?.[1]) {
-    api.output.print("Usage: f+ <command>", "system");
+    api.output.print("Usage: f+ <command>");
     return true;
   }
 

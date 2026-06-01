@@ -146,10 +146,11 @@ Always store IDs and clean up in `destroy()`:
 
 ```typescript
 const TAG = "myPlugin";
+let aliasId: string;
 let hookId: string;
 
 export async function init(api) {
-  const aliasId = api.aliases.register(/^cmd$/i, () => { return true; });
+  aliasId = api.aliases.register(/^cmd$/i, () => { return true; });
   hookId = api.commandHooks.register((cmd) => undefined);
   // triggers use tag-based cleanup — no need to store individually
   api.triggers.register(/pattern/, callback, TAG);

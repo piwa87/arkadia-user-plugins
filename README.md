@@ -2,8 +2,6 @@
 
 Standalone Arkadia Web Client plugins that can be developed locally, tested quickly, and published as static `.js` files for GitHub Pages.
 
-This directory is meant to become the root of its own repository. While it is nested inside the Arkadia client workspace, local commands work as-is, but the GitHub Actions workflow will only run after you move or copy this project into a dedicated repository.
-
 ## Workflow
 
 1. Install dependencies:

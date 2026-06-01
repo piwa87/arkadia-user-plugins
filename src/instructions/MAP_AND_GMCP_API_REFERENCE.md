@@ -102,7 +102,7 @@ interface LocationHighlighterOptions {
 ### Map Events
 
 ```typescript
-api.events.on("mapMove", (room: MapData.Room) => { ... })
+api.events.on("mapMove", () => { const room = api.map.getRoom(); ... })
 api.events.on("gmcp.room.info", (info: GmcpRoomInfo) => { ... })
 ```
 
@@ -224,6 +224,8 @@ api.events.on("gmcp_msg.prompt", (buf) => { ... })
 ---
 
 ## Source Files
+
+These paths are in the upstream **Arkadia Web Client** repository (not in this plugin repo) — for reference if you have access to the client source:
 
 | File | What's there |
 |---|---|
