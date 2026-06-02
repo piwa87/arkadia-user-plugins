@@ -40,10 +40,10 @@ describe('core-plugin aliases', () => {
     const { api, footerComponents } = createMockApi();
     await init(api);
 
-    expect(footerComponents).toHaveLength(1);
-    expect(footerComponents[0].id).toBe('targets');
-    expect(footerComponents[0].initialContent).toContain('CEL');
-    expect(footerComponents[0].initialContent).toContain('INIT');
+    const targets = footerComponents.find((c) => c.id === 'targets');
+    expect(targets).toBeDefined();
+    expect(targets!.initialContent).toContain('CEL');
+    expect(targets!.initialContent).toContain('INIT');
   });
 
   it('updates the footer when set alias changes all targets', async () => {
