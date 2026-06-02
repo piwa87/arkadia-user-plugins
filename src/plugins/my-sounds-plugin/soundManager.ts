@@ -2,7 +2,7 @@ export class SoundManager {
   private sounds: Map<string, string> = new Map();
   private audioContext: AudioContext | null = null;
   private debounceState: Map<string, boolean> = new Map();
-  private soundEnabled: boolean = true;
+  private soundEnabled: boolean = false;
 
   register(name: string, base64Data: string) {
     this.sounds.set(name, base64Data);

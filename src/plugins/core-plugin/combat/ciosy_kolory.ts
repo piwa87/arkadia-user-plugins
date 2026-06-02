@@ -39,7 +39,7 @@ export function setupCiosyKolory(api: PluginApi): void {
 
   // ciosy_moje: my hits — color the full conjugated verb including "sz" (ranisz, muskasz, masakrujesz)
   api.triggers.register(
-    new RegExp(`(${RANY_ALT})sz`, 'i'),
+    new RegExp(`\\b(${RANY_ALT})sz\\b`, 'i'),
     (line, matches) => {
       const key = matches[1].toLowerCase();
       const idx = (RANY as readonly string[]).indexOf(key);
@@ -54,7 +54,7 @@ export function setupCiosyKolory(api: PluginApi): void {
 
   // ciosy_innych: hits from/at others — color severity word and "cie" when present
   api.triggers.register(
-    new RegExp(`(${RANY_ALT})(?!sz)`, 'i'),
+    new RegExp(`\\b(${RANY_ALT})(?!sz)\\b`, 'i'),
     (line, matches) => {
       const key = matches[1].toLowerCase();
       const idx = (RANY as readonly string[]).indexOf(key);

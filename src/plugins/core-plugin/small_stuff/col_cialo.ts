@@ -5,8 +5,8 @@ const TAG = 'colCialo';
 export function setupColCialo(api: PluginApi): void {
   const darkGrey = api.colors.fromHex('#3D3D3D');
 
-  // Match each "cialo <words>" segment; stops before "," and before standalone " i "
-  const segmentRe = /[Cc]ialo(?:\s+(?!i\b)[^\s,]+)+/g;
+  // Match "cialo adj noun" or "cialo adj adj noun" — 2 or 3 words after cialo
+  const segmentRe = /[Cc]ialo(?:\s+[^\s,]+){2,3}/g;
 
   api.triggers.register(
     /cialo/i,

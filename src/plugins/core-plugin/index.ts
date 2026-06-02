@@ -9,6 +9,7 @@ import { setupTravelAliases } from './travel/travel_aliases';
 import { setupCombatAliases } from './combat/combat_aliases';
 import { setupBattleAliases } from './combat/exp_bindy';
 import { setupAtakiTriggers } from './combat/ataki_triggers';
+import { setupAtakPyk } from './combat/atak_pyk';
 import { setupCiosyKolory } from './combat/ciosy_kolory';
 import { setupEmoteAliases } from './jens/emotes';
 import { setupPalenie } from './jens/palenie';
@@ -22,6 +23,7 @@ import { setupTeamAliases } from './aliases/team';
 import { setupFlaskAliases } from './aliases/flask';
 import { setupLocationsAliases } from './aliases/locations';
 import { setupMiscAliases } from './aliases/misc';
+import { setupStatsAliases } from './aliases/stats';
 import { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
 import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
@@ -41,6 +43,7 @@ import { storage } from '../../lib/storage';
 
 let cleanupCombat: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
+let cleanupAtakPyk: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const tag = 'corePlugin';
@@ -69,6 +72,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupFlaskAliases(api);
   setupLocationsAliases(api);
   setupMiscAliases(api);
+  setupStatsAliases(api);
   const dobywanieState = createDobywanieState();
   setupDobywanieAliases(api, dobywanieState);
   setupMovementAliases(api);
@@ -83,6 +87,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
   setupAtakiTriggers(api);
+  cleanupAtakPyk = setupAtakPyk(api);
   setupCiosyKolory(api);
   setupZaslonTriggers(api);
   setupLocationTriggers(api);
@@ -122,5 +127,7 @@ export async function destroy(): Promise<void> {
   cleanupCombat = null;
   cleanupPalenie?.();
   cleanupPalenie = null;
+  cleanupAtakPyk?.();
+  cleanupAtakPyk = null;
   teardownKeyboardBindings();
 }

@@ -2,45 +2,12 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { registerDev } from './devAlias';
 
 export function setupMiscAliases(api: PluginApi): void {
-  setupStatsAliases(api);
   setupHerbAliases(api);
   setupFishingAliases(api);
   setupDepotAliases(api);
   setupContractAliases(api);
   setupKnowledgeAliases(api);
   setupLampAliases(api);
-}
-
-// ── Kill / combat stats ─────────────────────────────────────────────────────
-
-function setupStatsAliases(api: PluginApi): void {
-  registerDev(api, /^stat$/i, 'stat', 'statystyki zabić: sesja + całość', () => {
-    api.command.send('/zabici');
-    api.command.send('/zabici2');
-    return true;
-  });
-
-  registerDev(api, /^statreset$/i, 'statreset', 'resetuj licznik zabić sesji', () => {
-    api.command.send('/zabici_reset');
-    return true;
-  });
-
-  registerDev(api, /^ob_show$/i, 'ob_show', 'popup walki: blok / parada / unik (/statw)', () => {
-    api.command.send('/statw');
-    return true;
-  });
-
-  registerDev(api, /^ob_reset$/i, 'ob_reset', 'resetuj statystyki walki', () => {
-    (api.events as any).emit('resetCombatStats');
-    return true;
-  });
-
-  registerDev(api, /^resetall$/i, 'resetall', 'resetuj wszystkie liczniki naraz', () => {
-    api.command.send('/zabici_reset');
-    (api.events as any).emit('resetCombatStats');
-    (api.events as any).emit('resetProgressStats');
-    return true;
-  });
 }
 
 // ── Herbs ───────────────────────────────────────────────────────────────────

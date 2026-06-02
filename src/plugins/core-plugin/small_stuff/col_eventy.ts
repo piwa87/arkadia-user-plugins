@@ -30,7 +30,9 @@ export function setupColEventy(api: PluginApi): void {
     if (lineColor) line.color([0, line.text.length], lineColor);
     const buf = new api.AnsiAwareBuffer();
     buf.append(label, labelColor);
-    buf.append(' ');
+    // Prepend the space onto the line (not into the colored buffer) so it
+    // renders with default terminal color rather than inheriting labelColor's background.
+    line.prepend(' ');
     return line.prependBuffer(buf);
   };
 
