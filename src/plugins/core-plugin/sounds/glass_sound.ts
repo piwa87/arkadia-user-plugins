@@ -121,8 +121,8 @@ export function setupGlassSounds(api: PluginApi): void {
   };
 
   const LIGHT_OUT: [RegExp, string][] = [
-    [/(.*(?:pochodnia|luczywo|lampa)) wypala sie i gasnie\./, 'f+ odloz wypalone pochodnie;zapal pochodnie;zapal swiece;naplam'],
-    [/^(.* swieca) wypala sie i gasnie\./, 'f+ odloz wypalone swiece;zapal swiece'],
+    [/(.*(?:pochodnia|luczywo|lampa)) wypala sie i gasnie\./, 'f+ odloz wypalone pochodnie|zapal pochodnie|zapal swiece|naplam'],
+    [/^(.* swieca) wypala sie i gasnie\./, 'f+ odloz wypalone swiece|zapal swiece'],
   ];
 
   for (const [pattern, fPlusCmd] of LIGHT_OUT) {
@@ -136,7 +136,7 @@ export function setupGlassSounds(api: PluginApi): void {
     /oprozniajac zupelnie .* oleju/,
     (line) => {
       playGlass();
-      api.command.send('f+ odloz butelke;ot;wyj butelke;naplam');
+      api.command.send('f+ odloz butelke|ot|wyj butelke|naplam');
       return line;
     },
     TAG,

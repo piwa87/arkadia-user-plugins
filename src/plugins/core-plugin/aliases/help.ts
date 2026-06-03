@@ -52,6 +52,8 @@ export function setupHelpAliases(api: PluginApi): void {
       { section: 'EQUIPMENT / BAGS' },
       { cmd: 'la+', desc: 'lamp on sequence' },
       { cmd: 'la-', desc: 'lamp off sequence' },
+      { cmd: 'naplam', desc: 'fill lamp with oil' },
+      { cmd: 'sus', desc: 'extinguish lamp' },
       { cmd: 'napt', desc: 'open worn bag and fill it' },
       { cmd: 'obb', desc: 'look into worn bag' },
       { cmd: 'ot', desc: 'open worn bag' },
@@ -69,7 +71,6 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 've <item>', desc: 'take item from cart' },
       { cmd: 'vl <item>', desc: 'put item into cart' },
       { cmd: 'wywal <item>', desc: 'take from bag and drop' },
-      { cmd: 'ww0', desc: 'strip weapons and armor from 8 bodies' },
       { cmd: 'skk', desc: 'loot chests / coffers / sarcophagi' },
       { cmd: 'wsu <item>', desc: 'try ring on each finger' },
       { cmd: 'okk', desc: 'evaluate stone and put it away' },
@@ -87,6 +88,13 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'aabn', desc: 'unlock and open revolving door' },
       { cmd: 'zwal', desc: 'refill bag, take out and equip weapons + armor' },
 
+      { section: 'LOOT' },
+      { cmd: 'w1–w20', desc: 'take everything from body N' },
+      { cmd: 'm1–m20', desc: 'take coins from body N' },
+      { cmd: 'b1–b20', desc: 'take weapon from body N' },
+      { cmd: 'ww0', desc: 'strip weapons and armor from 8 bodies' },
+      { cmd: 'mx[N]', desc: 'take coins from location + N bodies (default 5)' },
+
       { section: 'FLASK' },
       { cmd: 'buk', desc: 'drink from flask' },
       { cmd: 'buk+ / buk-', desc: 'attach / detach flask' },
@@ -103,6 +111,10 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'ztm2', desc: 'put copper and silver into worn bag' },
       { cmd: 'zden', desc: 'denominate coins from worn bag' },
       { cmd: 'zden2', desc: 'denominate coins from ornate backpack' },
+
+      { section: 'MAIL' },
+      { cmd: 'pl<N>', desc: 'read mail message N' },
+      { cmd: 'li1–li4', desc: 'mail categories: 1=unread 2=received 3=sent 4=unsent' },
 
       { section: 'TRAVEL / ARRIVAL' },
       { cmd: 'ned+', desc: 'arrival trigger → send: ned' },
@@ -139,6 +151,12 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'hp+', desc: 'enable full-HP notification' },
       { cmd: 'hp-', desc: 'disable full-HP notification' },
       { cmd: 'kon!', desc: 'test all HP states via /fake' },
+
+      { section: 'STATS' },
+      { cmd: 'stat', desc: 'kill stats (/zabici)' },
+      { cmd: 'stat2', desc: 'detailed kill stats (/zabici2)' },
+      { cmd: 'pos', desc: 'character progress (/postepy)' },
+      { cmd: 'pos2', desc: 'detailed progress (/postepy2)' },
 
       { section: 'MAP' },
       { cmd: '?hl <color> [roomId]', desc: 'highlight room on map' },
@@ -179,7 +197,6 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'brr', desc: 'shake off water (8 times)' },
       { cmd: 'piek!', desc: 'order bread at bakery' },
       { cmd: 'napwsz', desc: 'sharpen all weapons and repair all armor' },
-      { cmd: 'sus / sus2', desc: 'disable alarms, extinguish lamp' },
       { cmd: 'ti!', desc: 'stopwatch toggle (start/stop)' },
       { cmd: 'ti!+', desc: 'stopwatch force reset' },
       { cmd: 'zakrec!', desc: 'spin the wheel (random result)' },

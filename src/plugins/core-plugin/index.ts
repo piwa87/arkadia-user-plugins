@@ -15,6 +15,8 @@ import { setupCiosyKolory } from './colors/col_ciosy';
 import { setupEmoteAliases } from './jens/emotes';
 import { setupPalenie } from './jens/palenie';
 import { setupEquipmentAliases } from './aliases/equipment';
+import { setupLampAliases } from './aliases/lampa';
+import { setupMieszekAliases } from './aliases/mieszek';
 import { setupOptionsAliases } from './aliases/options';
 import { setupHelpAliases } from './aliases/help';
 import { setupBindAliases } from './aliases/f';
@@ -26,6 +28,7 @@ import { setupLocationsAliases } from './aliases/locations';
 import { setupMiscAliases } from './aliases/misc';
 import { setupStatsAliases } from './aliases/stats';
 import { setupPostAliases } from './aliases/poczta';
+import { setupLootAliases } from './aliases/loot';
 import { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
 import { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 import { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
@@ -42,7 +45,7 @@ import { setupColCialo } from './colors/col_cialo';
 import { setupColEkwipunek } from './colors/col_ekwipunek';
 import { setupColEventy } from './colors/col_eventy';
 import { setupGlassSounds } from './sounds/glass_sound';
-import { setupDingSounds } from './sounds/ding_sound';
+import { setupPingSounds } from './sounds/ping_sounds';
 import { storage } from '../../lib/storage';
 
 let cleanupCombat: (() => void) | null = null;
@@ -66,6 +69,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupEmoteAliases(api);
   cleanupPalenie = setupPalenie(api);
   setupEquipmentAliases(api);
+  setupLampAliases(api);
+  setupMieszekAliases(api);
   setupOptionsAliases(api);
   setupTravelAliases(api, armArrivalTrigger);
   setupHelpAliases(api);
@@ -78,6 +83,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupMiscAliases(api);
   setupStatsAliases(api);
   setupPostAliases(api);
+  setupLootAliases(api);
   const dobywanieState = createDobywanieState();
   setupDobywanieAliases(api, dobywanieState);
   setupMovementAliases(api);
@@ -89,7 +95,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupColEkwipunek(api);
   setupColEventy(api);
   setupGlassSounds(api);
-  setupDingSounds(api);
+  setupPingSounds(api);
 
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);

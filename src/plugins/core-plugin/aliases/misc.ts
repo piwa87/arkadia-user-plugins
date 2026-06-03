@@ -115,22 +115,6 @@ export function setupMiscAliases(api: PluginApi): void {
     return true;
   });
 
-  // zden - denominate coins from worn bag
-  api.aliases.register(/^zden$/, () => {
-    api.command.send('otworz zalozona torbe');
-    api.command.send('wyj monety');
-    api.command.send('zdenominuj');
-    api.command.send('zamknij zalozona torbe');
-    return true;
-  });
-
-  // zden2 - denominate coins from ornate backpack
-  api.aliases.register(/^zden2$/, () => {
-    api.command.send('wez monety z ozdobnego plecaka');
-    api.command.send('zdenominuj');
-    return true;
-  });
-
   // i1-i5 - movement speeds
   const speeds: Record<string, string> = {
     '1': 'niespiesznie',
@@ -164,25 +148,6 @@ export function setupMiscAliases(api: PluginApi): void {
   api.aliases.register(/^zpla$/, () => {
     api.command.send('zaloz plaszcz');
     api.command.send('zepnij plaszcz spinka');
-    return true;
-  });
-
-  // ztm1 - sort coins in attached pouch (shake out copper, put all back)
-  api.aliases.register(/^ztm1$/, () => {
-    api.command.send('otworz przytroczona sakiewke');
-    api.command.send('wez miedziane monety z przytroczonej sakiewki');
-    api.command.send('odloz miedziane monety');
-    api.command.send('wloz monety do przytroczonej sakiewki');
-    api.command.send('zamknij przytroczona sakiewke');
-    return true;
-  });
-
-  // ztm2 - put copper and silver coins into worn bag
-  api.aliases.register(/^ztm2$/, () => {
-    api.command.send('otworz zalozona torbe');
-    api.command.send('wloz miedziane monety do zalozonej torby');
-    api.command.send('wloz srebrne monety do zalozonej torby');
-    api.command.send('zamknij zalozona torbe');
     return true;
   });
 
@@ -259,19 +224,6 @@ export function setupMiscAliases(api: PluginApi): void {
     return true;
   });
 
-  // sus - disable alarms, extinguish lamp
-  api.aliases.register(/^sus$/, () => {
-    api.command.send('zgas lampe');
-    api.output.print('--> Alarmy OFF');
-    return true;
-  });
-
-  // sus2 - disable alarms, extinguish lamp (variant)
-  api.aliases.register(/^sus2$/, () => {
-    api.command.send('zgas lampe');
-    api.output.print('--> Alarmy OFF');
-    return true;
-  });
 
   // ti! / ti!+ - stopwatch timer
   {

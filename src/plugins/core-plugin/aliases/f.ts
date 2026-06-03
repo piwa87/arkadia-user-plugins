@@ -14,14 +14,18 @@ export function setBind(api: PluginApi, command: string, options?: { once?: bool
 export function setupBindAliases(api: PluginApi): void {
   // f+ <command>   — persistent bind
   // f+! <command>  — one-shot bind (clears after use)
+  // Use | as separator for multi-commands (e.g. f+ cmd1|cmd2|cmd3)
   api.aliases.register(/^f\+(!?)\s+(.+)$/i, (matches) => {
     const once = matches?.[1] === '!';
-    const command = matches?.[2]?.trim();
+    let command = matches?.[2]?.trim();
 
     if (!command) {
       api.output.print('Usage: f+ <command>  |  f+! <command> (one-shot)');
       return true;
     }
+
+    // Replace | separator with ; for multi-commands
+    command = command.replace(/\|/g, ';');
 
     setBind(api, command, { once });
     return true;

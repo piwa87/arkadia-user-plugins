@@ -2,23 +2,6 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { registerTextAlias } from '../../../lib/registerTextAlias';
 
 export function setupEquipmentAliases(api: PluginApi): void {
-  // #region la+
-  api.aliases.register(/^la\+$/, () => {
-    api.command.send('wyj lampe|olej');
-    api.command.send('przytrocz lampe');
-    api.command.send('naplam');
-    api.command.send('/zap');
-    return true;
-  });
-
-  // #region la-
-  api.aliases.register(/^la-$/, () => {
-    api.command.send('/zg');
-    api.command.send('odtrocz lampe');
-    api.command.send('wlz lampe|oleje');
-    return true;
-  });
-
   // #region napt
   api.aliases.register(/^napt$/, () => {
     api.command.send('otworz zalozona torbe');
@@ -125,17 +108,6 @@ export function setupEquipmentAliases(api: PluginApi): void {
   // #region wyjzb - take all armor (from worn)
   api.aliases.register(/^wyjzb$/, () => {
     api.command.send('wyj wszystkie zbroje');
-    return true;
-  });
-
-  // #region ww0 - strip weapons and armor from 8 bodies
-  api.aliases.register(/^ww0$/, () => {
-    for (let i = 1; i <= 8; i++) {
-      api.command.send(`wez wszystkie bronie z ${i}. ciala`);
-      api.command.send('odloz je');
-      api.command.send(`wez wszystkie zbroje z ${i}. ciala`);
-      api.command.send('odloz je');
-    }
     return true;
   });
 
@@ -247,25 +219,6 @@ export function setupEquipmentAliases(api: PluginApi): void {
     for (let i = 1; i <= 4; i++) {
       api.command.send(`wez jaja z ${i}. gniazda`);
     }
-    return true;
-  });
-
-  // #region otm1 - take coins from worn bag
-  api.aliases.register(/^otm1$/, () => {
-    api.command.send('wyj monety');
-    return true;
-  });
-
-  // #region otm - open coin pouch and take coins
-  api.aliases.register(/^otm$/, () => {
-    api.command.send('otworz przytroczona sakiewke');
-    api.command.send('wez monety z przytroczonej sakiewki');
-    return true;
-  });
-
-  // #region ztm - close coin pouch
-  api.aliases.register(/^ztm$/, () => {
-    api.command.send('zamknij przytroczona sakiewke');
     return true;
   });
 

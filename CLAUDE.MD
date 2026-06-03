@@ -7,7 +7,7 @@ When exploring this codebase for the first time:
 1. Read `AGENTS.md` for project overview, directory structure, and plugin API summary
 2. Read `README.md` for workflow, hosting, and how to add a plugin entry
 
-For existing plugin examples, read `src/plugins/` — especially `core-plugin/` and `my-ra-plugin/`.
+For existing plugin examples, read `src/plugins/` — especially `core-plugin/` and `development-plugin/`.
 
 ## API Reference — Always Consult Before Implementing
 

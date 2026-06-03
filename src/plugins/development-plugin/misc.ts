@@ -7,7 +7,6 @@ export function setupMiscAliases(api: PluginApi): void {
   setupDepotAliases(api);
   setupContractAliases(api);
   setupKnowledgeAliases(api);
-  setupLampAliases(api);
 }
 
 // ── Herbs ───────────────────────────────────────────────────────────────────
@@ -147,11 +146,3 @@ function setupKnowledgeAliases(api: PluginApi): void {
   });
 }
 
-// ── Lamp (la+ / la- are already in core-plugin) ──────────────────────────────
-
-function setupLampAliases(api: PluginApi): void {
-  registerDev(api, /^naplam$/i, 'naplam', 'uzupełnij lampę olejem', () => {
-    api.command.send('uzupelnij lampe olejem', false);
-    return true;
-  });
-}
