@@ -285,7 +285,6 @@ export function setupColEventy(api: PluginApi): void {
     ],
     [/Czujesz jak uzdrawiajaca energia przepelnia twe cialo\./, '  plaszcz leczy  ', c34],
     [/Od twojego amuletu emanuje przyjemne cieplo\./, '  amulet leczy  ', c34],
-    [/.*(?:a|to) wydobywajac.* sie z broni.*/, '  spec  ', c43],
   ];
 
   for (const [pattern, label, c] of HEALS) {

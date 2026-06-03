@@ -1,6 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 
-export function setupFlaskAliases(api: PluginApi): void {
+export function setupBuklakAliases(api: PluginApi): void {
   // buk - drink from flask
   api.aliases.register(/^buk$/, () => {
     api.command.send('napij sie z buklaka');

@@ -58,8 +58,10 @@ export function setupMiscAliases(api: PluginApi): void {
   {
     const blockColor = getAnsiFormatState(34, api);
     const blockLines = ['                            ', '     WLAZLES NA STATEK!     ', '                            '];
+    const oneShotTag = 'na_statek_oneshot';
 
     api.aliases.register(/^na_statek$/, () => {
+      api.triggers.removeByTag(oneShotTag);
       api.triggers.registerOneTime(/^Wchodzisz/, (line) => {
         for (const l of blockLines) {
           const buf = new api.AnsiAwareBuffer(l);
@@ -67,7 +69,7 @@ export function setupMiscAliases(api: PluginApi): void {
           api.output.print(buf);
         }
         return line;
-      });
+      }, oneShotTag);
       return true;
     });
   }

@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { col13 } from '../../../lib/colors/my-colors';
+import { withDelay } from '../../../lib/withDelay';
 
 const TAG = 'atakPyk';
 
@@ -8,20 +9,17 @@ export function setupAtakPyk(api: PluginApi): () => void {
   let onCooldown = false;
   let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const colorOn   = api.colors.fromHex('#00ff88');
-  const colorOff  = api.colors.fromHex('#ff6644');
   const colorInfo = api.colors.fromHex('#888888');
-  const colorFire = api.colors.fromHex('#ffdd00');
 
-  const say = (text: string, color = colorInfo) => {
+  const say = (text: string) => {
     const buf = new api.AnsiAwareBuffer();
-    buf.append(text, color);
+    buf.append(text, colorInfo);
     api.output.print(buf);
   };
 
   const footer = api.ui.registerFooterComponent(
     'pyk',
-    `<span style="color: ${col13}; font-weight: bold; margin-left: 8px;">PYK+</span>`,
+    `<span style="color: ${col13}; font-weight: bold; margin-left: 8px;">PYK+ </span>`,
     'start',
   );
   footer.setVisible(false);
@@ -29,7 +27,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
   const idPlus = api.aliases.register(/^pyk\+$/i, () => {
     enabled = true;
     footer.setVisible(true);
-    say('--> pyk', colorOn);
+    say('--> pyk');
     return true;
   });
 
@@ -41,33 +39,29 @@ export function setupAtakPyk(api: PluginApi): () => void {
       cooldownTimer = null;
     }
     onCooldown = false;
-    say('--> juz nie pyk', colorOff);
+    say('--> juz nie pyk');
     return true;
   });
 
-  // Fires when someone designates a CEL ATAKU (attack target)
-  api.triggers.register(/CEL ATT.*jako CEL ATAKU/, (line) => {
+  const handleCelAtaku = (line: InstanceType<typeof api.AnsiAwareBuffer>) => {
     if (!enabled || onCooldown) return line;
 
-    const reactionMs = 150 + Math.floor(Math.random() * 350); // 150–500 ms human delay
-    const cooldownSec = 9 + Math.floor(Math.random() * 3);    // 9–11 s cooldown
-
-    say(`[pyk] >> reakcja za ${reactionMs}ms`, colorFire);
-
-    setTimeout(() => {
+    withDelay(211, 3187, () => {
       if (!enabled) return;
-      api.command.send('zabij cel ataku', false);
+      api.command.send('/z', false);
       onCooldown = true;
-      say(`[pyk] przerwa ${cooldownSec}s...`, colorInfo);
+      const cooldownSec = 10 + Math.floor(Math.random() * 4); // 10–13 s
       cooldownTimer = setTimeout(() => {
         onCooldown = false;
         cooldownTimer = null;
-        if (enabled) say('[pyk] gotowy', colorOn);
       }, cooldownSec * 1000);
-    }, reactionMs);
+    });
 
     return line;
-  }, TAG);
+  };
+
+  api.triggers.register(/CEL ATT.*jako CEL ATAKU/, handleCelAtaku, TAG);
+  api.triggers.register(/^.*wskazuje .* jako cel ataku\.$/, handleCelAtaku, TAG);
 
   return () => {
     if (cooldownTimer) clearTimeout(cooldownTimer);
