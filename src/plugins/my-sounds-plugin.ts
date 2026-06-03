@@ -9,7 +9,7 @@ const SOUND_ENABLED_KEY = 'soundsEnabled';
 const SOUND_ALIASES: Record<string, { name: string; debounce: number; volume: number }> = {
   play_glass: { name: 'glass', debounce: 2000, volume: 0.6 },
   play_basso: { name: 'basso', debounce: 2000, volume: 0.6 },
-  play_ding: { name: 'ding', debounce: 2000, volume: 0.6 },
+  play_ding: { name: 'ding', debounce: 2000, volume: 0.3 },
   play_tink: { name: 'tink', debounce: 2000, volume: 0.6 },
   play_morse: { name: 'morse', debounce: 2000, volume: 0.6 },
   play_ping: { name: 'ping', debounce: 2000, volume: 0.6 },

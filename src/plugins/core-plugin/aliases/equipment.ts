@@ -222,24 +222,6 @@ export function setupEquipmentAliases(api: PluginApi): void {
     return true;
   });
 
-  // #region ned - disembark from raft or ship
-  api.aliases.register(/^ned$/, () => {
-    api.command.send('zejdz z tratwy');
-    api.command.send('zejdz ze statku');
-    return true;
-  });
-
-  // #region op - board transport: arm trigger, open pouch, buy ticket, board, close pouch
-  api.aliases.register(/^op$/, () => {
-    api.command.send('na_statek');
-    api.command.send('otm');
-    api.command.send('kup bilet');
-    api.command.send('wejdz na tratwe');
-    api.command.send('wejdz na statek');
-    api.command.send('ztm');
-    return true;
-  });
-
   // #region sop - place animal on left shoulder
   api.aliases.register(/^sop$/, () => {
     api.command.send('umiesc zwierze na lewym ramieniu');

@@ -54,43 +54,8 @@ export function setupMiscAliases(api: PluginApi): void {
     });
   }
 
-  // na_statek - arm a one-shot trigger that shows a visual block when boarding succeeds
-  {
-    const blockColor = getAnsiFormatState(34, api);
-    const blockLines = ['                            ', '     WLAZLES NA STATEK!     ', '                            '];
-    const oneShotTag = 'na_statek_oneshot';
-
-    api.aliases.register(/^na_statek$/, () => {
-      api.triggers.removeByTag(oneShotTag);
-      api.triggers.registerOneTime(/^Wchodzisz/, (line) => {
-        for (const l of blockLines) {
-          const buf = new api.AnsiAwareBuffer(l);
-          buf.color([0, l.length], blockColor);
-          api.output.print(buf);
-        }
-        return line;
-      }, oneShotTag);
-      return true;
-    });
-  }
-
   // ze - quick look (optional direction)
   registerTextAlias(api, /^ze(?:\s+(.+))?$/, 'zerknij');
-
-  // br - knock on gate
-  api.aliases.register(/^br$/, () => {
-    api.command.send('zastukaj we wrota');
-    return true;
-  });
-
-  // br2 - ring bell/gong/pull cord
-  api.aliases.register(/^br2$/, () => {
-    api.command.send('uderz w dzwon');
-    api.command.send('uderz w gong');
-    api.command.send('pociagnij sznurek');
-    api.command.send('pociagnij linke');
-    return true;
-  });
 
   // liczpatrol - count patrol members
   api.aliases.register(/^liczpatrol$/, () => {
@@ -163,16 +128,6 @@ export function setupMiscAliases(api: PluginApi): void {
     return true;
   });
 
-  // opw - board a carriage/wagon/coach
-  api.aliases.register(/^opw$/, () => {
-    api.command.send('otworz zalozona torbe');
-    api.command.send('wsiadz do dylizansu');
-    api.command.send('wsiadz do wozu');
-    api.command.send('wsiadz do powozu');
-    api.command.send('zamknij zalozona torbe');
-    return true;
-  });
-
   // logg - mark an interesting section in the log
   api.aliases.register(/^logg$/, () => {
     api.output.print('');
@@ -223,7 +178,6 @@ export function setupMiscAliases(api: PluginApi): void {
     api.command.send('napraw wszystkie zbroje');
     return true;
   });
-
 
   // ti! / ti!+ - stopwatch timer
   {

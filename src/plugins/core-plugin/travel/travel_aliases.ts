@@ -1,30 +1,31 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 
-export function setupTravelAliases(
-  api: PluginApi,
-  armArrivalTrigger: (label: string, callback: () => void) => void,
-): void {
-  const registerSendAlias = (pattern: RegExp, label: string, command: string) => {
-    api.aliases.register(pattern, () => {
-      armArrivalTrigger(label, () => {
-        api.command.send(command);
-      });
-      return true;
-    });
-  };
+export function setupTravelAliases(api: PluginApi): void {
+  // #region op - board transport: open pouch, buy ticket, board, close pouch
+  api.aliases.register(/^op$/, () => {
+    api.command.send('na_statek');
+    api.command.send('otm');
+    api.command.send('kup bilet');
+    api.command.send('wejdz na tratwe');
+    api.command.send('wejdz na statek');
+    api.command.send('ztm');
+    return true;
+  });
 
-  // #region ned+
-  registerSendAlias(/^ned\+$/, 'ned+', 'ned');
+  // #region ned - disembark from raft or ship
+  api.aliases.register(/^ned$/, () => {
+    api.command.send('zejdz z tratwy');
+    api.command.send('zejdz ze statku');
+    return true;
+  });
 
-  // #region op+
-  registerSendAlias(/^op\+$/, 'op+', 'op');
-
-  // #region op++
-  api.aliases.register(/^op\+\+$/, () => {
-    armArrivalTrigger('op++', () => {
-      api.command.send('op');
-      api.command.send('ned');
-    });
+  // #region opw - board wagon transport: open pouch, board, close pouch
+  api.aliases.register(/^opw$/, () => {
+    api.command.send('otm');
+    api.command.send('wsiadz do dylizansu');
+    api.command.send('wsiadz do wozu');
+    api.command.send('wsiadz do powozu');
+    api.command.send('ztm');
     return true;
   });
 
@@ -33,10 +34,4 @@ export function setupTravelAliases(
     api.command.send('/fake --> Statek z wolna doplywa do brzegu.');
     return true;
   });
-
-  // #region wned+
-  registerSendAlias(/^wned\+$/, 'wned+', 'wned');
-
-  // #region wop+
-  registerSendAlias(/^wop\+$/, 'wop+', 'wop');
 }

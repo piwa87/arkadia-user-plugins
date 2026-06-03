@@ -4,8 +4,8 @@ import { setupZaslonTriggers } from './triggers/zaslon-triggers';
 import { setupLocationTriggers } from './triggers/location';
 import { setupMiscTriggers } from './triggers/misc';
 import { setupFooter } from './ui/footer';
-import { setupArrivalTrigger } from './travel/travel_triggers';
 import { setupTravelAliases } from './travel/travel_aliases';
+import { setupWsiadaczAliases } from './travel/wsiadacz';
 import { setupCombatAliases } from './walka/walka_aliasy';
 import { setupBattleAliases } from './aliases/exp_bindy';
 import { setupAtakiTriggers } from './walka/atak_triggers';
@@ -53,15 +53,11 @@ let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
-  const tag = 'corePlugin';
-  const ORDINALS = ['', '2. ', '3. ', '4. '];
+const ORDINALS = ['', '2. ', '3. ', '4. '];
   const targets = storage.get<string[]>('targets') ?? ['INIT', 'cel2', 'cel3', 'cel4'];
 
   // Set up footer component (needs targets by reference)
   const { update: updateFooter } = setupFooter(api, targets);
-
-  // Set up arrival trigger (returns armArrivalTrigger helper)
-  const { armArrivalTrigger } = setupArrivalTrigger(api, tag);
 
   // Wire up all alias modules
   setupBattleAliases(api);
@@ -72,7 +68,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupLampAliases(api);
   setupMieszekAliases(api);
   setupOptionsAliases(api);
-  setupTravelAliases(api, armArrivalTrigger);
+  setupTravelAliases(api);
+  setupWsiadaczAliases(api);
   setupHelpAliases(api);
   setupBindAliases(api);
   setupDebugAliases(api);
@@ -127,10 +124,10 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
 
   const info: PluginInfo = {
-    name: 'Piot Core',
-    version: '0.2.0',
+    name: 'Core Plugin',
+    version: '0.3.1',
     author: 'Piot',
-    description: 'Aliasy, cele i pomocnicze funkcje',
+    description: 'W wsumie wszystko ważne...',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);
   return info;

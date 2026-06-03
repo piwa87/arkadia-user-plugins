@@ -3,9 +3,6 @@ import { registerDev } from './devAlias';
 
 export function setupMiscAliases(api: PluginApi): void {
   setupHerbAliases(api);
-  setupFishingAliases(api);
-  setupDepotAliases(api);
-  setupContractAliases(api);
   setupKnowledgeAliases(api);
 }
 
@@ -46,75 +43,6 @@ function setupHerbAliases(api: PluginApi): void {
 
   registerDev(api, /^zx$/i, 'zx', 'przelicz zioła w sakwach (/ziola_buduj)', () => {
     api.command.send('/ziola_buduj');
-    return true;
-  });
-}
-
-// ── Fishing ─────────────────────────────────────────────────────────────────
-
-function setupFishingAliases(api: PluginApi): void {
-  registerDev(api, /^zarz$/i, 'zarz', 'nabij przynętę i zarzuć wędkę', () => {
-    api.command.send('nabij przynete na wedke', false);
-    api.command.send('zarzuc wedke', false);
-    return true;
-  });
-
-  registerDev(api, /^zatn$/i, 'zatn', 'zaciągnij (zatnij) wędkę', () => {
-    api.command.send('zacij wedke', false);
-    return true;
-  });
-
-  registerDev(api, /^wsiec$/i, 'wsiec', 'wyciągnij sieci i zarzuć ponownie', () => {
-    api.command.send('wyciagnij sieci', false);
-    api.command.send('zarzuc sieci', false);
-    return true;
-  });
-
-  registerDev(api, /^spryb$/i, 'spryb', 'otwórz popup wędki (/wedka)', () => {
-    api.command.send('/wedka');
-    return true;
-  });
-}
-
-// ── Depot ───────────────────────────────────────────────────────────────────
-
-function setupDepotAliases(api: PluginApi): void {
-  registerDev(api, /^depo_set$/i, 'depo_set', 'oznacz bieżący pokój jako depozyt (/depozyt_set)', () => {
-    api.command.send('/depozyt_set');
-    return true;
-  });
-
-  registerDev(api, /^depo_show$/i, 'depo_show', 'zawartość depozytu (/depozyt)', () => {
-    api.command.send('/depozyt');
-    return true;
-  });
-
-  registerDev(api, /^dep!$/i, 'dep!', 'lista wszystkich depozytów (/depozyty)', () => {
-    api.command.send('/depozyty');
-    return true;
-  });
-}
-
-// ── Contracts / shop orders ──────────────────────────────────────────────────
-
-function setupContractAliases(api: PluginApi): void {
-  registerDev(api, /^zl!?$/i, 'zl / zl!', 'zlecenia sklepu (/zlecenia)', () => {
-    api.command.send('/zlecenia');
-    return true;
-  });
-
-  registerDev(api, /^zk!?$/i, 'zk / zk!', 'zlecenia karczmy (/zlecenia)', () => {
-    api.command.send('/zlecenia');
-    return true;
-  });
-
-  registerDev(api, /^ea!$/i, 'ea!', 'pokaż statystyki zarobków z dostaw', () => {
-    (api.events as any).emit('showDeliveryStats');
-    return true;
-  });
-
-  registerDev(api, /^eareset$/i, 'eareset', 'resetuj licznik zarobków', () => {
-    (api.events as any).emit('resetDeliveryStats');
     return true;
   });
 }

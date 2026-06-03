@@ -1,4 +1,4 @@
-import type { PluginApi } from '@arkadia/plugin-types';
+import type { PluginApi, FormatStateSnapshot } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 
 const ACCUSATIVE: Record<string, string> = {
@@ -15,8 +15,26 @@ export function setupBramyTriggers(api: PluginApi): void {
   const firebrick = api.colors.fromHex('#b22222');
   const zamknieteColor = getAnsiFormatState(42, api);
   const otwarteColor = getAnsiFormatState(41, api);
-  const cyanColor = getAnsiFormatState(6, api);
   const goldColor = getAnsiFormatState(3, api);
+
+  // Firebrick fg over the green bg (ANSI 42)
+  const zamknieteLabel: FormatStateSnapshot = {
+    foreground: firebrick.foreground,
+    background: zamknieteColor.background,
+  };
+
+  // Skyblue fg over the existing bg (ANSI 41)
+  const otwarteLabel: FormatStateSnapshot = {
+    foreground: skyblue.foreground,
+    background: otwarteColor.background,
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prependLabel = (line: any, label: string, color: FormatStateSnapshot) => {
+    const buf = new api.AnsiAwareBuffer(label + ' ');
+    buf.color([0, label.length], color);
+    return line.prependBuffer(buf);
+  };
 
   // Open door/gate in room description (e.g. "Otwarte drzwi prowadza...")
   api.triggers.register(
@@ -32,27 +50,27 @@ export function setupBramyTriggers(api: PluginApi): void {
     tag,
   );
 
-  // Gate/door closing event — prepend green-bg ZAMKNIETE label
+  // Gate/door closing event — prepend bg label with firebrick text + uncolored gap
   api.triggers.register(
     /^(?:.*zamyka sie bezszelestnie\.|.*zamyka ciezkie skrzydlo bramy.*\.|.*przesuwa sie, zamykajac wejscie do miasta\.|.*kamienny blok przesuwa sie, blokujac przejscie\.|.* zostaje ona zamknieta\.|.* zamykaja sie|.* zamyka sie\.|.* zamknel\w+ sie\.|.* powoli opada w dol\.|.* domyka jedno skrzydlo bramy\..*|.* krata opada, zamykajac przejscie\.|Wartownik zamyka drzwiczki w jednym skrzydle bramy\.)/,
-    (line) => line.prepend('   ZAMKNIETE   ', zamknieteColor),
+    (line) => prependLabel(line, '   ZAMKNIETE   ', zamknieteLabel),
     tag,
   );
 
-  // Gate/door opening event — prepend red-bg OTWARTE label + morse alert
+  // Gate/door opening event — prepend bg label with skyblue text + uncolored gap + morse alert
   api.triggers.register(
     /^(?:Wrota lekko uchylaja sie\.|Pien powoli odsuwa sie, odslaniajac.*\.|Mozna teraz bezpiecznie przejsc na druga strone\.|.*wrota powoli otwieraja sie\.|.*wrota otwieraja sie ukazujac.*|.*skrzydlo bramy uchyla sie\.|.*otwierajac .* miasta\.|.*metaliczny zgrzyt i odrzwia uchylaja sie,.*\.|.*do gory otwierajac.*|.* zostaj\w+ otwart\w+\.|.* straznik otwiera brame\.|.* rozst\w+ sie na boki.*|.* plyty bramy przesuwaja.*|.* otworzyl\w+ sie\.|.* otwieraja wejscie do twierdzy\.|.* otwiera sie\.|.* otwiera jedno skrzydlo bramy\.|.* i trzaskow wrota powoli otwieraja sie\.|.* mocno otwierajac brame\.|Udaje ci sie uniesc .* krate, otwierajac przejscie\.|Szorujac po podlodze jeden z regalow przesuwa sie, otwierajac przejscie\.|Szorujac po kamiennej podlodze zachodnia sciana otwiera sie niczym skrzydla drzwi\.|Slychac metaliczny dzwiek zasuwy i drzwiczki w jednym skrzydle bramy otwieraja sie\.)/,
     (line) => {
       api.command.send('play_morse');
-      return line.prepend('   OTWARTE   ', otwarteColor);
+      return prependLabel(line, '   OTWARTE   ', otwarteLabel);
     },
     tag,
   );
 
-  // Failed to open — show inline ZAMKNIETE! alert
+  // Failed to open — firebrick inline label
   api.triggers.register(
     /^Probujesz otworzyc (.*), ale nie udaje ci sie to\.$/,
-    (line) => line.prepend('ZAMKNIETE! ', cyanColor),
+    (line) => prependLabel(line, '   ZAMKNIETE   ', zamknieteLabel),
     tag,
   );
 
