@@ -1,14 +1,14 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
-import { setupMovementAliases } from './movement';
 import { setupCmudCombatAliases } from './combat';
 import { setupMiscAliases } from './misc';
 import { setupHelpAlias } from './help';
+import { setupNewStuffAliases } from './new_stuff';
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
-  setupMovementAliases(api);
   setupCmudCombatAliases(api);
   setupMiscAliases(api);
   setupHelpAlias(api);
+  setupNewStuffAliases(api);
 
   const info: PluginInfo = {
     name: 'Dev Preview',

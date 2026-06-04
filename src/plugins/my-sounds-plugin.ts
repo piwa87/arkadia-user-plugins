@@ -11,7 +11,7 @@ const SOUND_ALIASES: Record<string, { name: string; debounce: number; volume: nu
   play_basso: { name: 'basso', debounce: 2000, volume: 0.6 },
   play_ding: { name: 'ding', debounce: 2000, volume: 0.3 },
   play_tink: { name: 'tink', debounce: 2000, volume: 0.6 },
-  play_morse: { name: 'morse', debounce: 2000, volume: 0.6 },
+  play_morse: { name: 'morse', debounce: 2000, volume: 0.8 },
   play_ping: { name: 'ping', debounce: 2000, volume: 0.6 },
   play_drums: { name: 'alarm', debounce: 2000, volume: 0.6 },
   play_lowhp: { name: 'lowhp', debounce: 6000, volume: 0.6 },
