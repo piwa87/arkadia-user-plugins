@@ -30,6 +30,22 @@ const HP_STATES = [
   'w swietnej kondycji',
 ] as const;
 
+// Readable display labels (masculine default), keyed by HP level 1-7.
+const HP_LABELS = [
+  'ledwo zywy',
+  'ciezko ranny',
+  'w zlej kondycji',
+  'ranny',
+  'lekko ranny',
+  'w dobrym stanie',
+  'w swietnej kondycji',
+] as const;
+
+/** Human-readable condition label for an HP level (1-7). */
+export function getHpLabel(level: number): string {
+  return HP_LABELS[level - 1] ?? 'nieznana kondycja';
+}
+
 function initializeHPColors(api: PluginApi): ReadonlyArray<FormatStateSnapshot | undefined> {
   return [
     getAnsiFormatState(47, api), // 1 ledwo zyw       → fg15 white  + bg2 dark gray

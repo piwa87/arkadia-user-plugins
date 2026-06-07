@@ -1,4 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { requestPermission, notify } from '../../../lib/notifications';
+import { getHpLabel, type KondycjeState } from '../kondycje/kondycje_triggers';
 
 const ATAK_PATTERNS = [
   /^(.*) atakuje cie!$/, // atakujecie
@@ -12,8 +14,11 @@ const ATAK_PATTERNS = [
   /^Udalo ci sie gdzies uciec!$/, // panika_ucieczka
 ];
 
-export function setupAtakiTriggers(api: PluginApi): void {
+export function setupAtakiTriggers(api: PluginApi, kondycjeState: KondycjeState): void {
   const tag = 'atakiTriggers';
+
+  // Request browser notification permission once on load
+  requestPermission();
 
   api.triggers.register(
     ATAK_PATTERNS,
@@ -24,16 +29,20 @@ export function setupAtakiTriggers(api: PluginApi): void {
     tag,
   );
 
-  // Kill confirmation — show N E X T banner and play sound
-  const onKill = (line: any) => {
+  // Kill confirmation — event-driven, fires for any enemy death
+  api.events.on('enemyKilled', () => {
     api.command.send('next!');
     api.command.send('play_morse');
-    return line;
-  };
+  });
 
-  // Player killed something
-  api.triggers.register(/^Zabil[ae]s /, onKill, tag);
+  // All enemies dead — browser notification with current HP condition
+  api.events.on('allEnemiesKilled', () => {
+    notify(`Wsszystko \u{1F480} [${getHpLabel(kondycjeState.hp)}]`);
+  });
 
-  // Someone else killed something
-  api.triggers.register(/^[A-Z][a-z]+ zabil/, onKill, tag);
+  // Test alias — manually fire allEnemiesKilled
+  api.aliases.register(/^ake$/, () => {
+    api.events.emit('allEnemiesKilled');
+    return true;
+  });
 }

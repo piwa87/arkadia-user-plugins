@@ -94,9 +94,12 @@ const ORDINALS = ['', '2. ', '3. ', '4. '];
   setupGlassSounds(api);
   setupPingSounds(api);
 
+  // Kondycje (HP condition) state — created early so other triggers can read it
+  const kondycjeState = createKondycjeState();
+
   // Set up event triggers (alarms, undead warnings, etc.)
   setupEventTriggers(api);
-  setupAtakiTriggers(api);
+  setupAtakiTriggers(api, kondycjeState);
   setupPartyShieldAliases(api);
   cleanupAtakPyk = setupAtakPyk(api);
   setupCiosyKolory(api);
@@ -105,7 +108,6 @@ const ORDINALS = ['', '2. ', '3. ', '4. '];
   setupMiscTriggers(api);
 
   // Set up kondycje (HP condition) triggers and aliases
-  const kondycjeState = createKondycjeState();
   setupKondycjeTriggers(api, kondycjeState);
   setupKondycjeAliases(api, kondycjeState);
 
