@@ -88,6 +88,7 @@ export function createMockApi(options?: { room?: any }) {
         aliases.push({ pattern, callback });
         return `alias-${aliases.length}`;
       }),
+      remove: vi.fn(),
     },
     events: {
       emit: vi.fn(),

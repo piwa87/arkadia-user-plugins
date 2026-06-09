@@ -1,6 +1,6 @@
 import type { PluginApi, AnsiAwareBuffer, FormatStateSnapshot } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
-import { col0, col2, col3, col4, col5, col6, col9 } from '../../../lib/colors/my-colors';
+import { col0, col3, col4, col6, col9 } from '../../../lib/colors/my-colors';
 
 export interface KondycjeState {
   hp: number; // 1-7 (1=barely alive, 7=excellent)
@@ -307,12 +307,12 @@ export function setupKondycjeTriggers(api: PluginApi, state: KondycjeState): voi
           state.teamBadLastAlert = now;
           api.command.send('play_lowhp');
           const row = ' . '.repeat(14) + '   D R U Z Y N A   C I E Z K O   R A N N A   ' + ' . '.repeat(14);
-          printAlertBanner(api, row, col5);
+          printAlertBanner(api, row, col6);
         } else if (hpLevel === 3 && now - state.teamBadLastAlert > 5_000) {
           state.teamBadLastAlert = now;
           api.command.send('play_lowhp');
           const row = ' . '.repeat(13) + '   D R U Z Y N A   W   Z L E J   K O N D Y C J I   ' + ' . '.repeat(13);
-          printAlertBanner(api, row, col2);
+          printAlertBanner(api, row, col6);
         }
 
         if (attackerCount > 4) {

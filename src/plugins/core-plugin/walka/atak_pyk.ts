@@ -1,8 +1,9 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { col13 } from '../../../lib/colors/my-colors';
+import { col3, col13 } from '../../../lib/colors/my-colors';
 import { withDelay } from '../../../lib/withDelay';
 
 const TAG = 'atakPyk';
+const LEADER_WARN_INTERVAL = 5000;
 
 export function setupAtakPyk(api: PluginApi): () => void {
   let enabled = false;
@@ -10,6 +11,54 @@ export function setupAtakPyk(api: PluginApi): () => void {
   let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
   const colorInfo = api.colors.fromHex('#888888');
+  const subtleColor = api.colors.fromHex(col3);
+
+  let leaderActiveTargetId: number | undefined;
+  let leaderLastWarnAt = 0;
+
+  const sendAttack = () => {
+    if (onCooldown) return;
+    withDelay(211, 3187, () => {
+      if (!enabled) return;
+      api.command.send('/z', false);
+      onCooldown = true;
+      const cooldownSec = 10 + Math.floor(Math.random() * 4); // 10–13 s
+      cooldownTimer = setTimeout(() => {
+        onCooldown = false;
+        cooldownTimer = null;
+      }, cooldownSec * 1000);
+    });
+  };
+
+  const printSubtleWarning = () => {
+    const now = Date.now();
+    if (now - leaderLastWarnAt < LEADER_WARN_INTERVAL) return;
+    leaderLastWarnAt = now;
+    api.output.print(new api.AnsiAwareBuffer().append('     nie bijesz celu ataku', subtleColor));
+  };
+
+  const onLeaderTargetNoAvatar = (id: number) => {
+    leaderActiveTargetId = id;
+    if (enabled) {
+      sendAttack();
+    } else {
+      printSubtleWarning();
+    }
+  };
+
+  const onLeaderTargetAvatar = () => {
+    leaderActiveTargetId = undefined;
+    leaderLastWarnAt = 0;
+  };
+
+  const onObjectsData = () => {
+    if (!leaderActiveTargetId || enabled) return;
+    printSubtleWarning();
+  };
+
+  api.events.on('teamLeaderTargetNoAvatar', onLeaderTargetNoAvatar);
+  api.events.on('teamLeaderTargetAvatar', onLeaderTargetAvatar);
+  api.events.on('gmcp.objects.data', onObjectsData);
 
   const say = (text: string) => {
     const buf = new api.AnsiAwareBuffer();
@@ -44,19 +93,8 @@ export function setupAtakPyk(api: PluginApi): () => void {
   });
 
   const handleCelAtaku = (line: InstanceType<typeof api.AnsiAwareBuffer>) => {
-    if (!enabled || onCooldown) return line;
-
-    withDelay(211, 3187, () => {
-      if (!enabled) return;
-      api.command.send('/z', false);
-      onCooldown = true;
-      const cooldownSec = 10 + Math.floor(Math.random() * 4); // 10–13 s
-      cooldownTimer = setTimeout(() => {
-        onCooldown = false;
-        cooldownTimer = null;
-      }, cooldownSec * 1000);
-    });
-
+    if (!enabled) return line;
+    sendAttack();
     return line;
   };
 
@@ -69,5 +107,8 @@ export function setupAtakPyk(api: PluginApi): () => void {
     api.aliases.remove(idPlus);
     api.aliases.remove(idMinus);
     footer.remove();
+    api.events.off('teamLeaderTargetNoAvatar', onLeaderTargetNoAvatar);
+    api.events.off('teamLeaderTargetAvatar', onLeaderTargetAvatar);
+    api.events.off('gmcp.objects.data', onObjectsData);
   };
 }
