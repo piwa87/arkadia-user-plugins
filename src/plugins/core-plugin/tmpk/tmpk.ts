@@ -31,7 +31,7 @@ function escapeRegex(s: string): string {
 }
 
 function buildPattern(list: string[]): RegExp {
-  return new RegExp('(?:' + list.map(escapeRegex).join('|') + ')', 'i');
+  return new RegExp('\\b(?:' + list.map(escapeRegex).join('|') + ')\\b', 'i');
 }
 
 export interface TmpkState {
@@ -47,7 +47,11 @@ function registerTrigger(api: PluginApi, state: TmpkState, color: unknown): void
   api.triggers.register(
     buildPattern(state.list),
     (line) => {
-      (line as any).colorWords(state.list, color, { caseInsensitive: true });
+      const re = new RegExp('\\b(?:' + state.list.map(escapeRegex).join('|') + ')\\b', 'gi');
+      let m: RegExpExecArray | null;
+      while ((m = re.exec((line as any).text)) !== null) {
+        (line as any).color([m.index, m.index + m[0].length], color);
+      }
       return line;
     },
     TAG,

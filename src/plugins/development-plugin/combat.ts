@@ -91,12 +91,6 @@ export function setupCmudCombatAliases(api: PluginApi): void {
     },
   );
 
-  // vv → stop shielding
-  registerDev(api, /^vv$/i, 'vv', 'zaprzestań zasłaniania', () => {
-    api.command.send('zaprzestan zaslon', false);
-    return true;
-  });
-
   // zp <name> → shield named party member
   registerDev(
     api,
@@ -153,27 +147,6 @@ export function setupCmudCombatAliases(api: PluginApi): void {
     },
   );
 
-  // dp → queue enemies in reverse priority (4→3→2→1), attack first queued
-  registerDev(
-    api,
-    /^dp$/i,
-    'dp',
-    () => {
-      const count = api.objects.getObjectsOnLocation().filter((o) => o.__category === 'rest').length;
-      return `kolejka odwrócona — ${count} wrogów`;
-    },
-    () => {
-      const enemies = api.objects.getObjectsOnLocation().filter((o) => o.__category === 'rest');
-      api.attackQueue.clear();
-      for (let i = enemies.length - 1; i >= 0; i--) {
-        api.attackQueue.add(enemies[i].num);
-      }
-      const queue = api.attackQueue.get();
-      if (queue[0] !== undefined) api.attackController.attackById(queue[0]);
-      return true;
-    },
-  );
-
   // bd → batch: add all GMCP enemies to queue and attack the first
   registerDev(
     api,
@@ -188,38 +161,6 @@ export function setupCmudCombatAliases(api: PluginApi): void {
       api.attackQueue.clear();
       for (const e of enemies) api.attackQueue.add(e.num);
       if (enemies[0]) api.attackController.attackById(enemies[0].num);
-      return true;
-    },
-  );
-
-  // wsk <name> → designate named target as attack target
-  registerDev(
-    api,
-    /^wsk\s+(.+)$/i,
-    'wsk <imię>',
-    (m) => `wskaż cel: ${m?.[1]?.trim() ?? '?'}`,
-    (matches) => {
-      const name = matches?.[1]?.trim();
-      if (name) api.command.send(`wskaz ${name} jako cel ataku`, false);
-      return true;
-    },
-  );
-
-  // bbb → attack current target + order party to block it
-  registerDev(
-    api,
-    /^bbb$/i,
-    'bbb',
-    () => {
-      const [id] = api.attackQueue.get();
-      return id !== undefined ? `atak + rozkaz zablokuj ob_${id}` : 'bbb (brak celu)';
-    },
-    () => {
-      const [targetId] = api.attackQueue.get();
-      if (targetId !== undefined) {
-        api.attackController.attackById(targetId);
-        api.command.send(`rozkaz druzynie zablokuj ob_${targetId}`, false);
-      }
       return true;
     },
   );

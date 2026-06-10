@@ -37,7 +37,7 @@ export function setupAtakiTriggers(api: PluginApi, kondycjeState: KondycjeState)
 
   // All enemies dead — browser notification with current HP condition
   api.events.on('allEnemiesKilled', () => {
-    notify(`Wsszystko \u{1F480} [${getHpLabel(kondycjeState.hp)}]`);
+    notify(`Wszystko \u{1F480} [${getHpLabel(kondycjeState.hp)}]`);
   });
 
   // Test alias — manually fire allEnemiesKilled

@@ -40,17 +40,18 @@ describe('setupTmpk', () => {
     expect(tmpkTrigger).toBeDefined();
   });
 
-  it('trigger callback calls colorWords with the list', () => {
+  it('trigger callback colors whole-word matches via line.color', () => {
     const { api, triggers } = createMockApi();
     setupTmpk(api);
     const tmpkTrigger = triggers.find((t) => t.tag === 'tmpk')!;
-    const line = createMockLine('Widzisz tutaj trollu.');
+    // "troll" at index 14-19 is a standalone word → should be colored
+    const line = createMockLine('Widzisz tutaj troll.');
     tmpkTrigger.callback(line, [] as unknown as RegExpMatchArray);
-    expect(line.colorWords).toHaveBeenCalledWith(
-      expect.arrayContaining(['troll']),
-      expect.anything(),
-      { caseInsensitive: true },
-    );
+    expect(line.color).toHaveBeenCalledWith([14, 19], expect.anything());
+    // "ork" inside "pagorkow" must not be colored
+    const line2 = createMockLine('Posrod pagorkow.');
+    tmpkTrigger.callback(line2, [] as unknown as RegExpMatchArray);
+    expect(line2.color).not.toHaveBeenCalled();
   });
 
   it('tmpk+ adds item to list and persists it', () => {

@@ -6,7 +6,6 @@ const TAG = 'glassSounds';
 export function setupGlassSounds(api: PluginApi): void {
   const c3 = getAnsiFormatState(3, api);
   const c4 = getAnsiFormatState(4, api);
-  const c35 = getAnsiFormatState(35, api);
   const c38 = getAnsiFormatState(38, api);
   const c41 = getAnsiFormatState(41, api);
 
@@ -24,83 +23,32 @@ export function setupGlassSounds(api: PluginApi): void {
     api.output.print('');
   };
 
-  // --- Transport arrivals (dynamic banner from match) ---
+  // --- Transport arrivals ---
 
-  // woz/powoz/dylizans slowly stops
   api.triggers.register(
-    /(.*) (woz z plandeka|woz|powoz|dylizans) powoli zatrzymuje sie\./,
-    (line, matches) => {
-      banner(`              ${matches[1]} ${matches[2]} przyjechal!`, c4);
-      playGlass();
+    new RegExp(
+      [
+        'powoli zatrzymuje sie\\.',
+        'cicho skrzypiac zatrzymuje sie\\.',
+        '(?:z wolna doplywa|przybija) do brzegu\\.',
+        'przebiega drzenie',
+        'Drzenie przebiega poklad',
+        'Powoli pojazd zaczyna tracic predkosc',
+        'Monotonne kolysanie ustaje',
+      ].join('|'),
+    ),
+    (line) => {
+      banner('        transport        ', c4);
       return line;
     },
     TAG,
   );
 
-  // vehicle stops with creaking
-  api.triggers.register(
-    /(.*) cicho skrzypiac zatrzymuje sie\./,
-    (line, matches) => {
-      banner(`              ${matches[1]} przyjechal!`, c4);
-      playGlass();
-      return line;
-    },
-    TAG,
-  );
-
-  // boat/ship approaches shore (also sends ti!)
-  api.triggers.register(
-    /(.*) (?:z wolna doplywa|przybija) do brzegu\./,
-    (line, matches) => {
-      banner(`              ${matches[1]} przybija do brzegu!`, c4);
-      playGlass();
-      api.command.send('ti!');
-      return line;
-    },
-    TAG,
-  );
-
-  // --- Transport stops (static banner) ---
-
-  const TRANSPORT_STOPS: [RegExp, string][] = [
-    [
-      /(?:Przez statek przebiega drzenie, gdy przybija on do brzegu przystani\. Na pokladzie slyszysz duzy ruch\.|Drzenie przebiega poklad, gdy okret przybija do brzegu przystani\. Marynarze sprawnie cumuja go i wysuwaja na brzeg trap\.)/,
-      '              GALEON DOPLYNAL!',
-    ],
-    [/^Powoli pojazd zaczyna tracic predkosc, by po chwili zatrzymac sie\./, '              Postoj dylizansu!'],
-    [/^Monotonne kolysanie ustaje w koncu i woz zatrzymuje sie\./, '              Postoj wozu!'],
-  ];
-
-  for (const [pattern, text] of TRANSPORT_STOPS) {
-    api.triggers.register(
-      pattern,
-      (line) => {
-        banner(text, c4);
-        playGlass();
-        return line;
-      },
-      TAG,
-    );
-  }
-
-  // --- Combat events ---
-
-  // mage incinerated by white flame
+  // #region magik burns
   api.triggers.register(
     /^Bialy, zimny plomien ogarnia (.*), w kilka chwil spopielajac .* calkowicie\./,
     (line) => {
       banner('        pozarlo magika        ', c41);
-      playGlass();
-      return line;
-    },
-    TAG,
-  );
-
-  // weapon knocked from hand (critical parry block)
-  api.triggers.register(
-    /Uderzenie jest tak silne, ze bezwiednie puszczasz (.*)\./,
-    (line) => {
-      say('[ KRYTYK PAROWANIA ]', c35);
       playGlass();
       return line;
     },
@@ -121,7 +69,10 @@ export function setupGlassSounds(api: PluginApi): void {
   };
 
   const LIGHT_OUT: [RegExp, string][] = [
-    [/(.*(?:pochodnia|luczywo|lampa)) wypala sie i gasnie\./, 'f+ odloz wypalone pochodnie|zapal pochodnie|zapal swiece|naplam'],
+    [
+      /(.*(?:pochodnia|luczywo|lampa)) wypala sie i gasnie\./,
+      'f+ odloz wypalone pochodnie|zapal pochodnie|zapal swiece|naplam',
+    ],
     [/^(.* swieca) wypala sie i gasnie\./, 'f+ odloz wypalone swiece|zapal swiece'],
   ];
 
