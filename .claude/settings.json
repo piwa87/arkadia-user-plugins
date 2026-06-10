@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(mkdir -p /Users/piotr/Dev/arkadia-user-plugins/plugin-docs && cp /Users/piotr/Dev/arkadia-user-plugins/src/instructions/*.md /Users/piotr/Dev/arkadia-user-plugins/plugin-docs/ && cp /Users/piotr/Dev/arkadia-user-plugins/AGENTS.md /Users/piotr/Dev/arkadia-user-plugins/plugin-docs/ && cp /Users/piotr/Dev/arkadia-user-plugins/README.md /Users/piotr/Dev/arkadia-user-plugins/plugin-docs/ && cp /Users/piotr/Dev/arkadia-user-plugins/docs/PLUGINS.md /Users/piotr/Dev/arkadia-user-plugins/plugin-docs/ && ls /Users/piotr/Dev/arkadia-user-plugins/plugin-docs/)"
+    ],
+    "additionalDirectories": [
+      "/Users/piotr/Dev/arkadia-user-plugins/src/instructions"
     ]
   }
 }
