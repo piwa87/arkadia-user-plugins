@@ -40,7 +40,7 @@ import { createDobywanieState, setupDobywanieAliases } from './dobywanie/dobywan
 import { setupMovementAliases } from './movement/movement_aliases';
 import { setupKeyboardBindings, teardownKeyboardBindings, setCenterCommand } from './movement/movement_binds';
 import { setupTmpk } from './tmpk/tmpk';
-import { setupColActions } from './colors/col_actions';
+import { setupColMovements } from './colors/col_movements';
 import { setupColCialo } from './colors/col_cialo';
 import { setupColEkwipunek } from './colors/col_ekwipunek';
 import { setupColEventy } from './colors/col_eventy';
@@ -87,7 +87,7 @@ const ORDINALS = ['', '2. ', '3. ', '4. '];
   setupKeyboardBindings(api);
   setCenterCommand('c');
   setupTmpk(api);
-  setupColActions(api);
+  setupColMovements(api);
   setupColCialo(api);
   setupColEkwipunek(api);
   setupColEventy(api);
