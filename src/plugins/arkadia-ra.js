@@ -25961,28 +25961,13 @@ function registerNpcOrders(api) {
     api.triggers.register(
       new RegExp(substring.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
       (line) => {
-        dedupedBind.set("zapytaj sprzedawce o prace", void 0, true);
+        dedupedBind.set("zapytaj sprzedawce o zlecenie", void 0, true);
         return line;
       },
       tag
     );
   }
-  api.triggers.register(
-    /Tak, mam pewne pilne zamowienie\./,
-    (line) => {
-      dedupedBind.set("zapytaj sprzedawce o czas", void 0, true);
-      return line;
-    },
-    tag
-  );
-  api.triggers.register(
-    /Nie, w tej chwili niczego mi nie trzeba\./,
-    (line) => {
-      dedupedBind.set("zapytaj sprzedawce o czas", void 0, true);
-      return line;
-    },
-    tag
-  );
+
   api.triggers.register(
     /^Dalsze informacje wydaja sie slabo czytelne. Mozesz rozroznic jedynie nastepujece znaki: (.*)/,
     (line, matches) => {
@@ -26764,7 +26749,7 @@ async function init(api) {
   cleanups.push(registerTeamSearch(api));
   cleanups.push(registerTraverse(api));
   initAsync(api, state);
-  cecho(api, `<CadetBlue>(ra)<tomato>: Uzywasz pluginu arkadia-ra, ver. ${state.version}. Pomoc dostepna w '/ra_pomoc'
+  cecho(api, `[RA Plugin]: Uzywasz pluginu arkadia-ra, ver. ${state.version}. Pomoc dostepna w '/ra_pomoc'
 `);
   return {
     name: "Arkadia RA",
@@ -26786,7 +26771,7 @@ async function initAsync(api, state2) {
   }
   if (state2.enemies.length > 0) {
     const names = state2.enemies.map((e) => e.name).join(", ");
-    cecho(api, `<yellow>Obecni wrogowie rodziny to: <tomato>${names}
+    cecho(api, `Obecni wrogowie rodziny to: <tomato>${names}
 `);
   }
   const tokenInterval = setInterval(() => {
@@ -26821,61 +26806,3 @@ export {
   destroy,
   init
 };
-/*! Bundled license information:
-
-react/cjs/react.development.js:
-  (**
-   * @license React
-   * react.development.js
-   *
-   * Copyright (c) Meta Platforms, Inc. and affiliates.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *)
-
-scheduler/cjs/scheduler.development.js:
-  (**
-   * @license React
-   * scheduler.development.js
-   *
-   * Copyright (c) Meta Platforms, Inc. and affiliates.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *)
-
-react-dom/cjs/react-dom.development.js:
-  (**
-   * @license React
-   * react-dom.development.js
-   *
-   * Copyright (c) Meta Platforms, Inc. and affiliates.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *)
-
-react-dom/cjs/react-dom-client.development.js:
-  (**
-   * @license React
-   * react-dom-client.development.js
-   *
-   * Copyright (c) Meta Platforms, Inc. and affiliates.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *)
-
-react/cjs/react-jsx-runtime.development.js:
-  (**
-   * @license React
-   * react-jsx-runtime.development.js
-   *
-   * Copyright (c) Meta Platforms, Inc. and affiliates.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *)
-*/
-//# sourceMappingURL=arkadia-ra.js.map
