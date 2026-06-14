@@ -1,18 +1,10 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
-import { setupCmudCombatAliases } from './combat';
-import { setupMiscAliases } from './misc';
 import { setupHelpAlias } from './help';
-import { setupNewStuffAliases } from './new_stuff';
-import { setupWalkerNotify } from './walker-notify';
-
-let destroyWalkerNotify: (() => void) | undefined;
+import { setupZlecenia, destroyZlecenia } from './zlecenia';
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
-  setupCmudCombatAliases(api);
-  setupMiscAliases(api);
   setupHelpAlias(api);
-  setupNewStuffAliases(api);
-  destroyWalkerNotify = setupWalkerNotify(api);
+  setupZlecenia(api);
 
   const info: PluginInfo = {
     name: 'Dev Preview',
@@ -25,6 +17,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   return info;
 }
 
-export function destroy(): void {
-  destroyWalkerNotify?.();
+export function destroy(api: PluginApi): void {
+  destroyZlecenia(api);
 }

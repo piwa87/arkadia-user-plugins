@@ -39,6 +39,9 @@ import { megaphone, setupMgfnAlias } from './aliases/mgfn';
 import { createDobywanieState, setupDobywanieAliases } from './dobywanie/dobywanie_aliases';
 import { setupMovementAliases } from './movement/movement_aliases';
 import { setupKeyboardBindings, teardownKeyboardBindings, setCenterCommand } from './movement/movement_binds';
+import { setupWalker } from './aliases/walker';
+import { setupKarczmaAliases } from './aliases/karczma';
+import { setupDooAliases } from './aliases/doo';
 import { setupTmpk } from './tmpk/tmpk';
 import { setupColMovements } from './colors/col_movements';
 import { setupColCialo } from './colors/col_cialo';
@@ -51,9 +54,10 @@ import { storage } from '../../lib/storage';
 let cleanupCombat: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
+let cleanupWalker: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
-const ORDINALS = ['', '2. ', '3. ', '4. '];
+  const ORDINALS = ['', '2. ', '3. ', '4. '];
   const targets = storage.get<string[]>('targets') ?? ['INIT', 'cel2', 'cel3', 'cel4'];
 
   // Set up footer component (needs targets by reference)
@@ -86,6 +90,9 @@ const ORDINALS = ['', '2. ', '3. ', '4. '];
   setupMovementAliases(api);
   setupKeyboardBindings(api);
   setCenterCommand('c');
+  cleanupWalker = setupWalker(api);
+  setupKarczmaAliases(api);
+  setupDooAliases(api);
   setupTmpk(api);
   setupColMovements(api);
   setupColCialo(api);
@@ -142,5 +149,7 @@ export async function destroy(): Promise<void> {
   cleanupPalenie = null;
   cleanupAtakPyk?.();
   cleanupAtakPyk = null;
+  cleanupWalker?.();
+  cleanupWalker = null;
   teardownKeyboardBindings();
 }
