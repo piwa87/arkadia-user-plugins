@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 
 export function setupBattleAliases(api: PluginApi): void {
   // #region b_wsiowe

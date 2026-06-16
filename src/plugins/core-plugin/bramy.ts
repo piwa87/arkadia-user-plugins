@@ -1,21 +1,13 @@
 import type { PluginApi, FormatStateSnapshot } from '@arkadia/plugin-types';
-import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 
-const ACCUSATIVE: Record<string, string> = {
-  krata: 'krate',
-  klapa: 'klape',
-  plyta: 'plyte',
-  wlaz: 'wlaz',
-};
-
-export function setupBramyTriggers(api: PluginApi): void {
+export function setupBramy(api: PluginApi): void {
   const tag = 'bramy';
 
   const skyblue = api.colors.fromHex('#87ceeb');
   const firebrick = api.colors.fromHex('#b22222');
   const zamknieteColor = getAnsiFormatState(42, api);
   const otwarteColor = getAnsiFormatState(41, api);
-  const goldColor = getAnsiFormatState(3, api);
 
   // Firebrick fg over the green bg (ANSI 42)
   const zamknieteLabel: FormatStateSnapshot = {
@@ -35,6 +27,25 @@ export function setupBramyTriggers(api: PluginApi): void {
     buf.color([0, label.length], color);
     return line.prependBuffer(buf);
   };
+
+  // ── Aliases ────────────────────────────────────────────────────────────────
+
+  // br - knock on gate
+  api.aliases.register(/^br$/, () => {
+    api.command.send('zastukaj we wrota');
+    return true;
+  });
+
+  // br2 - ring bell/gong/pull cord
+  api.aliases.register(/^br2$/, () => {
+    api.command.send('uderz w dzwon');
+    api.command.send('uderz w gong');
+    api.command.send('pociagnij sznurek');
+    api.command.send('pociagnij linke');
+    return true;
+  });
+
+  // ── Triggers ───────────────────────────────────────────────────────────────
 
   // Open door/gate in room description (e.g. "Otwarte drzwi prowadza...")
   api.triggers.register(
@@ -71,21 +82,6 @@ export function setupBramyTriggers(api: PluginApi): void {
   api.triggers.register(
     /^Probujesz otworzyc (.*), ale nie udaje ci sie to\.$/,
     (line) => prependLabel(line, '   ZAMKNIETE   ', zamknieteLabel),
-    tag,
-  );
-
-  // Hatch/plate dropped closed — color firebrick and bind F key to lift it
-  api.triggers.register(
-    /^.* ((?:krata|klapa|plyta|wlaz)) zamykaja\w+ .* na .*\.$/,
-    (line, matches) => {
-      if (!matches) return line;
-      const accusative = ACCUSATIVE[matches[1]] ?? matches[1];
-      const cmd = `podnies ${accusative}`;
-      api.bind.set(cmd);
-      line.color([0, line.text.length], firebrick);
-      line.append(` [ ${api.bind.getLabel()} - ${cmd} ]`, goldColor);
-      return line;
-    },
     tag,
   );
 }

@@ -1,10 +1,10 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { registerTextAlias } from '../../../lib/registerTextAlias';
-import { makeTemp } from '../../../lib/makeTemp';
-import { withDelay } from '../../../lib/withDelay';
-import { findMatchRange } from '../../../lib/findMatchRange';
-import { getMyColor } from '../../../lib/colors/my-colors';
-import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { registerTextAlias } from '../../lib/registerTextAlias';
+import { makeTemp } from '../../lib/makeTemp';
+import { withDelay } from '../../lib/withDelay';
+import { findMatchRange } from '../../lib/findMatchRange';
+import { getMyColor } from '../../lib/colors/my-colors';
+import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 
 export function setupMiscAliases(api: PluginApi): void {
   // maketemp <pattern> <cmd1;cmd2;...>

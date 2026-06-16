@@ -1,7 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
-import { megaphone } from '../aliases/mgfn';
-import { setBind } from '../aliases/f';
+import { megaphone } from '../mgfn';
+import { setBind } from '../f';
 
 const TAG = 'colEventy';
 
@@ -15,6 +15,7 @@ export function setupColEventy(api: PluginApi): void {
   const c62 = getAnsiFormatState(62, api);
   const c67 = getAnsiFormatState(67, api);
   const c99 = getAnsiFormatState(99, api);
+  const c118 = getAnsiFormatState(118, api);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const col = (line: any, c: any) => line.color([0, line.text.length], c);
@@ -122,6 +123,16 @@ export function setupColEventy(api: PluginApi): void {
       TAG,
     );
   }
+
+  // Muddy swamp water reaching knees
+  api.triggers.register(
+    /^Blotnista maz siega ci po kolana\.$/,
+    (line) => {
+      api.command.send('play_ding');
+      return col(line, c118);
+    },
+    TAG,
+  );
 
   // --- Weather events ---
 

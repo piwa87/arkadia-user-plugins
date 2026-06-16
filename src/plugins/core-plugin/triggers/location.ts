@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { setBind } from '../aliases/f';
+import { setBind } from '../f';
 
 export function setupLocationTriggers(api: PluginApi): void {
   const isBlacksmith = (room: { name?: string; roomChar?: string }) =>

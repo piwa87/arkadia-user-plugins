@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { registerTextAlias } from '../../../lib/registerTextAlias';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupEquipmentAliases(api: PluginApi): void {
   // #region napt

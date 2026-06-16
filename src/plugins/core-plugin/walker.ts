@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { notify, requestPermission } from '../../../lib/notifications';
+import { notify, requestPermission } from '../../lib/notifications';
 
 const TAG_GATE = 'gate_knock';
 

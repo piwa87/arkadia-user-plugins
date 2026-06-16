@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { withDelay } from '../../../lib/withDelay';
+import { withDelay } from '../../lib/withDelay';
 
 const TAG_SIAD = 'siad_oneshot';
 

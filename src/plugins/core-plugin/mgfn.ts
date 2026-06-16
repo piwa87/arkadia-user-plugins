@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { col5 } from '../../../lib/colors/my-colors';
+import { col5 } from '../../lib/colors/my-colors';
 
 export function megaphone(api: PluginApi, text: string): void {
   const input = text.toUpperCase();
