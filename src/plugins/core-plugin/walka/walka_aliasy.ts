@@ -1,5 +1,8 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { storage } from '../../../lib/storage';
+import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+
+const TAG = 'walkaAliasy';
 
 export function setupCombatAliases(
   api: PluginApi,
@@ -82,4 +85,16 @@ export function setupCombatAliases(
     api.command.send(`zabij ${targets[0]}`);
     return true;
   });
+
+  // Already fighting — confirm OK and cancel attack timer
+  const c35 = getAnsiFormatState(35, api);
+  api.triggers.register(
+    /^Juz walczysz z .*\.$/,
+    (line) => {
+      const msg = '       OK                     ';
+      line.replace([0, line.text.length], msg, c35);
+      return line;
+    },
+    TAG,
+  );
 }
