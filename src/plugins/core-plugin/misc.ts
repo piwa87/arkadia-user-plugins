@@ -67,10 +67,7 @@ export function setupMiscAliases(api: PluginApi): void {
   });
 
   // hi - hide
-  api.aliases.register(/^hi$/, () => {
-    api.command.send('schowaj');
-    return true;
-  });
+  registerTextAlias(api, /^hi$/, 'schowaj');
 
   // tab - read notice boards / tablets
   api.aliases.register(/^tab$/, () => {
@@ -95,10 +92,7 @@ export function setupMiscAliases(api: PluginApi): void {
   });
 
   // ooo - pull down hood
-  api.aliases.register(/^ooo$/, () => {
-    api.command.send('sciagnij kaptur');
-    return true;
-  });
+  registerTextAlias(api, /^ooo$/, 'sciagnij kaptur');
 
   // pile <target> - throw ball at target, pick it back up after a short delay
   api.aliases.register(/^pile(?:\s+(.+))?$/, (matches) => {
@@ -117,16 +111,10 @@ export function setupMiscAliases(api: PluginApi): void {
   });
 
   // ++ - light candle
-  api.aliases.register(/^\+\+$/, () => {
-    api.command.send('zapal swiece');
-    return true;
-  });
+  registerTextAlias(api, /^\+\+$/, 'zapal swiece');
 
   // ´´ - extinguish candle
-  api.aliases.register(/^´´$/, () => {
-    api.command.send('zdmuchnij swiece');
-    return true;
-  });
+  registerTextAlias(api, /^´´$/, 'zdmuchnij swiece');
 
   // logg - mark an interesting section in the log
   api.aliases.register(/^logg$/, () => {
@@ -138,16 +126,10 @@ export function setupMiscAliases(api: PluginApi): void {
   });
 
   // pjpb - quick browse
-  api.aliases.register(/^pjpb$/, () => {
-    api.command.send('przejrzyj pobieznie');
-    return true;
-  });
+  registerTextAlias(api, /^pjpb$/, 'przejrzyj pobieznie');
 
   // kt - who is online
-  api.aliases.register(/^kt$/, () => {
-    api.command.send('kto');
-    return true;
-  });
+  registerTextAlias(api, /^kt$/, 'kto');
 
   // wj - point at (optional target)
   registerTextAlias(api, /^wj(?:\s+(.+))?$/, 'wskaz');
@@ -309,10 +291,7 @@ export function setupMiscAliases(api: PluginApi): void {
     return true;
   });
 
-  api.aliases.register(/^rp\!/, () => {
-    api.command.send('/reload-plugins');
-    return true;
-  });
+  registerTextAlias(api, /^rp\!/, '/reload-plugins');
 
   // mran - send a random exit from the current room
   {

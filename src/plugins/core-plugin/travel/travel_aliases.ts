@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../../lib/registerTextAlias';
 
 export function setupTravelAliases(api: PluginApi): void {
   // #region op - board transport: open pouch, buy ticket, board, close pouch
@@ -30,8 +31,5 @@ export function setupTravelAliases(api: PluginApi): void {
   });
 
   // #region test-arrival
-  api.aliases.register(/^test-arrival$/, () => {
-    api.command.send('/fake --> Statek z wolna doplywa do brzegu.');
-    return true;
-  });
+  registerTextAlias(api, /^test-arrival$/, '/fake --> Statek z wolna doplywa do brzegu.');
 }

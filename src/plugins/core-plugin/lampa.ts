@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupLampAliases(api: PluginApi): void {
   // la+ - equip lamp: take lamp and oil, attach lamp, refill
@@ -19,14 +20,8 @@ export function setupLampAliases(api: PluginApi): void {
   });
 
   // naplam - fill lamp with oil
-  api.aliases.register(/^naplam$/i, () => {
-    api.command.send('napelnij lampe olejem');
-    return true;
-  });
+  registerTextAlias(api, /^naplam$/i, 'napelnij lampe olejem');
 
   // sus - extinguish lamp
-  api.aliases.register(/^sus$/i, () => {
-    api.command.send('zgas lampe');
-    return true;
-  });
+  registerTextAlias(api, /^sus$/i, 'zgas lampe');
 }

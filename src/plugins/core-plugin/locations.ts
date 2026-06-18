@@ -1,17 +1,12 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupLocationsAliases(api: PluginApi): void {
   // pcg - pry up the black stone
-  api.aliases.register(/^pcg$/, () => {
-    api.command.send('podwaz czarny glaz');
-    return true;
-  });
+  registerTextAlias(api, /^pcg$/, 'podwaz czarny glaz');
 
   // pwyj - sneak to exit
-  api.aliases.register(/^pwyj$/, () => {
-    api.command.send('przemknij sie do wyjscia');
-    return true;
-  });
+  registerTextAlias(api, /^pwyj$/, 'przemknij sie do wyjscia');
 
   // wod! - water area navigation sequence
   api.aliases.register(/^wod!$/, () => {
@@ -33,16 +28,10 @@ export function setupLocationsAliases(api: PluginApi): void {
   });
 
   // szcz - squeeze through a crack
-  api.aliases.register(/^szcz$/, () => {
-    api.command.send('przecisnij sie przez szczeline');
-    return true;
-  });
+  registerTextAlias(api, /^szcz$/, 'przecisnij sie przez szczeline');
 
   // przec - squeeze through (generic)
-  api.aliases.register(/^przec$/, () => {
-    api.command.send('przecisnij sie');
-    return true;
-  });
+  registerTextAlias(api, /^przec$/, 'przecisnij sie');
 
   // lyspr - light lamp, sp, extinguish
   api.aliases.register(/^lyspr$/, () => {
@@ -61,22 +50,13 @@ export function setupLocationsAliases(api: PluginApi): void {
   });
 
   // pdz - swim to body
-  api.aliases.register(/^pdz$/, () => {
-    api.command.send('podplyn do zwlok');
-    return true;
-  });
+  registerTextAlias(api, /^pdz$/, 'podplyn do zwlok');
 
   // pdk - swim to branch
-  api.aliases.register(/^pdk$/, () => {
-    api.command.send('podplyn do konara');
-    return true;
-  });
+  registerTextAlias(api, /^pdk$/, 'podplyn do konara');
 
   // pdp - swim to trunk
-  api.aliases.register(/^pdp$/, () => {
-    api.command.send('podplyn do pnia');
-    return true;
-  });
+  registerTextAlias(api, /^pdp$/, 'podplyn do pnia');
 
   // pal! - try to set a hut on fire
   api.aliases.register(/^pal!$/, () => {
@@ -115,28 +95,16 @@ export function setupLocationsAliases(api: PluginApi): void {
   });
 
   // ods! - push slab aside
-  api.aliases.register(/^ods!$/, () => {
-    api.command.send('odsun plyte');
-    return true;
-  });
+  registerTextAlias(api, /^ods!$/, 'odsun plyte');
 
   // obsa - examine sarcophagus
-  api.aliases.register(/^obsa$/, () => {
-    api.command.send('ob sarkofag');
-    return true;
-  });
+  registerTextAlias(api, /^obsa$/, 'ob sarkofag');
 
   // osa - open sarcophagus
-  api.aliases.register(/^osa$/, () => {
-    api.command.send('otworz sarkofag');
-    return true;
-  });
+  registerTextAlias(api, /^osa$/, 'otworz sarkofag');
 
   // zsa - close sarcophagus
-  api.aliases.register(/^zsa$/, () => {
-    api.command.send('zamknij sarkofag');
-    return true;
-  });
+  registerTextAlias(api, /^zsa$/, 'zamknij sarkofag');
 
   // xblav - Blav puzzle sequence
   api.aliases.register(/^xblav$/, () => {

@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 const panicLevels: Record<string, string> = {
   '0': 'nigdy',
@@ -30,10 +31,7 @@ export function setupOptionsAliases(api: PluginApi): void {
   });
 
   // opa - show panic options
-  api.aliases.register(/^opa$/, () => {
-    api.command.send('opcje panika');
-    return true;
-  });
+  registerTextAlias(api, /^opa$/, 'opcje panika');
 
   // przyjm+/przyjm- - toggle receiving
   api.aliases.register(/^przyjm(\+|-)$/, (match) => {
@@ -63,8 +61,5 @@ export function setupOptionsAliases(api: PluginApi): void {
   });
 
   // res - show resistances
-  api.aliases.register(/^res$/, () => {
-    api.command.send('odpornosci');
-    return true;
-  });
+  registerTextAlias(api, /^res$/, 'odpornosci');
 }

@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupBattleAliases(api: PluginApi): void {
   // #region b_wsiowe
@@ -30,40 +31,22 @@ export function setupBattleAliases(api: PluginApi): void {
   });
 
   // #region bcz
-  api.aliases.register(/^bcz$/, () => {
-    api.command.send('set czlowieka');
-    return true;
-  });
+  registerTextAlias(api, /^bcz$/, 'set czlowieka');
 
   // #region bgb
-  api.aliases.register(/^bgb$/, () => {
-    api.command.send('set goblinoida');
-    return true;
-  });
+  registerTextAlias(api, /^bgb$/, 'set goblinoida');
 
   // #region bgrz
-  api.aliases.register(/^bgrz$/, () => {
-    api.command.send('set grzyboczleka');
-    return true;
-  });
+  registerTextAlias(api, /^bgrz$/, 'set grzyboczleka');
 
   // #region bhas
-  api.aliases.register(/^bhas$/, () => {
-    api.command.send('set krasnoluda chaosu');
-    return true;
-  });
+  registerTextAlias(api, /^bhas$/, 'set krasnoluda chaosu');
 
   // #region bjas
-  api.aliases.register(/^bjas$/, () => {
-    api.command.send('set jaszczuroczleka');
-    return true;
-  });
+  registerTextAlias(api, /^bjas$/, 'set jaszczuroczleka');
 
   // #region bkis
-  api.aliases.register(/^bkis$/, () => {
-    api.command.send('set kislevite');
-    return true;
-  });
+  registerTextAlias(api, /^bkis$/, 'set kislevite');
 
   // #region bkur
   api.aliases.register(/^bkur$/, () => {
@@ -74,46 +57,25 @@ export function setupBattleAliases(api: PluginApi): void {
   });
 
   // #region bryb
-  api.aliases.register(/^bryb$/, () => {
-    api.command.send('set ryboczleka');
-    return true;
-  });
+  registerTextAlias(api, /^bryb$/, 'set ryboczleka');
 
   // #region bstr
-  api.aliases.register(/^bstr$/, () => {
-    api.command.send('set straznika');
-    return true;
-  });
+  registerTextAlias(api, /^bstr$/, 'set straznika');
 
   // #region bszcz
-  api.aliases.register(/^bszcz$/, () => {
-    api.command.send('set szczuroczleka');
-    return true;
-  });
+  registerTextAlias(api, /^bszcz$/, 'set szczuroczleka');
 
   // #region bu
-  api.aliases.register(/^bu$/, () => {
-    api.command.send('set nieumarlego');
-    return true;
-  });
+  registerTextAlias(api, /^bu$/, 'set nieumarlego');
 
   // #region bwy
-  api.aliases.register(/^bwy$/, () => {
-    api.command.send('set wyverne');
-    return true;
-  });
+  registerTextAlias(api, /^bwy$/, 'set wyverne');
 
   // #region bzbo
-  api.aliases.register(/^bzbo$/, () => {
-    api.command.send('set zboja');
-    return true;
-  });
+  registerTextAlias(api, /^bzbo$/, 'set zboja');
 
   // #region bzol
-  api.aliases.register(/^bzol$/, () => {
-    api.command.send('set zolnierza');
-    return true;
-  });
+  registerTextAlias(api, /^bzol$/, 'set zolnierza');
 
   // #region next! - visual "N E X T" banner after an enemy dies
   {

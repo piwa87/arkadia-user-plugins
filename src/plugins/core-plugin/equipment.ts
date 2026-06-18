@@ -10,16 +10,10 @@ export function setupEquipmentAliases(api: PluginApi): void {
   });
 
   // #region obb
-  api.aliases.register(/^obb$/, () => {
-    api.command.send('zajrzyj do zalozonej torby');
-    return true;
-  });
+  registerTextAlias(api, /^obb$/, 'zajrzyj do zalozonej torby');
 
   // #region ot
-  api.aliases.register(/^ot$/, () => {
-    api.command.send('otworz zalozona torbe');
-    return true;
-  });
+  registerTextAlias(api, /^ot$/, 'otworz zalozona torbe');
 
   // #region pj [text]
   registerTextAlias(api, /^pj(?:\s+(.+))?$/, 'przejrzyj');
@@ -61,16 +55,10 @@ export function setupEquipmentAliases(api: PluginApi): void {
   });
 
   // #region otu
-  api.aliases.register(/^otu$/, () => {
-    api.command.send('otul sie plaszczem');
-    return true;
-  });
+  registerTextAlias(api, /^otu$/, 'otul sie plaszczem');
 
   // #region sk
-  api.aliases.register(/^sk$/, () => {
-    api.command.send('sprawdz kierunki');
-    return true;
-  });
+  registerTextAlias(api, /^sk$/, 'sprawdz kierunki');
 
   // #region wz - take armor from body, evaluate, drop
   api.aliases.register(/^wz$/, () => {
@@ -106,10 +94,7 @@ export function setupEquipmentAliases(api: PluginApi): void {
   });
 
   // #region wyjzb - take all armor (from worn)
-  api.aliases.register(/^wyjzb$/, () => {
-    api.command.send('wyj wszystkie zbroje');
-    return true;
-  });
+  registerTextAlias(api, /^wyjzb$/, 'wyj wszystkie zbroje');
 
   // #region skk - open and loot chests/coffers/sarcophagi
   api.aliases.register(/^skk$/, () => {
@@ -223,10 +208,7 @@ export function setupEquipmentAliases(api: PluginApi): void {
   });
 
   // #region sop - place animal on left shoulder
-  api.aliases.register(/^sop$/, () => {
-    api.command.send('umiesc zwierze na lewym ramieniu');
-    return true;
-  });
+  registerTextAlias(api, /^sop$/, 'umiesc zwierze na lewym ramieniu');
 
   // #region napw - take a bag, fill it with remains, drop it
   api.aliases.register(/^napw$/, () => {

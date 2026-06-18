@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { storage } from '../../../lib/storage';
+import { registerTextAlias } from '../../../lib/registerTextAlias';
 
 // --- State ---
 
@@ -124,16 +125,10 @@ export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): vo
   });
 
   // dobs — draw dagger from ornate scabbard
-  api.aliases.register(/^dobs$/, () => {
-    api.command.send('podobadz sztyletu z wyszukanej pochwy');
-    return true;
-  });
+  registerTextAlias(api, /^dobs$/, 'podobadz sztyletu z wyszukanej pochwy');
 
   // opus — sheathe dagger into ornate scabbard
-  api.aliases.register(/^opus$/, () => {
-    api.command.send('powsun sztylet do wyszukanej pochwy');
-    return true;
-  });
+  registerTextAlias(api, /^opus$/, 'powsun sztylet do wyszukanej pochwy');
 
   // skifb1 — sheathe everything, switch to mace, draw mace
   api.aliases.register(/^skifb1$/, () => {

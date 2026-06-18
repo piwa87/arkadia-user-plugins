@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { withDelay } from '../../lib/withDelay';
 import { notify } from '../../lib/notifications';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 const BAG_COUNT = 6;
 
@@ -58,49 +59,23 @@ export function setupZiolaAliases(api: PluginApi): () => void {
   );
 
   // --- Herb interface aliases ---
-  ids.push(api.aliases.register(/^hp\+$/i, () => {
-    api.command.send('/zestaw hp');
-    return true;
-  }));
-
-  ids.push(api.aliases.register(/^mana\+$/i, () => {
-    api.command.send('/zestaw mana');
-    return true;
-  }));
-
-  ids.push(api.aliases.register(/^obz$/i, () => {
-    api.command.send('/ziola_pokaz');
-    return true;
-  }));
-
-  ids.push(api.aliases.register(/^obz!$/i, () => {
-    api.command.send('/ziola');
-    return true;
-  }));
-
-  ids.push(api.aliases.register(/^st\+$/i, () => {
-    api.command.send('/zestaw sterydy');
-    return true;
-  }));
+  ids.push(registerTextAlias(api, /^hp\+$/i, '/zestaw hp'));
+  ids.push(registerTextAlias(api, /^mana\+$/i, '/zestaw mana'));
+  ids.push(registerTextAlias(api, /^obz$/i, '/ziola_pokaz'));
+  ids.push(registerTextAlias(api, /^obz!$/i, '/ziola'));
+  ids.push(registerTextAlias(api, /^st\+$/i, '/zestaw sterydy'));
+  ids.push(registerTextAlias(api, /^zi$/i, '/zio_szukaj'));
+  ids.push(registerTextAlias(api, /^zm\+$/i, '/zestaw zm'));
 
   ids.push(
-    api.aliases.register(/^zi$/i, () => {
-      api.command.send('/zio_szukaj');
+    api.aliases.register(/^zisort!$/i, () => {
+      api.command.send('wyj woreczki');
+      api.command.send('/ziola');
+      api.command.send('/ziola_buduj');
+      api.command.send('/woreczki_buduj');
       return true;
     }),
   );
-
-  ids.push(api.aliases.register(/^zisort!$/i, () => {
-    api.command.send('/ziola');
-    api.command.send('/ziola_buduj');
-    api.command.send('/woreczki_buduj');
-    return true;
-  }));
-
-  ids.push(api.aliases.register(/^zm\+$/i, () => {
-    api.command.send('/zestaw zm');
-    return true;
-  }));
 
   ids.push(
     api.aliases.register(/^zx(\d+)?$/i, (matches) => {

@@ -1,11 +1,9 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupBuklakAliases(api: PluginApi): void {
   // buk - drink from flask
-  api.aliases.register(/^buk$/, () => {
-    api.command.send('napij sie z buklaka');
-    return true;
-  });
+  registerTextAlias(api, /^buk$/, 'napij sie z buklaka');
 
   // buk+ - take flask from bag and attach to belt
   api.aliases.register(/^buk\+$/, () => {
@@ -33,16 +31,10 @@ export function setupBuklakAliases(api: PluginApi): void {
   });
 
   // kub - drink from cup
-  api.aliases.register(/^kub$/, () => {
-    api.command.send('napij sie z kubka');
-    return true;
-  });
+  registerTextAlias(api, /^kub$/, 'napij sie z kubka');
 
   // nap - drink water to full
-  api.aliases.register(/^nap$/, () => {
-    api.command.send('napij sie do syta wody');
-    return true;
-  });
+  registerTextAlias(api, /^nap$/, 'napij sie do syta wody');
 
   // pbuk <person> - detach flask and give to someone
   api.aliases.register(/^pbuk(?:\s+(.+))?$/, (matches) => {

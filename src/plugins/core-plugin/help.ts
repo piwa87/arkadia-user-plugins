@@ -21,16 +21,28 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'set <target>', desc: 'set targets 1–4 with ordinal prefixes' },
       { cmd: 'set1–4 <what>', desc: 'set individual target verbatim' },
       { cmd: 'xxx', desc: 'stop fighting' },
+      { cmd: 'pyk+ / pyk-', desc: 'auto-attack leader\'s target on/off' },
       { cmd: 'next!', desc: 'print N E X T visual banner' },
 
       { section: 'BATTLE PRESETS' },
       { cmd: 'b* presets', desc: 'b_wsiowe bakb bbod bcz bgb bgrz bhas bjas bkis bkur bryb bstr bszcz bu bwy bzbo bzol' },
+
+      { section: 'PARTY SHIELD (10 keys)' },
+      { cmd: 'qq ww ee rr tt yy uu ii oo pp', desc: 'shield team member #1–10' },
+      { cmd: '<key>w', desc: 'mark that member as defense target' },
+      { cmd: '<key>x', desc: 'hide behind that member' },
+      { cmd: '<key>z', desc: 'order team to shield that member' },
 
       { section: 'BIND' },
       { cmd: 'f+ <cmd>', desc: 'set persistent functional bind' },
       { cmd: 'f+! <cmd>', desc: 'set one-shot bind (clears after use)' },
       { cmd: 'f', desc: 'execute functional bind' },
       { cmd: 'f-', desc: 'clear functional bind' },
+
+      { section: 'MULTIBIND' },
+      { cmd: 'doo / doo2–doo4', desc: 'run action from multibind slot 1–4' },
+      { cmd: 'doo+ <action>', desc: 'set multibind slot 1' },
+      { cmd: 'doo-', desc: 'clear multibind slot 1' },
 
       { section: 'WEAPONS / SHEATHING' },
       { cmd: 'dob / db', desc: 'draw currently selected weapon' },
@@ -103,9 +115,22 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'nap', desc: 'drink water to full' },
       { cmd: 'pbuk <person>', desc: 'detach flask and give to someone' },
 
+      { section: 'HERBS' },
+      { cmd: 'zi', desc: 'search for herbs (with repeat, /zio_szukaj)' },
+      { cmd: 'zii [dir] [N]', desc: 'walk N times searching herbs, then pack (default idz, 4×)' },
+      { cmd: 'zx[N]', desc: 'pack herbs into pouches (/zio_pakuj)' },
+      { cmd: 'obz / obz!', desc: 'herb reserve (/ziola_pokaz) / herb UI (/ziola)' },
+      { cmd: 'zisort!', desc: 'rebuild herbs and pouches' },
+      { cmd: 'mana+ / st+ / zm+', desc: 'load herb set: mana / steroids / zm' },
+
+      { section: 'SMOKING' },
+      { cmd: 'smoke', desc: 'light pipe (full sequence)' },
+      { cmd: 'smokec / cyg', desc: 'light cigar from box / quick cigar' },
+      { cmd: 'tytind / tytud', desc: 'stash / take tobacco from box' },
+      { cmd: 'skod', desc: 'empty the ashtray' },
+
       { section: 'COIN' },
       { cmd: 'otm', desc: 'open coin pouch and take coins' },
-      { cmd: 'otm1', desc: 'take coins from worn bag' },
       { cmd: 'ztm', desc: 'close coin pouch' },
       { cmd: 'ztm1', desc: 'sort coins in pouch (shake out copper)' },
       { cmd: 'ztm2', desc: 'put copper and silver into worn bag' },
@@ -117,11 +142,10 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'li1–li4', desc: 'mail categories: 1=unread 2=received 3=sent 4=unsent' },
 
       { section: 'TRAVEL / ARRIVAL' },
-      { cmd: 'ned+', desc: 'arrival trigger → send: ned' },
-      { cmd: 'op+', desc: 'arrival trigger → send: op' },
-      { cmd: 'op++', desc: 'arrival trigger → send: op + ned' },
-      { cmd: 'wned+', desc: 'arrival trigger → send: wned' },
-      { cmd: 'wop+', desc: 'arrival trigger → send: wop' },
+      { cmd: 'op+', desc: 'auto-board when transport arrives' },
+      { cmd: 'op++', desc: 'auto-board, then auto-disembark on arrival' },
+      { cmd: 'ned+', desc: 'auto-disembark after reaching shore' },
+      { cmd: 'na_statek', desc: 'arm boarding alert (visual block on board)' },
       { cmd: 'test-arrival', desc: 'simulate ship arrival line' },
       { cmd: 'ned', desc: 'disembark from raft or ship' },
       { cmd: 'op', desc: 'board transport (arm trigger, buy ticket, board)' },
@@ -174,7 +198,6 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'radoor <door> <dir>', desc: 'open with signet ring, go through, re-lock' },
       { cmd: 'br', desc: 'knock on gate (zastukaj we wrota)' },
       { cmd: 'br2', desc: 'ring bell / gong / pull cord' },
-      { cmd: 'br!', desc: 'preview gate-state labels' },
       { cmd: 'qk', desc: 'lift grate / slab / hatch' },
       { cmd: 'ods!', desc: 'push slab aside' },
       { cmd: 'obsa / osa / zsa', desc: 'examine / open / close sarcophagus' },
@@ -189,6 +212,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { section: 'MISC' },
       { cmd: 'ze [dir]', desc: 'zerknij (quick look)' },
       { cmd: 'hi', desc: 'hide (schowaj)' },
+      { cmd: 'siad', desc: 'sit down (random spot from the prompt)' },
       { cmd: 'tab', desc: 'read notice board / tablets' },
       { cmd: 'i1–5', desc: 'movement speed (leisurely → fast sprint)' },
       { cmd: 'ooo', desc: 'pull down hood' },
@@ -227,15 +251,21 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: '?gmcp [path]', desc: 'print GMCP state (or sub-path)' },
 
       { section: 'EMOTES' },
-      { cmd: 'emotes', desc: 'ce, cmo, haha, hm?, kiw, krz1, krz2, kurw, ma, mach, obr, par, pod, pok, pokr, roll, roz, semig, superwejscie, usr1–3, uwa, wypat, wyb, wytr, wys1–2, zag, zagw, zam, zar, zat, zd' },
+      { cmd: 'emotes', desc: 'ce, cmo, haha, hm?, kiw, krz1, krz2, kurw, ma, mach, obr, par, pod, pok, pokr, roll, roz, semig, usr1–3, uwa, wypat, wyb, wytr, wys1–2, zag, zagw, zam, zar, zat, zd' },
     ];
 
-    const cmdEntries = rows.filter(isCmd);
-    const cmdW = Math.max(...cmdEntries.map((e) => e.cmd.length));
-    const descW = Math.max(...cmdEntries.map((e) => e.desc.length));
-    const inner = 1 + cmdW + 2 + descW + 1;
-    const hr = '─'.repeat(inner);
-    const title = ' My Aliases';
+    type Cmd = { cmd: string; desc: string };
+
+    // Entries that are short enough pack two-per-line; longer ones span the
+    // full width on their own line.
+    const isWide = (e: Cmd) => e.cmd.length > 20 || e.desc.length > 34;
+
+    const packed = rows.filter(isCmd).filter((e) => !isWide(e));
+    const cmdW = Math.max(0, ...packed.map((e) => e.cmd.length));
+    const descW = Math.max(0, ...packed.map((e) => e.desc.length));
+    const GAP = '   ';
+    const cellW = cmdW + 2 + descW;
+    const lineW = cellW * 2 + GAP.length;
 
     const printBorder = (text: string) => {
       const buf = new api.AnsiAwareBuffer(text);
@@ -243,25 +273,48 @@ export function setupHelpAliases(api: PluginApi): void {
       api.output.print(buf);
     };
 
-    printBorder(`┌${hr}┐`);
-    printBorder(`│${title.padEnd(inner)}│`);
+    const cell = (e: Cmd) => `${e.cmd.padEnd(cmdW)}  ${e.desc}`;
+
+    const printRow = (left: Cmd, right?: Cmd) => {
+      const line = right ? cell(left).padEnd(cellW) + GAP + cell(right) : cell(left);
+      const buf = new api.AnsiAwareBuffer(line);
+      buf.color([0, left.cmd.length], cmdColor);
+      if (right) {
+        const r = cellW + GAP.length;
+        buf.color([r, r + right.cmd.length], cmdColor);
+      }
+      api.output.print(buf);
+    };
+
+    let pending: Cmd | null = null;
+    const flush = () => {
+      if (pending) {
+        printRow(pending);
+        pending = null;
+      }
+    };
+
+    printBorder('─'.repeat(lineW));
+    printBorder(' My Aliases');
 
     for (const row of rows) {
       if (!isCmd(row)) {
+        flush();
         const label = ` ${row.section} `;
-        const total = inner - label.length;
-        const left = Math.floor(total / 2);
-        const right = total - left;
-        printBorder(`├${'─'.repeat(left)}${label}${'─'.repeat(right)}┤`);
+        printBorder(`──${label}${'─'.repeat(Math.max(0, lineW - label.length - 2))}`);
+      } else if (isWide(row)) {
+        flush();
+        printRow(row);
+      } else if (pending) {
+        printRow(pending, row);
+        pending = null;
       } else {
-        const line = `│ ${row.cmd.padEnd(cmdW)}  ${row.desc.padEnd(descW)} │`;
-        const buf = new api.AnsiAwareBuffer(line);
-        buf.color([2, 2 + row.cmd.length], cmdColor);
-        api.output.print(buf);
+        pending = row;
       }
     }
+    flush();
 
-    printBorder(`└${hr}┘`);
+    printBorder('─'.repeat(lineW));
   };
 
   api.aliases.register(/^\?alias$/, () => {

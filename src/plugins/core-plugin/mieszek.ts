@@ -1,17 +1,12 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupMieszekAliases(api: PluginApi): void {
   // otm - open coin pouch and take coins
-  api.aliases.register(/^otm$/, () => {
-    api.command.send('wem');
-    return true;
-  });
+  registerTextAlias(api, /^otm$/, 'wem');
 
   // ztm - close coin pouch
-  api.aliases.register(/^ztm$/, () => {
-    api.command.send('wlm');
-    return true;
-  });
+  registerTextAlias(api, /^ztm$/, 'wlm');
 
   // ztm1 - sort coins in attached pouch (shake out copper, put all back)
   api.aliases.register(/^ztm1$/, () => {

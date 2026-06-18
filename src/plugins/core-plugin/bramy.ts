@@ -1,5 +1,6 @@
 import type { PluginApi, FormatStateSnapshot } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupBramy(api: PluginApi): void {
   const tag = 'bramy';
@@ -31,10 +32,7 @@ export function setupBramy(api: PluginApi): void {
   // ── Aliases ────────────────────────────────────────────────────────────────
 
   // br - knock on gate
-  api.aliases.register(/^br$/, () => {
-    api.command.send('zastukaj we wrota');
-    return true;
-  });
+  registerTextAlias(api, /^br$/, 'zastukaj we wrota');
 
   // br2 - ring bell/gong/pull cord
   api.aliases.register(/^br2$/, () => {

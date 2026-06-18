@@ -24,16 +24,10 @@ export function setupEmoteAliases(api: PluginApi): void {
   registerTextAlias(api, /^kiw(?:\s+(.+))?$/, 'kiwnij');
 
   // #region krz1
-  api.aliases.register(/^krz1$/, () => {
-    api.command.send('pkrzyknij glosno Z A S L A N I A C !');
-    return true;
-  });
+  registerTextAlias(api, /^krz1$/, 'pkrzyknij glosno Z A S L A N I A C !');
 
   // #region krz2
-  api.aliases.register(/^krz2$/, () => {
-    api.command.send('pkrzyknij gromko L A M A C !');
-    return true;
-  });
+  registerTextAlias(api, /^krz2$/, 'pkrzyknij gromko L A M A C !');
 
   // #region kurw
   registerTextAlias(api, /^kurw(?:\s+(.+))?$/, 'gpklnij');

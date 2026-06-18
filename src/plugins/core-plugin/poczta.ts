@@ -1,12 +1,9 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupPostAliases(api: PluginApi): void {
   // pl<number> - read mail message
-  api.aliases.register(/^pl(\d+)$/, (matches) => {
-    const number = matches![1];
-    api.command.send(`przeczytaj list ${number}`);
-    return true;
-  });
+  registerTextAlias(api, /^pl(\d+)$/, 'przeczytaj list');
 
   // li<number> - select mail category (1=Nieprzeczytane, 2=odebrane, 3=wyslane, 4=niewyslane)
   const categories: Record<string, string> = {

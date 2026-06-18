@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTextAlias } from '../../../lib/registerTextAlias';
 
 const BOX_NOM = 'metalowe pudelko';
 const BOX_GEN = 'metalowego pudelka';
@@ -56,10 +57,7 @@ export function setupPalenie(api: PluginApi): () => void {
   }));
 
   // skod - clean ashtray
-  ids.push(api.aliases.register(/^skod$/, () => {
-    api.command.send('pastrac popiol');
-    return true;
-  }));
+  ids.push(registerTextAlias(api, /^skod$/, 'pastrac popiol'));
 
   // cyg - quick cigar (put away finished, take new, light)
   ids.push(api.aliases.register(/^cyg$/, () => {
