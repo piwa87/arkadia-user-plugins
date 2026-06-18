@@ -30095,7 +30095,6 @@ async function init(api) {
   cleanups.push(registerSelling(api, state));
   cleanups.push(registerTeam(api, state));
   cleanups.push(registerOrders(api, state));
-  cleanups.push(registerCarriage(api, state));
   cleanups.push(registerStan(api));
   cleanups.push(registerMail(api, state));
   cleanups.push(registerGaging(api));

@@ -27,7 +27,7 @@ async function walk(dir) {
   return files.flat();
 }
 
-export async function getPluginEntries() {
+export async function getPluginEntries({ exclude = [] } = {}) {
   const exists = await fs.stat(PLUGINS_DIR).then(() => true).catch(() => false);
   if (!exists) {
     return [];
@@ -36,6 +36,7 @@ export async function getPluginEntries() {
   const files = await walk(PLUGINS_DIR);
   return files
     .filter((file) => file.endsWith("-plugin.ts"))
+    .filter((file) => !exclude.includes(path.basename(file, ".ts")))
     .sort();
 }
 
@@ -152,8 +153,8 @@ export async function generateIndex(plugins) {
   await fs.writeFile(path.join(DIST_DIR, "index.html"), html);
 }
 
-export async function buildProject() {
-  const entryPoints = await getPluginEntries();
+export async function buildProject({ exclude = [] } = {}) {
+  const entryPoints = await getPluginEntries({ exclude });
   const prebuiltCheck = await getPrebuiltPlugins();
   if (entryPoints.length === 0 && prebuiltCheck.length === 0) {
     throw new Error("No plugin entry files found under src/plugins");
