@@ -23,6 +23,7 @@ import {
   setupKondycjeAliases,
   createKondycjeState,
   setupKondycjeTriggers,
+  setupHpBar,
   createZmeczenieState,
   setupZmeczenieTriggers,
   setupLampAliases,
@@ -66,6 +67,7 @@ let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
+let cleanupHpBar: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -103,6 +105,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setCenterCommand('c');
   setupKondycjeAliases(api, kondycjeState);
   setupKondycjeTriggers(api, kondycjeState);
+  cleanupHpBar = setupHpBar(api);
   setupLampAliases(api);
   setupLocationTriggers(api);
   setupLocationsAliases(api);
@@ -134,7 +137,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     name: 'Core Plugin',
     version: '0.3.1',
     author: 'Piot',
-    description: 'W wsumie wszystko ważne...',
+    description: 'Wszystko wazne, yo!',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);
   return info;
@@ -151,5 +154,7 @@ export async function destroy(): Promise<void> {
   cleanupWalker = null;
   cleanupZiola?.();
   cleanupZiola = null;
+  cleanupHpBar?.();
+  cleanupHpBar = null;
   teardownKeyboardBindings();
 }

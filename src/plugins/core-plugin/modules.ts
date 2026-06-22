@@ -18,6 +18,7 @@ export { setupPalenie } from './jens/palenie';
 export { setupKarczmaAliases } from './karczma';
 export { setupKondycjeAliases } from './kondycje/kondycje_aliases';
 export { createKondycjeState, setupKondycjeTriggers } from './kondycje/kondycje_triggers';
+export { setupHpBar } from './kondycje/kondycje_hp_bar';
 export { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
 export { setupLampAliases } from './lampa';
 export { setupLocationsAliases } from './locations';

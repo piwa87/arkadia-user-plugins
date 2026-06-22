@@ -40,16 +40,19 @@ export async function getPluginEntries({ exclude = [] } = {}) {
     .sort();
 }
 
-export async function getPrebuiltPlugins() {
+export async function getPrebuiltPlugins({ exclude = [] } = {}) {
   const exists = await fs.stat(PLUGINS_DIR).then(() => true).catch(() => false);
   if (!exists) return [];
 
   const files = await walk(PLUGINS_DIR);
-  return files.filter((file) => file.endsWith(".js")).sort();
+  return files
+    .filter((file) => file.endsWith(".js"))
+    .filter((file) => !exclude.includes(path.basename(file, ".js")))
+    .sort();
 }
 
-async function copyPrebuiltPlugins() {
-  const files = await getPrebuiltPlugins();
+async function copyPrebuiltPlugins({ exclude = [] } = {}) {
+  const files = await getPrebuiltPlugins({ exclude });
   await Promise.all(files.map(async (file) => {
     const relative = path.relative(PLUGINS_DIR, file);
     const dest = path.join(DIST_DIR, toPosix(relative));
@@ -176,7 +179,7 @@ export async function buildProject({ exclude = [] } = {}) {
     logLevel: "info"
   });
 
-  const prebuilt = await copyPrebuiltPlugins();
+  const prebuilt = await copyPrebuiltPlugins({ exclude });
 
   const compiledPlugins = entryPoints.map((f) => ({
     name: path.basename(f, ".ts"),

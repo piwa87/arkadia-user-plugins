@@ -92,10 +92,10 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   });
 
   const info: PluginInfo = {
-    name: 'Piot Sounds',
-    version: '0.2.0',
+    name: 'Sounds',
+    version: '1.0.0',
     author: 'Piot',
-    description: 'Moje dzwieki, ?sounds = pomoc',
+    description: '?sounds = pomoc',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);
   return info;
