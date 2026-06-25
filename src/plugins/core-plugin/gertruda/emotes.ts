@@ -1,13 +1,12 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { registerTextAlias } from '../../../lib/registerTextAlias';
 
-export function setupJensEmotes(api: PluginApi): void {
+// NOTE: Started as a copy of jens/emotes.ts — same alias names, same commands.
+// Customise the commands below to gertruda's wording where they should differ.
+export function setupGertrudaEmotes(api: PluginApi): void {
   // #region ce
   api.aliases.register(/^ce$/, () => {
-    const daylight = api.gmcp.get().room?.time?.daylight;
-    const greeting = daylight ? 'Buongiorno' : 'Buonasera';
-    api.command.send(`powiedz ${greeting}`);
-    api.command.send('uklon sie uprzejmie');
+    api.command.send('chpozdrow');
     return true;
   });
 
@@ -22,12 +21,6 @@ export function setupJensEmotes(api: PluginApi): void {
 
   // #region kiw
   registerTextAlias(api, /^kiw(?:\s+(.+))?$/, 'kiwnij');
-
-  // #region krz1
-  registerTextAlias(api, /^krz1$/, 'pkrzyknij glosno Z A S L A N I A C !');
-
-  // #region krz2
-  registerTextAlias(api, /^krz2$/, 'pkrzyknij gromko L A M A C !');
 
   // #region kurw
   registerTextAlias(api, /^kurw(?:\s+(.+))?$/, 'gpklnij');

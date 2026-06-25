@@ -17,8 +17,12 @@ import {
   createCombatState,
   setupGmcpCombat,
   setupHelpAliases,
-  setupEmoteAliases,
+  setupJensEmotes,
   setupPalenie,
+  setupTorbaAliases,
+  setupGertrudaEmotes,
+  setupPlecakAliases,
+  onCharName,
   setupKarczmaAliases,
   setupKondycjeAliases,
   createKondycjeState,
@@ -68,6 +72,9 @@ let cleanupAtakPyk: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
 let cleanupHpBar: (() => void) | null = null;
+let cleanupCharName: (() => void) | null = null;
+let cleanupTorba: (() => void) | null = null;
+let cleanupPlecak: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -95,7 +102,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupDebugAliases(api);
   setupDobywanieAliases(api, dobywanieState);
   setupDooAliases(api);
-  setupEmoteAliases(api);
   setupEquipmentAliases(api);
   setupEventTriggers(api);
   setupGlassSounds(api);
@@ -118,7 +124,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupMovementAliases(api);
   setupOptionsAliases(api);
   setupPartyShieldAliases(api);
-  cleanupPalenie = setupPalenie(api);
   setupPingSounds(api);
   setupPostAliases(api);
   setupStatsAliases(api);
@@ -132,6 +137,19 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupZiola = setupZiolaAliases(api);
   setupZmeczenieTriggers(api, zmeczenieState);
   cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
+
+  // Character-specific aliases — registered once the char name is known via GMCP.
+  cleanupCharName = onCharName(api, (name) => {
+    if (name === 'jens') {
+      setupJensEmotes(api);
+      cleanupPalenie = setupPalenie(api);
+      cleanupTorba = setupTorbaAliases(api);
+    } else if (name === 'gertruda') {
+      setupGertrudaEmotes(api);
+      cleanupPlecak = setupPlecakAliases(api);
+    }
+    api.output.print(`[Core Plugin] character: ${name}`);
+  });
 
   const info: PluginInfo = {
     name: 'Core Plugin',
@@ -156,5 +174,11 @@ export async function destroy(): Promise<void> {
   cleanupZiola = null;
   cleanupHpBar?.();
   cleanupHpBar = null;
+  cleanupCharName?.();
+  cleanupCharName = null;
+  cleanupTorba?.();
+  cleanupTorba = null;
+  cleanupPlecak?.();
+  cleanupPlecak = null;
   teardownKeyboardBindings();
 }

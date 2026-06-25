@@ -27711,7 +27711,7 @@ function registerDining(api) {
           api.bind.set('poczestuj sie woda');
           cecho(
             api,
-            `sig Najedzon! Wcisnij [${api.bind.getLabel()}] aby pic wode.
+            `Najedzon! Wcisnij [${api.bind.getLabel()}] aby pic wode.
 `,
           );
           return line;
@@ -27743,7 +27743,7 @@ function registerDining(api) {
       }
     }, 100);
     resetCleanupTimeout();
-    cecho(api, 'sig Co do zarcia..?\n');
+    cecho(api, 'Co do zarcia..?\n');
     return true;
   });
   return () => {

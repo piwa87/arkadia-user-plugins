@@ -98,6 +98,9 @@ export function createMockApi(options?: { room?: any }) {
     command: {
       send: vi.fn(),
     },
+    gmcp: {
+      get: vi.fn(() => ({})),
+    },
     commandHooks: {
       register: vi.fn((callback, priority) => {
         commandHooks.push({ callback, priority });

@@ -2,57 +2,14 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { registerTextAlias } from '../../lib/registerTextAlias';
 
 export function setupEquipmentAliases(api: PluginApi): void {
-  // #region napt
-  api.aliases.register(/^napt$/, () => {
-    api.command.send('otworz zalozona torbe');
-    api.command.send('napelnij zalozona torbe');
-    return true;
-  });
-
-  // #region obb
-  registerTextAlias(api, /^obb$/, 'zajrzyj do zalozonej torby');
-
-  // #region ot
-  registerTextAlias(api, /^ot$/, 'otworz zalozona torbe');
+  // NOTE: worn-container aliases (napt/obb/ot/wlz/wyj/zt) are character-specific
+  // and live in worn_container.ts (jens -> torba, gertruda -> plecak).
 
   // #region pj [text]
   registerTextAlias(api, /^pj(?:\s+(.+))?$/, 'przejrzyj');
 
   // #region pr [text]
   registerTextAlias(api, /^pr(?:\s+(.+))?$/, 'przeczytaj');
-
-  // #region wlz [what]
-  api.aliases.register(/^wlz(?:\s+(.+))?$/, (matches) => {
-    const text = matches?.[1]?.trim();
-    if (!text) return true;
-    for (const item of text
-      .split('|')
-      .map((s) => s.trim())
-      .filter(Boolean)) {
-      api.command.send(`wloz ${item} do zalozonej torby`);
-    }
-    return true;
-  });
-
-  // #region wyj [what]
-  api.aliases.register(/^wyj(?:\s+(.+))?$/, (matches) => {
-    const text = matches?.[1]?.trim();
-    if (!text) return true;
-    for (const item of text
-      .split('|')
-      .map((s) => s.trim())
-      .filter(Boolean)) {
-      api.command.send(`wez ${item} z zalozonej torby`);
-    }
-    return true;
-  });
-
-  // #region zt
-  api.aliases.register(/^zt$/, () => {
-    api.command.send('zamknij zalozona torbe');
-    api.command.send('la+');
-    return true;
-  });
 
   // #region otu
   registerTextAlias(api, /^otu$/, 'otul sie plaszczem');
