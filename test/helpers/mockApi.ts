@@ -2,8 +2,20 @@ import { vi } from 'vitest';
 import type { PluginApi } from '@arkadia/plugin-types';
 
 export class MockAnsiAwareBuffer {
-  constructor(public text: string) {}
+  constructor(public text: string = '') {}
+  append(text: string, _state?: unknown): this {
+    this.text += text;
+    return this;
+  }
+  appendBuffer(buffer: MockAnsiAwareBuffer): this {
+    this.text += buffer.text;
+    return this;
+  }
   color(_range: [number, number], _color: unknown): this {
+    return this;
+  }
+  clear(): this {
+    this.text = '';
     return this;
   }
 }
@@ -62,6 +74,7 @@ export function createMockApi(options?: { room?: any }) {
   const aliases: RegisteredAlias[] = [];
   const commandHooks: RegisteredCommandHook[] = [];
   const footerComponents: MockFooterComponent[] = [];
+  const eventListeners = new Map<string, ((...args: unknown[]) => void)[]>();
   const room = options?.room;
 
   const api = {
@@ -77,6 +90,12 @@ export function createMockApi(options?: { room?: any }) {
         oneTimeTriggers.push({ pattern, callback, tag });
         return { pattern, callback, tag };
       }),
+      remove: vi.fn((trigger: unknown) => {
+        const idx = triggers.findIndex(
+          (t) => t.pattern === (trigger as any)?.pattern && t.callback === (trigger as any)?.callback,
+        );
+        if (idx >= 0) triggers.splice(idx, 1);
+      }),
       removeByTag: vi.fn((tag: string) => {
         const keep = triggers.filter((t) => t.tag !== tag);
         triggers.length = 0;
@@ -91,9 +110,33 @@ export function createMockApi(options?: { room?: any }) {
       remove: vi.fn(),
     },
     events: {
-      emit: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
+      emit: vi.fn((event: string, ...args: unknown[]) => {
+        for (const listener of eventListeners.get(event) ?? []) {
+          listener(...args);
+        }
+      }),
+      on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+        const list = eventListeners.get(event) ?? [];
+        list.push(listener);
+        eventListeners.set(event, list);
+      }),
+      off: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+        const list = eventListeners.get(event);
+        if (!list) return;
+        const idx = list.indexOf(listener);
+        if (idx >= 0) list.splice(idx, 1);
+      }),
+    },
+    team: {
+      getMembers: vi.fn((): string[] => []),
+      getLeader: vi.fn((): string | undefined => undefined),
+      getLeaderId: vi.fn((): number | undefined => undefined),
+      getPlayerNum: vi.fn((): number | undefined => undefined),
+    },
+    bind: {
+      set: vi.fn(),
+      clear: vi.fn(),
+      getLabel: vi.fn(() => 'CTRL+]'),
     },
     command: {
       send: vi.fn(),
@@ -139,5 +182,5 @@ export function createMockApi(options?: { room?: any }) {
     AnsiAwareBuffer: MockAnsiAwareBuffer,
   } as unknown as PluginApi;
 
-  return { api, triggers, oneTimeTriggers, aliases, commandHooks, footerComponents };
+  return { api, triggers, oneTimeTriggers, aliases, commandHooks, footerComponents, eventListeners };
 }

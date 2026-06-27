@@ -1,6 +1,7 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import {
   setupBramy,
+  setupBronieAliases,
   setupBuklakAliases,
   setupColCialo,
   setupCiosyKolory,
@@ -92,6 +93,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupBattleAliases(api);
   setupBindAliases(api);
   setupBramy(api);
+  setupBronieAliases(api);
   setupBuklakAliases(api);
   setupCiosyKolory(api);
   setupColCialo(api);

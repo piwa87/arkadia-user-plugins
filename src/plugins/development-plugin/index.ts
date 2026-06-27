@@ -1,8 +1,10 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupZlecenia, destroyZlecenia } from './zlecenia';
+import { setupTeam, destroyTeam } from './mod_team/team';
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   setupZlecenia(api);
+  setupTeam(api);
 
   const info: PluginInfo = {
     name: 'Development Plugin',
@@ -17,4 +19,5 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
 export function destroy(api: PluginApi): void {
   destroyZlecenia(api);
+  destroyTeam(api);
 }

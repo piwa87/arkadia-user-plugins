@@ -1,4 +1,5 @@
 export { setupBramy } from './bramy';
+export { setupBronieAliases } from './bronie';
 export { setupBuklakAliases } from './buklak';
 export { setupColCialo } from './colors/col_cialo';
 export { setupCiosyKolory } from './colors/col_ciosy';

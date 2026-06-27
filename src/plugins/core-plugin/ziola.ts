@@ -59,20 +59,21 @@ export function setupZiolaAliases(api: PluginApi): () => void {
   );
 
   // --- Herb interface aliases ---
+  // Zestawy
   ids.push(registerTextAlias(api, /^hp\+$/i, '/zestaw hp'));
   ids.push(registerTextAlias(api, /^mana\+$/i, '/zestaw mana'));
-  ids.push(registerTextAlias(api, /^obz$/i, '/ziola_pokaz'));
-  ids.push(registerTextAlias(api, /^obz!$/i, '/ziola'));
   ids.push(registerTextAlias(api, /^st\+$/i, '/zestaw sterydy'));
-  ids.push(registerTextAlias(api, /^zi$/i, '/zio_szukaj'));
   ids.push(registerTextAlias(api, /^zm\+$/i, '/zestaw zm'));
 
+  // Pozostale
+  ids.push(registerTextAlias(api, /^obz$/i, '/ziola'));
+  ids.push(registerTextAlias(api, /^zi$/i, '/zio_szukaj'));
+
   ids.push(
-    api.aliases.register(/^zisort!$/i, () => {
+    api.aliases.register(/^obz!$/i, () => {
       api.command.send('wyj woreczki');
       api.command.send('/ziola');
       api.command.send('/ziola_buduj');
-      api.command.send('/woreczki_buduj');
       return true;
     }),
   );

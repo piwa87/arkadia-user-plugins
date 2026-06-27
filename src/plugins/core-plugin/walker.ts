@@ -46,7 +46,7 @@ export function setupWalker(api: PluginApi): () => void {
     walkerDelay = state.delay;
 
     if (arrived) {
-      notify('Walker: dotarłeś do celu');
+      notify('Arrived 🏁');
     }
   };
 
