@@ -166,10 +166,200 @@ describe('mod_team', () => {
     });
   });
 
+  describe('shields-me trigger (zas_team_mnie)', () => {
+    function getMnieTrigger(triggers: any[]) {
+      // The general zaslona pattern also matches the "cie" line; pick the one
+      // whose source literally targets "zaslania cie".
+      return triggers.find(
+        (t) => t.tag === 'mod_team' && typeof t.pattern.source === 'string' && t.pattern.source.includes('zaslania cie'),
+      );
+    }
+
+    it('rewrites the line when a team member shields the player', () => {
+      const { api, triggers } = createMockApi();
+      (api.team.getMembers as any).mockReturnValue(['Vindael']);
+      setupTeam(api);
+
+      const trig = getMnieTrigger(triggers);
+      expect(trig).toBeDefined();
+
+      const text = 'Vindael zrecznie zaslania cie przed ciosami orka.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      expect(result).toBe(line);
+      expect(line.text).toContain('+++');
+      expect(line.text).toContain('z a s l a n i a');
+      expect(line.text).toContain('CIEBIE');
+      expect(line.text).toContain('Vindael');
+      expect(line.text).toContain('orka');
+      // The player is being protected — no zaslona to break, so no morse.
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+
+    it('passes through when the shielder is not on the team', () => {
+      const { api, triggers } = createMockApi();
+      (api.team.getMembers as any).mockReturnValue(['Vindael']);
+      setupTeam(api);
+
+      const trig = getMnieTrigger(triggers);
+      const text = 'Obcy zrecznie zaslania cie przed ciosami orka.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      expect(result).toBe(line);
+      expect(line.text).toBe(text); // untouched
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+  });
+
+  describe('shields-teammate trigger (zas_team_team)', () => {
+    // The general zaslona pattern also matches; pick zas_team_team by its exact
+    // source (group for the shielded member, ending in "(.*)\.").
+    function getTeamTeamTrigger(triggers: any[]) {
+      return triggers.find(
+        (t) =>
+          t.tag === 'mod_team' &&
+          t.pattern.source === '^(.*) zrecznie zaslania (.*) przed ciosami (.*)\\.',
+      );
+    }
+
+    it('rewrites the line when a member shields another team member', () => {
+      const { api, triggers } = createMockApi();
+      (api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(api);
+
+      const trig = getTeamTeamTrigger(triggers);
+      expect(trig).toBeDefined();
+
+      // Soroko (indeclinable) is shielded; "orka" is the enemy, not on the team.
+      const text = 'Vindael zrecznie zaslania Soroko przed ciosami orka.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      expect(result).toBe(line);
+      expect(line.text).toContain('+++');
+      expect(line.text).toContain('z a s l a n i a');
+      expect(line.text).toContain('Vindael');
+      expect(line.text).toContain('Soroko');
+      expect(line.text).toContain('orka');
+      // A teammate is being protected — no zaslona to break, so no morse.
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+
+    it('passes through when the shielded target is not on the team', () => {
+      const { api, triggers } = createMockApi();
+      (api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(api);
+
+      const trig = getTeamTeamTrigger(triggers);
+      const text = 'Vindael zrecznie zaslania Obcego przed ciosami orka.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      expect(result).toBe(line);
+      expect(line.text).toBe(text); // untouched
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+  });
+
+  describe('failed-shield trigger (niezas_team_team)', () => {
+    // Match the failed-shield trigger by its pattern, not just the tag.
+    function getNieTrigger(triggers: any[]) {
+      return triggers.find(
+        (t) =>
+          t.tag === 'mod_team' &&
+          t.pattern.test &&
+          t.pattern.test('X probuje zaslonic Y przed ciosami Z, jednak nie jest w stanie tego uczynic.'),
+      );
+    }
+
+    it('rewrites the line when a team member fails to shield another team member', () => {
+      const { api, triggers } = createMockApi();
+      // Vindael (M, shielder) and Soroko (indeclinable, B form "Soroko", shielded).
+      (api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(api);
+
+      const trig = getNieTrigger(triggers);
+      expect(trig).toBeDefined();
+
+      const text = 'Vindael probuje zaslonic Soroko przed ciosami orka, jednak nie jest w stanie tego uczynic.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      // Mutated in place — not gagged, not via output.print.
+      expect(result).toBe(line);
+      expect(line.text).toContain('n i e   z a s l a n i a');
+      expect(line.text).toContain('Vindael');
+      expect(line.text).toContain('Soroko');
+      expect(line.text).toContain('orka');
+      // Soroko is team slot 2 → bind label "WW".
+      expect(line.text).toContain('WW');
+      // No morse: our team failing to shield a teammate is not a zaslona to break.
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+
+    it('passes through when the shielder is not on the team', () => {
+      const { api, triggers } = createMockApi();
+      (api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(api);
+
+      const trig = getNieTrigger(triggers);
+      const text = 'Obcy probuje zaslonic Soroko przed ciosami orka, jednak nie jest w stanie tego uczynic.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      expect(result).toBe(line);
+      expect(line.text).toBe(text); // untouched
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+
+    it('passes through when the shielded target is not on the team', () => {
+      const { api, triggers } = createMockApi();
+      (api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(api);
+
+      const trig = getNieTrigger(triggers);
+      // "Vindaela" is Vindael's biernik, not a separate member; "Obcego" is unknown.
+      const text = 'Vindael probuje zaslonic Obcego przed ciosami orka, jednak nie jest w stanie tego uczynic.';
+      const matches = text.match(trig.pattern)!;
+      const line = new MockAnsiAwareBuffer(text);
+      const result = trig.callback(line, matches);
+
+      expect(result).toBe(line);
+      expect(line.text).toBe(text);
+      expect(api.command.send).not.toHaveBeenCalledWith('play_morse');
+
+      destroyTeam(api);
+    });
+  });
+
   describe('coloring trigger (kol_druzyna)', () => {
     // The coloring trigger is the mod_team trigger that matches a bare name.
     function getColorTrigger(triggers: any[]) {
-      return triggers.find((t) => t.tag === 'mod_team' && t.pattern.test('Vindaela'));
+      // Some mod_team triggers register an array of patterns (zaslon banners);
+      // guard .test so the find() does not crash on those.
+      return triggers.find(
+        (t) => t.tag === 'mod_team' && typeof t.pattern.test === 'function' && t.pattern.test('Vindaela'),
+      );
     }
 
     it('colors every case form of a team member, with word boundaries', () => {
@@ -219,7 +409,7 @@ describe('mod_team', () => {
       api.events.emit('teamChange');
       expect(getColorTrigger(triggers)).toBeUndefined(); // old Vindael trigger gone
       const sorokoTrig = triggers.find(
-        (t: any) => t.tag === 'mod_team' && t.pattern.test('Soroko'),
+        (t: any) => t.tag === 'mod_team' && typeof t.pattern.test === 'function' && t.pattern.test('Soroko'),
       );
       expect(sorokoTrig).toBeDefined();
 

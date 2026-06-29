@@ -55,14 +55,12 @@ import {
   setupEventTriggers,
   setupLocationTriggers,
   setupMiscTriggers,
-  setupZaslonTriggers,
   setupFooter,
   setupAtakPyk,
   setupAtakiTriggers,
   setupCombatAliases,
   setupPartyShieldAliases,
   setupWalker,
-  setupZaslony,
   setupZiolaAliases,
   storage,
 } from './modules';
@@ -134,8 +132,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupTravelAliases(api);
   cleanupWalker = setupWalker(api);
   setupWsiadaczAliases(api);
-  setupZaslonTriggers(api);
-  setupZaslony(api);
   cleanupZiola = setupZiolaAliases(api);
   setupZmeczenieTriggers(api, zmeczenieState);
   cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
