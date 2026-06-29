@@ -187,7 +187,8 @@ export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): vo
     return true;
   });
 
-  // macka! — quick evaluation of a one-handed mace on the ground
+  // macka! — quick evaluation of a one-handed mace from the room container.
+  // `we` runs the room-container alias (otworz <pojemnik>; wez ... z <pojemnik>).
   api.aliases.register(/^macka!$/, () => {
     api.command.send('we jednoreczna maczuge');
     api.command.send('ocen ja');
@@ -195,7 +196,7 @@ export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): vo
     return true;
   });
 
-  // miecz! — quick evaluation of a one-handed sword on the ground
+  // miecz! — quick evaluation of a one-handed sword from the room container.
   api.aliases.register(/^miecz!$/, () => {
     api.command.send('we jednoreczny miecz');
     api.command.send('ocen go');

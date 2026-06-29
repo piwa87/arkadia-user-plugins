@@ -1,12 +1,13 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { registerTextAlias } from '../../lib/registerTextAlias';
+import { setupRoomContainers } from './room_containers';
 
 export function setupEquipmentAliases(api: PluginApi): void {
   // NOTE: worn-container aliases (napt/obb/ot/wlz/wyj/zt) are character-specific
   // and live in worn_container.ts (jens -> torba, gertruda -> plecak).
 
-  // #region pj [text]
-  registerTextAlias(api, /^pj(?:\s+(.+))?$/, 'przejrzyj');
+  // #region pj/we/wl — room-scoped container aliases (open + look/take/put)
+  setupRoomContainers(api);
 
   // #region pr [text]
   registerTextAlias(api, /^pr(?:\s+(.+))?$/, 'przeczytaj');
@@ -249,7 +250,9 @@ export function setupEquipmentAliases(api: PluginApi): void {
     return true;
   });
 
-  // #region zwal - refill bag, take out weapons and armor, equip both
+  // #region zwal - refill bag, take weapons and armor out, stash them in the
+  // room container. `wl je` runs the `we`/`wl` room-container alias on "je"
+  // (the items just taken out) so a wielded weapon isn't also put away.
   api.aliases.register(/^zwal$/, () => {
     api.command.send('napt');
     api.command.send('wyj bronie');
