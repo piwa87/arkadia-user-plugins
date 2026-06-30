@@ -1,7 +1,7 @@
 import type { PluginApi, AnsiAwareBuffer, FormatStateSnapshot } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
-import { teamGenitiveForms, teamNominativeForms, teamIndexByBiernik } from './team_state';
+import { teamGenitiveForms, teamNominativeForms, teamIndexByBiernik, LISTA_BINDOW } from './team_state';
 
 /**
  * Zaslona (shield / dodge) triggers. Each rewrites a combat-shield line into a
@@ -13,9 +13,6 @@ import { teamGenitiveForms, teamNominativeForms, teamIndexByBiernik } from './te
  * to an in-place rewrite here — never api.output.print from a trigger callback,
  * which would queue and flush on the next output cycle.)
  */
-
-/** CMUD `lista_bindow` — bind label per team slot. Only the first 10 (q–p). */
-const LISTA_BINDOW = ['QQ', 'WW', 'EE', 'RR', 'TT', 'YY', 'UU', 'II', 'OO', 'PP'];
 
 type Segment = [text: string, color: FormatStateSnapshot];
 

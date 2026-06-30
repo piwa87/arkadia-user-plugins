@@ -2,6 +2,8 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { getCurrentTeam, getCurrentLeader, getMissingNames, rebuildTeamState, resetTeamState } from './team_state';
 import { registerZaslonyTriggers } from './team_zaslony';
+import { registerCelTriggers, registerCelTestAlias } from './team_cel';
+import { setupAtaki, destroyAtaki } from './team_ataki';
 
 // Re-export the live team state for consumers (and tests) importing from here.
 export { getCurrentTeam, getCurrentLeader, getMissingNames } from './team_state';
@@ -152,6 +154,7 @@ function rebuildColoringTrigger(api: PluginApi): void {
 
 let teamChangeListener: (() => void) | null = null;
 let wylapAliasId: string | undefined;
+let celtestAliasId: string | undefined;
 
 export function setupTeam(api: PluginApi): void {
   teamChangeListener = () => rebuild(api);
@@ -164,6 +167,9 @@ export function setupTeam(api: PluginApi): void {
   });
 
   registerZaslonyTriggers(api, TAG);
+  registerCelTriggers(api, TAG);
+  celtestAliasId = registerCelTestAlias(api);
+  setupAtaki(api, TAG);
 
   // Initial state.
   rebuild(api);
@@ -178,6 +184,11 @@ export function destroyTeam(api: PluginApi): void {
     api.aliases.remove(wylapAliasId);
     wylapAliasId = undefined;
   }
+  if (celtestAliasId) {
+    api.aliases.remove(celtestAliasId);
+    celtestAliasId = undefined;
+  }
+  destroyAtaki(api);
   api.bind.clear();
   api.triggers.removeByTag(TAG);
   coloringTrigger = null;

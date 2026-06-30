@@ -100,6 +100,16 @@ export function resetTeamState(): void {
   missingNames = [];
 }
 
+// ---- Bind labels -------------------------------------------------------------
+
+/** CMUD `lista_bindow` — bind label per team slot. Only the first 10 (q–p). */
+export const LISTA_BINDOW = ['QQ', 'WW', 'EE', 'RR', 'TT', 'YY', 'UU', 'II', 'OO', 'PP'] as const;
+
+/** Bind label for a 0-based team slot index, or '' when out of range. */
+export function teamBindLabel(index: number): string {
+  return LISTA_BINDOW[index] ?? '';
+}
+
 // ---- Case-form lookups (used by the zaslona triggers) ------------------------
 
 /** Lowercased dopelniacz (D) forms of the current team, for fast matching. */
@@ -119,4 +129,13 @@ export function teamNominativeForms(): Set<string> {
 export function teamIndexByBiernik(form: string): number {
   const f = form.toLowerCase();
   return currentTeam.findIndex((m) => m.B.toLowerCase() === f);
+}
+
+/**
+ * Team slot index of the member whose narzednik (N) form equals `form`
+ * (case-insensitive), or -1. CMUD `%ismember(%2, @druzynaN)`.
+ */
+export function teamIndexByNarzednik(form: string): number {
+  const f = form.toLowerCase();
+  return currentTeam.findIndex((m) => m.N.toLowerCase() === f);
 }
