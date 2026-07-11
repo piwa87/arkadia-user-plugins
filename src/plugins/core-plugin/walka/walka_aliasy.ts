@@ -33,21 +33,6 @@ export function setupCombatAliases(
     });
   }
 
-  // #region c — attack set enemy #1
-  api.aliases.register(/^c$/, () => {
-    api.command.send(`zabij ${targets[0]}`);
-    return true;
-  });
-
-  // #region c1 / c2 / c3 / c4 — delegate to z 1..4
-  for (let i = 0; i < 4; i++) {
-    const n = i + 1;
-    api.aliases.register(new RegExp(`^c${n}$`), () => {
-      api.command.send(`/z ${n}`);
-      return true;
-    });
-  }
-
   // #region set [target]
   api.aliases.register(/^set(?:\s+(.+))?$/, (matches) => {
     const target = matches?.[1]?.trim();

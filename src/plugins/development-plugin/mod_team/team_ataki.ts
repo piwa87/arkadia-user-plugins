@@ -137,10 +137,14 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- stun_1os / stun_2: fire the OGLUSZENIE alarm, line left intact -------
-  api.triggers.register(/^(.*) silnym ciosem .* oglusza cie.*/, (line) => {
-    printStunAlarm();
-    return line;
-  }, tag);
+  api.triggers.register(
+    /^(.*) silnym ciosem .* oglusza cie.*/,
+    (line) => {
+      printStunAlarm();
+      return line;
+    },
+    tag,
+  );
   api.triggers.register(
     /.*siebie, ogluszajac cie jednym z takich ciosow, przed ktorym nie zdazyles sie uchylic\. Powoli osuwasz sie na ziemie\./,
     (line) => {
@@ -205,7 +209,7 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   };
 
   // "Zabiles <target>." — the player kills. Case-sensitive: only a capital "Z".
-  api.triggers.register(/^Zabiles (.*)\.$/, killFollowUp, tag);
+  api.triggers.register(/^Zabil(e|a)s (.*)\.$/, killFollowUp, tag);
 
   // "<teammate-M> zabil/zabila <target>." — a teammate kills. Only fires when
   // the killer is a current team member (CMUD `@druzynaM` / nominative forms).

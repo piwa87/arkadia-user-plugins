@@ -59,6 +59,7 @@ import {
   setupAtakPyk,
   setupAtakiTriggers,
   setupCombatAliases,
+  setupKillAlias,
   setupPartyShieldAliases,
   setupWalker,
   setupZiolaAliases,
@@ -101,6 +102,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupCombatAliases(api, targets, ORDINALS, updateFooter);
   setupDebugAliases(api);
   setupDobywanieAliases(api, dobywanieState);
+  setupKillAlias(api, targets, dobywanieState);
   setupDooAliases(api);
   setupEquipmentAliases(api);
   setupEventTriggers(api);

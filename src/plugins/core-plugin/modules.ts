@@ -49,6 +49,7 @@ export { setupFooter } from './ui/footer';
 export { setupAtakPyk } from './pyk';
 export { setupAtakiTriggers } from './walka/atak_triggers';
 export { setupCombatAliases } from './walka/walka_aliasy';
+export { setupKillAlias } from './walka/c';
 export { setupPartyShieldAliases } from './walka/walka_zaslony';
 export { setupWalker } from './walker';
 export { setupZiolaAliases } from './ziola';

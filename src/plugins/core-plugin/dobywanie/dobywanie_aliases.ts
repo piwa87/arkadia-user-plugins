@@ -69,6 +69,17 @@ function drawCurrent(api: PluginApi, state: DobywanieState): void {
   }
 }
 
+// --- Public helpers ---
+
+/**
+ * Draw the currently selected weapon if it isn't already in hands.
+ * CMUD `#IF (@gdzie_bron=0) {dob}` — used by the `c` killing alias so an attack
+ * auto-fetches weapons first. `drawn` is maintained by the dob/opu aliases.
+ */
+export function ensureWeaponDrawn(api: PluginApi, state: DobywanieState): void {
+  if (!state.drawn) drawCurrent(api, state);
+}
+
 // --- Alias setup ---
 
 export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): void {
