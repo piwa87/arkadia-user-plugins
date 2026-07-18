@@ -65,6 +65,35 @@ import {
   setupZiolaAliases,
   storage,
 } from './modules';
+import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
+
+// Every trigger tag registered by core-plugin modules. The client's cleanup()
+// auto-removes aliases/UI/hooks on unload but NOT triggers, so destroy() must
+// removeByTag each of these or reloading the plugin duplicates every trigger.
+// Completeness is enforced by test/plugins/core-plugin/destroy.test.ts.
+const TRIGGER_TAGS = [
+  'bramy',
+  'ciosyKolory',
+  'colCialo',
+  'colEkwipunek',
+  'colEventy',
+  'colMovements',
+  'eventTriggers',
+  'glassSounds',
+  'kondycje',
+  'miscTriggers',
+  'pingSounds',
+  'tmpk',
+  'walkaAliasy',
+  'zmeczenie',
+  // Armed-on-demand one-shot triggers that may be waiting for a match:
+  TEMP_TRIGGER_TAG,
+  'na_statek_oneshot',
+  'wsiadacz_statek',
+  'wsiadacz_woz',
+  'wsiadacz_statek_ned',
+  'siad_oneshot',
+];
 
 let cleanupCombat: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
@@ -75,6 +104,10 @@ let cleanupHpBar: (() => void) | null = null;
 let cleanupCharName: (() => void) | null = null;
 let cleanupTorba: (() => void) | null = null;
 let cleanupPlecak: (() => void) | null = null;
+let cleanupLocationTriggers: (() => void) | null = null;
+let cleanupDoo: (() => void) | null = null;
+let cleanupAtakiTriggers: (() => void) | null = null;
+let cleanupTriggerTags: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -88,7 +121,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const zmeczenieState = createZmeczenieState();
 
   cleanupAtakPyk = setupAtakPyk(api);
-  setupAtakiTriggers(api, kondycjeState);
+  cleanupAtakiTriggers = setupAtakiTriggers(api, kondycjeState);
   setupBattleAliases(api);
   setupBindAliases(api);
   setupBramy(api);
@@ -103,7 +136,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupDebugAliases(api);
   setupDobywanieAliases(api, dobywanieState);
   setupKillAlias(api, targets, dobywanieState);
-  setupDooAliases(api);
+  cleanupDoo = setupDooAliases(api);
   setupEquipmentAliases(api);
   setupEventTriggers(api);
   setupGlassSounds(api);
@@ -115,7 +148,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupKondycjeTriggers(api, kondycjeState);
   cleanupHpBar = setupHpBar(api);
   setupLampAliases(api);
-  setupLocationTriggers(api);
+  cleanupLocationTriggers = setupLocationTriggers(api);
   setupLocationsAliases(api);
   setupLootAliases(api);
   setupMapAliases(api);
@@ -137,6 +170,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupZiola = setupZiolaAliases(api);
   setupZmeczenieTriggers(api, zmeczenieState);
   cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
+  cleanupTriggerTags = () => {
+    for (const tag of TRIGGER_TAGS) api.triggers.removeByTag(tag);
+  };
 
   // Character-specific aliases — registered once the char name is known via GMCP.
   cleanupCharName = onCharName(api, (name) => {
@@ -180,5 +216,13 @@ export async function destroy(): Promise<void> {
   cleanupTorba = null;
   cleanupPlecak?.();
   cleanupPlecak = null;
+  cleanupLocationTriggers?.();
+  cleanupLocationTriggers = null;
+  cleanupDoo?.();
+  cleanupDoo = null;
+  cleanupAtakiTriggers?.();
+  cleanupAtakiTriggers = null;
+  cleanupTriggerTags?.();
+  cleanupTriggerTags = null;
   teardownKeyboardBindings();
 }

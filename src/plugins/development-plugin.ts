@@ -1,1 +1,1 @@
-export { init } from './development-plugin/index';
+export { init, destroy } from './development-plugin/index';

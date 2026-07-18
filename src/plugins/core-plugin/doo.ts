@@ -1,6 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 
-export function setupDooAliases(api: PluginApi): void {
+export function setupDooAliases(api: PluginApi): () => void {
   // ── Multibind shortcuts ─────────────────────────────────────────────────────
   // `doo` / `doo2..4` fire the action stored in multibind slot 1..4 (falls back
   // to `sig nic` if empty). `doo+ <action>` sets slot 1, `doo-` clears it.
@@ -36,4 +36,6 @@ export function setupDooAliases(api: PluginApi): void {
     api.command.send('/mbind- 1', false);
     return true;
   });
+
+  return () => api.events.off('multibinds', onMultibinds);
 }

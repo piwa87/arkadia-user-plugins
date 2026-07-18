@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { registerTextAlias } from '../../lib/registerTextAlias';
 import { makeTemp } from '../../lib/makeTemp';
+import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 import { withDelay } from '../../lib/withDelay';
 import { findMatchRange } from '../../lib/findMatchRange';
 import { getMyColor } from '../../lib/colors/my-colors';
@@ -48,7 +49,7 @@ export function setupMiscAliases(api: PluginApi): void {
         api.output.print('');
 
         return line;
-      });
+      }, TEMP_TRIGGER_TAG);
 
       return true;
     });

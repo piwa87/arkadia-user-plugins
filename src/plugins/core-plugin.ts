@@ -1,1 +1,1 @@
-export { init } from './core-plugin/index';
+export { init, destroy } from './core-plugin/index';

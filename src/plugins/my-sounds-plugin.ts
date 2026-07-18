@@ -100,3 +100,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   api.output.print(`[${info.name} v${info.version}] loaded`);
   return info;
 }
+
+export async function destroy(): Promise<void> {
+  // Aliases and the footer component are auto-removed by the client on unload;
+  // the AudioContext is not — close it so reloads don't accumulate contexts.
+  soundManager?.stop();
+}

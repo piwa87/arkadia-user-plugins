@@ -290,12 +290,12 @@ export function runLine(mock: MockApi, text: string, type = 'output') {
 
   for (const entry of [...mock.triggers]) {
     const matches = matchPattern(entry.pattern, entry.options);
-    if (matches && entry.callback && applyCallback(entry, matches) === 'dropped') return null;
+    if (matches && applyCallback(entry, matches) === 'dropped') return null;
   }
 
   for (const entry of [...mock.oneTimeTriggers]) {
     const matches = matchPattern(entry.pattern, entry.options);
-    if (!matches || !entry.callback) continue;
+    if (!matches) continue;
     const idx = mock.oneTimeTriggers.indexOf(entry);
     if (idx >= 0) mock.oneTimeTriggers.splice(idx, 1);
     if (applyCallback(entry, matches) === 'dropped') return null;
@@ -319,7 +319,7 @@ export function runLine(mock: MockApi, text: string, type = 'output') {
         if (!consecutive) continue;
         seen.add(entry);
         const matches = matchPattern(entry.token, entry.options);
-        if (matches && entry.callback && applyCallback(entry, matches) === 'dropped') return null;
+        if (matches && applyCallback(entry, matches) === 'dropped') return null;
       }
     }
   }

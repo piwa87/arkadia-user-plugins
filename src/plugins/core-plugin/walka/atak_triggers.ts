@@ -8,18 +8,21 @@ import { getHpLabel, type KondycjeState } from '../kondycje/kondycje_triggers';
  * core because the notification reports the player's HP condition, which is
  * tracked by core's kondycje state.
  */
-export function setupAtakiTriggers(api: PluginApi, kondycjeState: KondycjeState): void {
+export function setupAtakiTriggers(api: PluginApi, kondycjeState: KondycjeState): () => void {
   // Request browser notification permission once on load
   requestPermission();
 
   // All enemies dead — browser notification with current HP condition
-  api.events.on('allEnemiesKilled', () => {
+  const onAllEnemiesKilled = () => {
     notify(`Wszystko \u{1F480} [${getHpLabel(kondycjeState.hp)}]`);
-  });
+  };
+  api.events.on('allEnemiesKilled', onAllEnemiesKilled);
 
   // Test alias — manually fire allEnemiesKilled
   api.aliases.register(/^ake$/, () => {
     api.events.emit('allEnemiesKilled');
     return true;
   });
+
+  return () => api.events.off('allEnemiesKilled', onAllEnemiesKilled);
 }
