@@ -108,14 +108,26 @@ export function setupGmcpCombat(
     }
   }
 
-  const onParsedObjects = (): void => recompute();
-  const onParsedNums = (): void => recompute();
+  // parsedObjects (gmcp.objects.data) and parsedNums (gmcp.objects.nums) fire
+  // on independent GMCP messages but usually arrive together in one batch —
+  // coalesce to a single recompute per microtask instead of two full rebuilds.
+  let recomputeQueued = false;
+  let disposed = false;
+  const queueRecompute = (): void => {
+    if (recomputeQueued) return;
+    recomputeQueued = true;
+    queueMicrotask(() => {
+      recomputeQueued = false;
+      if (!disposed) recompute();
+    });
+  };
 
-  api.events.on('parsedObjects', onParsedObjects);
-  api.events.on('parsedNums', onParsedNums);
+  api.events.on('parsedObjects', queueRecompute);
+  api.events.on('parsedNums', queueRecompute);
 
   return () => {
-    api.events.off('parsedObjects', onParsedObjects);
-    api.events.off('parsedNums', onParsedNums);
+    disposed = true;
+    api.events.off('parsedObjects', queueRecompute);
+    api.events.off('parsedNums', queueRecompute);
   };
 }

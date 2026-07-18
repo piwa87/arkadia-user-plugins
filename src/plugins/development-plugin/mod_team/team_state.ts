@@ -27,6 +27,16 @@ let currentTeam: DruzynaName[] = [];
 let currentLeader: DruzynaName | undefined;
 let missingNames: string[] = [];
 
+// Case-form sets are read from trigger callbacks on every matching combat
+// line — memoize them and invalidate whenever currentTeam changes.
+let genitiveForms: Set<string> | null = null;
+let nominativeForms: Set<string> | null = null;
+
+function invalidateFormCaches(): void {
+  genitiveForms = null;
+  nominativeForms = null;
+}
+
 /** The active team as declension objects, in the order reported by the client. */
 export function getCurrentTeam(): DruzynaName[] {
   return currentTeam;
@@ -73,6 +83,7 @@ export function rebuildTeamState(api: PluginApi): string[] {
 
   currentTeam = [];
   missingNames = [];
+  invalidateFormCaches();
 
   for (const name of members) {
     if (isSelf(name)) continue; // the player is never in the DB
@@ -98,6 +109,7 @@ export function resetTeamState(): void {
   currentTeam = [];
   currentLeader = undefined;
   missingNames = [];
+  invalidateFormCaches();
 }
 
 // ---- Bind labels -------------------------------------------------------------
@@ -114,12 +126,14 @@ export function teamBindLabel(index: number): string {
 
 /** Lowercased dopelniacz (D) forms of the current team, for fast matching. */
 export function teamGenitiveForms(): Set<string> {
-  return new Set(currentTeam.map((m) => m.D.toLowerCase()));
+  if (!genitiveForms) genitiveForms = new Set(currentTeam.map((m) => m.D.toLowerCase()));
+  return genitiveForms;
 }
 
 /** Lowercased mianownik (M) forms of the current team, for fast matching. */
 export function teamNominativeForms(): Set<string> {
-  return new Set(currentTeam.map((m) => m.M.toLowerCase()));
+  if (!nominativeForms) nominativeForms = new Set(currentTeam.map((m) => m.M.toLowerCase()));
+  return nominativeForms;
 }
 
 /**
