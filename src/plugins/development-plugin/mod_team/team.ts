@@ -2,6 +2,7 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { getCurrentTeam, getCurrentLeader, getMissingNames, rebuildTeamState, resetTeamState } from './team_state';
 import { registerZaslonyTriggers } from './team_zaslony';
+import { destroyTeamColors, rebuildTeamColorTokens } from './team_colors';
 import { registerCelTriggers, registerCelTestAlias } from './team_cel';
 import { setupAtaki, destroyAtaki } from './team_ataki';
 
@@ -9,7 +10,6 @@ import { setupAtaki, destroyAtaki } from './team_ataki';
 export { getCurrentTeam, getCurrentLeader, getMissingNames } from './team_state';
 
 const TAG = 'mod_team';
-const TEAM_COLOR = 9; // #CW 9 — foreground color for team names
 
 // Colors for the diagnostic output.
 const COLOR_PREFIX = '#777777'; // "[mod_team]" marker — muted gray
@@ -92,62 +92,8 @@ function rebuild(api: PluginApi): void {
     api.output.print(buf);
   }
 
-  rebuildColoringTrigger(api);
+  rebuildTeamColorTokens(api);
   printTeam(api);
-}
-
-// ---- Coloring trigger (kol_druzyna) ------------------------------------------
-
-/**
- * Colors every occurrence of a current team member's name — in any case form
- * (M/B/C/D/N) — with foreground color 9. The name set is dynamic, so this trigger
- * is rebuilt whenever the team changes.
- */
-let coloringTrigger: ReturnType<PluginApi['triggers']['register']> | null = null;
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function rebuildColoringTrigger(api: PluginApi): void {
-  if (coloringTrigger) {
-    api.triggers.remove(coloringTrigger);
-    coloringTrigger = null;
-  }
-
-  // All distinct name forms across the team's declensions.
-  const forms = new Set<string>();
-  for (const m of getCurrentTeam()) {
-    forms.add(m.M);
-    forms.add(m.B);
-    forms.add(m.C);
-    forms.add(m.D);
-    forms.add(m.N);
-  }
-  if (forms.size === 0) return;
-
-  // Longest-first so e.g. "Vindaelowi" wins over "Vindael" at the same position.
-  const alt = [...forms]
-    .sort((a, b) => b.length - a.length)
-    .map(escapeRegex)
-    .join('|');
-  const source = `\\b(?:${alt})\\b`;
-  const color = getMyColor(TEAM_COLOR, api);
-  const scan = new RegExp(source, 'g');
-
-  coloringTrigger = api.triggers.register(
-    new RegExp(source),
-    (line) => {
-      scan.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = scan.exec(line.text)) !== null) {
-        line.color([m.index, m.index + m[0].length], color);
-        if (m.index === scan.lastIndex) scan.lastIndex++; // zero-length guard
-      }
-      return line;
-    },
-    TAG,
-  );
 }
 
 // ---- Lifecycle ---------------------------------------------------------------
@@ -191,7 +137,7 @@ export function destroyTeam(api: PluginApi): void {
   destroyAtaki(api);
   api.bind.clear();
   api.triggers.removeByTag(TAG);
-  coloringTrigger = null;
+  destroyTeamColors(api);
 
   resetTeamState();
 }

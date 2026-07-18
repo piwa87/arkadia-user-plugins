@@ -1,6 +1,8 @@
-import type { PluginApi, AnsiAwareBuffer, FormatStateSnapshot } from '@arkadia/plugin-types';
+import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
+import { rewrite } from './banner';
 import { teamGenitiveForms, teamNominativeForms, teamIndexByBiernik, LISTA_BINDOW } from './team_state';
 
 /**
@@ -14,13 +16,6 @@ import { teamGenitiveForms, teamNominativeForms, teamIndexByBiernik, LISTA_BINDO
  * which would queue and flush on the next output cycle.)
  */
 
-type Segment = [text: string, color: FormatStateSnapshot];
-
-/** Replace the whole line with the given coloured segments. */
-function rewrite(line: AnsiAwareBuffer, segments: Segment[]): void {
-  line.clear();
-  for (const [text, color] of segments) line.append(text, color);
-}
 
 /**
  * `zas_przed_team`: "<X> zrecznie zaslania <Y> przed ciosami <Z>." where <Z> is a
@@ -32,7 +27,9 @@ function registerPrzedDruzyna(api: PluginApi, tag: string): void {
   const c41 = getAnsiFormatState(41, api); // %ansi(41) — banner prefix (matches PRZED TOBA)
   const def = getAnsiFormatState(0, api); // %ansi(0) — reset
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslania',
     /^(.*) zrecznie zaslania (.*) przed ciosami (.+)\./,
     (line, matches) => {
       const attacker = matches[3]?.trim().toLowerCase() ?? '';
@@ -65,7 +62,9 @@ function registerZaslaniaMnie(api: PluginApi, tag: string): void {
   const c9 = getAnsiFormatState(9, api); // %ansi(9) — "CIEBIE"
   const def = getAnsiFormatState(0, api); // %ansi(0) — reset
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslania',
     /^(.*) zrecznie zaslania cie przed ciosami (.*)\./,
     (line, matches) => {
       const shielder = matches[1]?.trim().toLowerCase() ?? '';
@@ -97,7 +96,9 @@ function registerZaslaniaTeam(api: PluginApi, tag: string): void {
   const c35 = getAnsiFormatState(35, api); // %ansi(35) — banner highlight
   const def = getAnsiFormatState(0, api); // %ansi(0) — reset
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslania',
     /^(.*) zrecznie zaslania (.*) przed ciosami (.*)\./,
     (line, matches) => {
       const shielded = matches[2]?.trim() ?? '';
@@ -131,7 +132,9 @@ function registerNieZaslania(api: PluginApi, tag: string): void {
   const def = getAnsiFormatState(0, api); // %ansi(0) — reset
   const bindColor = getAnsiFormatState(4, api); // %ansi(4) — bind label
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslonic',
     /^(.*) probuje zaslonic (.*) przed ciosami (.+), jednak nie jest w stanie tego uczynic\./,
     (line, matches) => {
       const shielder = matches[1]?.trim() ?? '';
@@ -182,7 +185,9 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
   const c0 = getMyColor(0, api);
 
   // Enemy dodges/evades the player's blows — morse only, line left intact.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['wprawa', 'uciekajac', 'przyzywa'],
     DODGE_PATTERNS,
     (line) => {
       api.command.send('play_morse');
@@ -192,7 +197,9 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
   );
 
   // zaslona przed moimi ciosami — someone is shielded from the player. + morse.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslania',
     /^(.*) zrecznie zaslania (.*) przed twoimi ciosami\./,
     (line, matches) => {
       rewrite(line, [
@@ -208,7 +215,9 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
   );
 
   // moja udana zaslona — the player shields someone. No morse.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslaniasz',
     /^Zrecznie zaslaniasz (.*) przed ciosami (.*)\./,
     (line, matches) => {
       rewrite(line, [
@@ -221,7 +230,9 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
   );
 
   // moja nieudana zaslona — the player fails to shield someone. No morse.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zaslonic',
     /^Probujesz zaslonic (.*) przed ciosami (.*), jednak nie jestes w stanie tego uczynic\./,
     (line, matches) => {
       rewrite(line, [

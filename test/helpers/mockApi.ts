@@ -90,6 +90,10 @@ export function createMockLine(text: string) {
       line.text = `${line.text}${text}`;
       return line;
     }),
+    clear: vi.fn(() => {
+      line.text = '';
+      return line;
+    }),
     prepend: vi.fn((prefix: string) => {
       line.text = `${prefix}${line.text}`;
       return line;

@@ -1,6 +1,8 @@
-import type { PluginApi, AnsiAwareBuffer, FormatStateSnapshot } from '@arkadia/plugin-types';
+import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
+import { rewrite } from './banner';
 import { teamNominativeForms } from './team_state';
 
 /**
@@ -18,13 +20,6 @@ import { teamNominativeForms } from './team_state';
  * no longer matches the line and does not re-layout it.
  */
 
-type Segment = [text: string, color: FormatStateSnapshot];
-
-/** Replace the whole line with the given coloured segments. */
-function rewrite(line: AnsiAwareBuffer, segments: Segment[]): void {
-  line.clear();
-  for (const [text, color] of segments) line.append(text, color);
-}
 
 export function registerCelTriggers(api: PluginApi, tag: string): void {
   const c45 = getAnsiFormatState(45, api); // %ansi(45) — "cel ataku" banner
@@ -35,7 +30,9 @@ export function registerCelTriggers(api: PluginApi, tag: string): void {
   const obronaBanner = '       cel obrony             ';
 
   // celataku_ja: "Wskazujesz <X> jako cel [nastepnego ]ataku." — you mark a target.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wskazujesz',
     /^Wskazujesz (.*) jako cel (?:nastepnego |)ataku\.$/,
     (line, matches) => {
       rewrite(line, [
@@ -48,7 +45,9 @@ export function registerCelTriggers(api: PluginApi, tag: string): void {
   );
 
   // celataku_ktos: "<someone> wskazuje <X> jako cel ataku." — banner only, no PYK.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wskazuje',
     /^.*wskazuje (.*) jako cel ataku\.$/,
     (line, matches) => {
       rewrite(line, [
@@ -61,7 +60,9 @@ export function registerCelTriggers(api: PluginApi, tag: string): void {
   );
 
   // celobrony_ja: "Wskazujesz <X> jako cel obrony." — you mark a defense target.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wskazujesz',
     /^Wskazujesz (.*) jako cel obrony\.$/,
     (line, matches) => {
       rewrite(line, [
@@ -75,7 +76,9 @@ export function registerCelTriggers(api: PluginApi, tag: string): void {
 
   // celobrony_ktos: "<teammate-M> wskazuje <X> jako cel obrony." — the speaker
   // must be a team member (CMUD `@l_druzyna` = team nominative/M forms).
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wskazuje',
     /^(.*) wskazuje (.*) jako cel obrony\.$/,
     (line, matches) => {
       const speaker = matches[1]?.trim().toLowerCase() ?? '';

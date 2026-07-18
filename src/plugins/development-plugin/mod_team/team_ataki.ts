@@ -1,7 +1,9 @@
-import type { PluginApi, AnsiAwareBuffer, FormatStateSnapshot } from '@arkadia/plugin-types';
+import type { PluginApi, AnsiAwareBuffer } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { requestPermission, notify } from '../../../lib/notifications';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
+import { rewrite } from './banner';
 import { teamIndexByBiernik, teamIndexByNarzednik, teamBindLabel, teamNominativeForms } from './team_state';
 
 /**
@@ -15,13 +17,6 @@ import { teamIndexByBiernik, teamIndexByNarzednik, teamBindLabel, teamNominative
  * core-plugin — it depends on core's kondycje state.
  */
 
-type Segment = [text: string, color: FormatStateSnapshot];
-
-/** Replace the whole line with the given coloured segments. */
-function rewrite(line: AnsiAwareBuffer, segments: Segment[]): void {
-  line.clear();
-  for (const [text, color] of segments) line.append(text, color);
-}
 
 /** Lines that share the " atak " + %trigger + "CIEBIE!" banner. */
 const ATAK_TRIGGER_PATTERNS = [
@@ -64,7 +59,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   });
 
   // ---- atakujecie: "X atakuje cie!" ----------------------------------------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'atakuje',
     /^(.*) atakuje cie!$/,
     (line, m) => {
       rewrite(line, [
@@ -79,7 +76,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- atakujecie_rzuca: "X rzuca sie do ataku na ciebie!" ------------------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'ataku',
     /^(.*) rzuca sie do ataku na ciebie!$/,
     (line, m) => {
       rewrite(line, [
@@ -96,7 +95,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- atak_kg / atak_ks / atak_mc / atak_mnie_morr: shared banner ----------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['zaciska', 'obchodzi', 'wykrzykujac', 'lekcewazac', 'krzyczac', 'morra'],
     ATAK_TRIGGER_PATTERNS,
     (line, m) => {
       rewrite(line, [
@@ -111,7 +112,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- panika_1os: "Wpadasz w panike!" -------------------------------------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'panike',
     /^Wpadasz w panike!$/,
     (line, m) => {
       rewrite(line, [[`${m[0]} [UWAGA!!!  PANIKA!!!]`, c122]]);
@@ -123,7 +126,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- panika_ucieczka: "Udalo ci sie gdzies uciec!" -----------------------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'uciec',
     /^Udalo ci sie gdzies uciec!/,
     (line, m) => {
       rewrite(line, [
@@ -137,7 +142,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- stun_1os / stun_2: fire the OGLUSZENIE alarm, line left intact -------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'oglusza',
     /^(.*) silnym ciosem .* oglusza cie.*/,
     (line) => {
       printStunAlarm();
@@ -145,7 +152,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
     },
     tag,
   );
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'ogluszajac',
     /.*siebie, ogluszajac cie jednym z takich ciosow, przed ktorym nie zdazyles sie uchylic\. Powoli osuwasz sie na ziemie\./,
     (line) => {
       printStunAlarm();
@@ -156,7 +165,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
 
   // ---- atak_w_team: "X atakuje <teammate-B>." — enemy attacks a teammate ----
   // Banner leads with the teammate's bind label so the player can react.
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'atakuje',
     /^(.*) atakuje (.*)\.$/,
     (line, m) => {
       if (m[1]?.trim() === 'Nikt nie') return line; // CMUD `#IF (%1="Nikt nie") {}`
@@ -175,7 +186,9 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   );
 
   // ---- wsparcie_w_team: "X wspiera ... w walce z <teammate-N>." -------------
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wspiera',
     /^(.*) wspiera .* w walce z (.*)\.$/,
     (line, m) => {
       const idx = teamIndexByNarzednik(m[2] ?? '');
@@ -209,11 +222,13 @@ export function setupAtaki(api: PluginApi, tag: string): void {
   };
 
   // "Zabiles <target>." — the player kills. Case-sensitive: only a capital "Z".
-  api.triggers.register(/^Zabil(e|a)s (.*)\.$/, killFollowUp, tag);
+  registerTokenGate(api, ['zabiles', 'zabilas'], /^Zabil(e|a)s (.*)\.$/, killFollowUp, tag);
 
   // "<teammate-M> zabil/zabila <target>." — a teammate kills. Only fires when
   // the killer is a current team member (CMUD `@druzynaM` / nominative forms).
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['zabil', 'zabila'],
     /^(.*) zabil(?:a)? (.*)\.$/,
     (line, m) => {
       const killer = m[1]?.trim().toLowerCase() ?? '';
