@@ -1,9 +1,14 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { megaphone } from '../mgfn';
-import { setBind } from '../f';
 
 const TAG = 'colEventy';
+
+// Every trigger here is registered through registerTokenGate: the client only
+// runs the pattern on lines containing one of the gate words (token triggers
+// are indexed, regex triggers are tested against every line). Gate words must
+// be whole words present in every line the pattern can match.
 
 export function setupColEventy(api: PluginApi): void {
   const c4 = getAnsiFormatState(4, api);
@@ -39,62 +44,74 @@ export function setupColEventy(api: PluginApi): void {
 
   // --- Megaphone announces (data-driven) ---
 
-  const ANNOUNCES: [RegExp, string][] = [
-    [/Marynarze sciagaja trap i fusta odbija od brzegu, kierujac sie ku pelnemu morzu\./, 'piraci sobie odplyneli'],
-    [/Ciemnosc gestnieje wokol .* upiora!/, 'ciemnosc'],
-    [/^Zaalarmowani zolnierze pojawiaja sie, aby wesprzec towarzysza\./, 'zwalilo sie wojsko'],
+  const ANNOUNCES: [string | string[], RegExp, string][] = [
+    ['fusta', /Marynarze sciagaja trap i fusta odbija od brzegu, kierujac sie ku pelnemu morzu\./, 'piraci sobie odplyneli'],
+    ['gestnieje', /Ciemnosc gestnieje wokol .* upiora!/, 'ciemnosc'],
+    ['zaalarmowani', /^Zaalarmowani zolnierze pojawiaja sie, aby wesprzec towarzysza\./, 'zwalilo sie wojsko'],
     [
+      'kredensu',
       /.* raptownie odskakuje do tylu, w kilku krokach dobiega do rzezbionego kredensu, odsuwa go i znika w ziejacym chlodem przejsciu\./,
       'igor zwial',
     ],
-    [/Tegi gluchy mezczyzna ciezko dyszac ucieka na wschod\./, 'klucznik zwial'],
+    ['dyszac', /Tegi gluchy mezczyzna ciezko dyszac ucieka na wschod\./, 'klucznik zwial'],
     [
+      'obslizgle',
       /Gladka tafla jeziora zaciaga sie nagle siecia zmarszczek, po czym, spietrzajac sie gwaltownie przy brzegu, wyrzuca z siebie obslizgle cielsko olbrzymiego stwora\./,
       'kraken obecny',
     ],
-    [/^Z sufitu opuszczaja sie kolejne pajaki\./, 'pajaczki, wiecej pajaczow!'],
-    [/stwor wywijajac na wszystkie strony dlugimi mackami zanurza sie w wodzie jeziora i odplywa\./, 'kraken zwial'],
-    [/^Niematerialne uderzenie pozbawia cie na moment tchu\./, 'bruxa przywalila'],
-    [/^Kultysci rozchodza sie, znikajac miedzy drzewami\./, 'kultysci zwiali'],
-    [/.*przeciera dlonia wypisany kreda symbol i po chwili nie zostaje po nim sladu\./, 'symbol starty'],
+    ['sufitu', /^Z sufitu opuszczaja sie kolejne pajaki\./, 'pajaczki, wiecej pajaczow!'],
+    ['mackami', /stwor wywijajac na wszystkie strony dlugimi mackami zanurza sie w wodzie jeziora i odplywa\./, 'kraken zwial'],
+    ['niematerialne', /^Niematerialne uderzenie pozbawia cie na moment tchu\./, 'bruxa przywalila'],
+    ['kultysci', /^Kultysci rozchodza sie, znikajac miedzy drzewami\./, 'kultysci zwiali'],
+    ['przeciera', /.*przeciera dlonia wypisany kreda symbol i po chwili nie zostaje po nim sladu\./, 'symbol starty'],
     [
+      'migotliwy',
       /Rozmyta wysmukla zjawa kobiety sklada rece w krzyz na piersiach i powoli zsuwa je do siebie, zamykajac dlonie w piesci. Po chwili, gwaltownym ruchem wyrzuca rece w twoim kierunku, wypuszczajac z ich wnetrza migotliwy pyl, ktory wpada ci w oczy.*/,
       'blaviken slepota',
     ],
-    [/Obumierajaca ziemia wokol .* wysysa energie ze wszystkiego co zyje, w tym i ciebie!/, 'upior jeb'],
+    ['obumierajaca', /Obumierajaca ziemia wokol .* wysysa energie ze wszystkiego co zyje, w tym i ciebie!/, 'upior jeb'],
     [
+      'zelezce',
       /^Zelezce twojego zasniedzialego obosiecznego topora wybucha nagle oslepiajacym swiatlem, ktore porownac mozna tylko do blasku tysiacy gwiazd migocacych na nocnym niebie. Gdy bron wygasa, w niczym nie przypomina juz starego, zasniedzialego oreza, jakim byla jeszcze przed chwila\./,
       'gwiazdka rozpalona',
     ],
     [
+      'kokonu',
       /^.*gnomka wypada z kokonu i laduje z hukiem na podlodze. Po krotkiej chwili dezorientacji zrywa sie jednak na nogi i jednym susem zeskakuje w dol przez otwor wiodacy na nizsze pietro, momentalnie znikajac ci z oczu\./,
       'gnomka uwolniona',
     ],
     [
+      'demonice',
       /^Nagly powiew lodowatego powietrza sprawia, ze plomienie swiec przygasaja... by po krotkiej chwili rozblysnac blaskiem podwojnie intansywnym, ktory zdaje sie padac prosto na stojaca na srodku pomieszczenia demonice!/,
       'demonica obecna',
     ],
     [
+      'krwistoczerwonej',
       /Na samym srodku posadzki znajduje sie obramowana blyszczacym, krwistoczerwonej barwy kamieniem, studnia. Saczy sie z niej demoniczne, czerwone swiatlo, rzucajace ulotne blyski na sciany komnaty i zdobiace je plaskorzezby./,
       'studnia',
     ],
     [
+      'powierze',
       /^Powierze wokolo zaczyna ciemniec, zmieniajac sie w nieprzejrzysty opar. Gdy dym sie rozwiewa zauwazasz blada wyniosla kobiete./,
       'minerwa obecna',
     ],
     [
+      'przejrzysta',
       /.* krzyzuje rece na piersi, po czym zaczyna stawac sie coraz bledsza, prawie przejrzysta i w koncu znika!/,
       'minerwa sie rozplynela',
     ],
     [
+      'szkaradny',
       /Szkaradny przygarbiony mezczyzna wyciaga reke w strone ciala .* i mamrocze jakies mroczne slowa. Po chwili zwloki rozdymaja sie i pekaja, rozrzucajac wokol gnijace wnetrznosci,/,
       'nekromata jeb',
     ],
-    [/^Z peknietej kulki z sykiem wydobywaja sie kleby gestego, czarnego dymu!/, 'kulka zostala rzucona'],
+    ['peknietej', /^Z peknietej kulki z sykiem wydobywaja sie kleby gestego, czarnego dymu!/, 'kulka zostala rzucona'],
   ];
 
-  for (const [pattern, msg] of ANNOUNCES) {
-    api.triggers.register(
+  for (const [tokens, pattern, msg] of ANNOUNCES) {
+    registerTokenGate(
+      api,
+      tokens,
       pattern,
       (line) => {
         megaphone(api, msg);
@@ -106,15 +123,17 @@ export function setupColEventy(api: PluginApi): void {
 
   // --- Danger alerts: color line + play_ding (data-driven) ---
 
-  const ALERTS: RegExp[] = [
-    /.*zaglebienie w piasku zbliza sie w twoim kierunku!/,
-    /^Cos zbliza sie do ciebie przez pobliskie szuwary!/,
-    /^Slyszysz glosny skowyt, a po chwili dostrzegasz sylwetke jakiegos skrzydlatego potwora, lecacego prosto w twoja strone!/,
-    /^Powietrze zaczyna lekko drgac, ksztalty nieco zamazuja sie\.\.\./,
+  const ALERTS: [string | string[], RegExp][] = [
+    ['zaglebienie', /.*zaglebienie w piasku zbliza sie w twoim kierunku!/],
+    ['szuwary', /^Cos zbliza sie do ciebie przez pobliskie szuwary!/],
+    ['skowyt', /^Slyszysz glosny skowyt, a po chwili dostrzegasz sylwetke jakiegos skrzydlatego potwora, lecacego prosto w twoja strone!/],
+    ['zamazuja', /^Powietrze zaczyna lekko drgac, ksztalty nieco zamazuja sie\.\.\./],
   ];
 
-  for (const pattern of ALERTS) {
-    api.triggers.register(
+  for (const [tokens, pattern] of ALERTS) {
+    registerTokenGate(
+      api,
+      tokens,
       pattern,
       (line) => {
         api.command.send('play_ding');
@@ -125,7 +144,9 @@ export function setupColEventy(api: PluginApi): void {
   }
 
   // Muddy swamp water reaching knees
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'blotnista',
     /^Blotnista maz siega ci po kolana\.$/,
     (line) => {
       api.command.send('play_ding');
@@ -142,23 +163,22 @@ export function setupColEventy(api: PluginApi): void {
     api.output.print('');
   };
 
-  api.triggers.register(
-    /Ogarnia cie burza piaskowa(?:\.|!)/,
+  registerTokenGate(
+    api,
+    'piaskowa',
+    [
+      /Ogarnia cie burza piaskowa(?:\.|!)/,
+      /W mgnieniu oka przybierajace na sile podmuchy wiatru podrywaja w gore tumany piachu i kurzu\. Otacza cie burza piaskowa!/,
+    ],
     (line) => {
       burzaOnBanner();
       return line;
     },
     TAG,
   );
-  api.triggers.register(
-    /W mgnieniu oka przybierajace na sile podmuchy wiatru podrywaja w gore tumany piachu i kurzu\. Otacza cie burza piaskowa!/,
-    (line) => {
-      burzaOnBanner();
-      return line;
-    },
-    TAG,
-  );
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['piaskowa', 'osiadaja'],
     /(?:Wiatr zwalnia nieco, a klebiace sie dookola ciebie tumany piachu i pylu powoli osiadaja na ziemi\.|Opuszczasz obszar ogarniety burza piaskowa\.|Burza piaskowa przesuwa sie)/,
     (line) => {
       api.output.print('');
@@ -169,7 +189,9 @@ export function setupColEventy(api: PluginApi): void {
     TAG,
   );
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['mgla', 'mgly'],
     /(?:Z okolicznych dolin i kotlin bardzo szybko unosi sie biala i gesta mgla\. Widocznosc szybko sie pogarsza, robi sie zimno i wilgotno\.|Wokol ciebie panuje nienaturalny spokoj i cisza, gdy stoisz posrod bialych oblokow mgly, ktore ani mysla ustapic\.)/,
     (line) => {
       say('     MGLA     MGLA      MGLA     MGLA     MGLA     MGLA     MGLA', c35);
@@ -177,7 +199,9 @@ export function setupColEventy(api: PluginApi): void {
     },
     TAG,
   );
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'mgle',
     /(?:Gwaltowne podmuchy wiatru rozrywaja gesta mgle wokol ciebie\. Biala sciana zaczyna rzednac by po chwili zniknac zupelnie\.)/,
     (line) => {
       api.command.send('sig Mgla sie rozwiala!');
@@ -186,7 +210,9 @@ export function setupColEventy(api: PluginApi): void {
     TAG,
   );
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'sztormowa',
     'Ponad twoja glowa przelamuje sie potezna sztormowa fala, ktora wciska cie w glebine.',
     (line) => {
       say('           xxx       xxxx       xxxx        xxx     x    xxxx  ', c6);
@@ -198,7 +224,9 @@ export function setupColEventy(api: PluginApi): void {
     TAG,
   );
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'snieg',
     /Z ciemnych chmur klebiacych sie nad twoja glowa zaczyna padac snieg, na poczatku powoli, ale z kazda chwila staje sie coraz gestszy\. Po paru minutach przestajesz widziec cokolwiek przez sciane bialego puchu sypiacego sie nieustannie z nieba\./,
     (line) => {
       say('               SNIEZYCA   SNIEZYCA   SNIEZYCA   SNIEZYCA', c35);
@@ -206,7 +234,9 @@ export function setupColEventy(api: PluginApi): void {
     },
     TAG,
   );
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'sniezyca',
     /Szalejaca sniezyca powoli sie uspokaja, przez chwile jeszcze sypie sniegiem ale po krotkim czasie nastepuja cisza i spokoj\. Chmury wciaz klebia sie nad twoja glowa, ale chyba narazie nie zapowiada sie na dalszy ciag nawalnicy\./,
     (line) => {
       say('               SNIEZYCA     KONIEC      SNIEZYCA     SNIEZYCA    SNIEZYCA', c35);
@@ -218,24 +248,30 @@ export function setupColEventy(api: PluginApi): void {
   // --- Line substitutions / colorings ---
 
   // Stunned
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'ogluszony',
     /Jestes ogluszony i nie mozesz nic zrobic\./,
     (line) => prependLabel(line, '[ zle ]', c38),
     TAG,
   );
 
   // Empty container — prefix + tint original
-  api.triggers.register(/^.* jest zupelnie pust.\./, (line) => prependLabel(line, '[ zle ]', c38, c35), TAG);
+  registerTokenGate(api, 'zupelnie', /^.* jest zupelnie pust.\./, (line) => prependLabel(line, '[ zle ]', c38, c35), TAG);
 
   // Spider web immobilization
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'pajecze',
     /^.* probuje sie ruszyc na .*, jednak pajecze sieci, w ktore sie .*, uniemozliwiaja.*/,
     (line) => prependLabel(line, '         pajecze sieci        ', c35),
     TAG,
   );
 
   // Ice sliding — 3rd person (echo 1st-person perspective locally)
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'sliski',
     /^.*probuje isc do przodu, ale sliski lod sprawia, ze wywr.*\./,
     (line) => {
       api.output.print('Probujesz isc naprzod, ale sliski lod sprawia, ze wywracasz sie na nim.');
@@ -245,28 +281,36 @@ export function setupColEventy(api: PluginApi): void {
   );
 
   // Ice sliding — 1st person
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'sliski',
     /^Probujesz isc do przodu, ale sliski lod sprawia, ze wywr.*\./,
     (line) => prependLabel(line, '          slizganie           ', c67),
     TAG,
   );
 
   // Borowik slipping on wet stones
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zeslizgujesz',
     /^Probujesz rozpaczliwie wspiac sie na gore, ale zeslizgujesz sie po mokrych kamieniach\./,
     (line) => prependLabel(line, '          slizganie           ', c67),
     TAG,
   );
 
   // Denomination
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zdenominowane',
     /Twoje pieniadze zostaly zdenominowane\./,
     (line) => prependLabel(line, '   DENOMINATION   ', c34),
     TAG,
   );
 
   // Upior fart (replace line entirely)
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'hipnotyzujacy',
     /^Hipnotyzujacy ulotny upior (?:otwiera niematerialne usta, z ktorych zaczyna|przestaje sie nagle poruszac. Martwa cisza wypelnia|odlatuje na pewna odleglosc od ciebie. Zalobna).*/,
     (line) => {
       const msg = '.....UPIOR PIERDNAL!';
@@ -277,10 +321,18 @@ export function setupColEventy(api: PluginApi): void {
   );
 
   // Max fatigue
-  api.triggers.register(/^Jestes tak zmeczon., ze nie mozesz.*w tym kierunku\./, (line) => col(line, c67), TAG);
+  registerTokenGate(
+    api,
+    ['zmeczony', 'zmeczona'],
+    /^Jestes tak zmeczon., ze nie mozesz.*w tym kierunku\./,
+    (line) => col(line, c67),
+    TAG,
+  );
 
   // Aggressive plants
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['drapiezna', 'agresywna', 'agresywny'],
     /(?:Pokoniunkcyjna drapiezna roslina|Pnacy agresywny stwor|Slynna drapiezna roslina|Slynna agresywna roslina|Pokoniunkcyjna agresywna roslina)\./,
     (line) => col(line, c62),
     TAG,
@@ -288,22 +340,25 @@ export function setupColEventy(api: PluginApi): void {
 
   // --- Heal item triggers (data-driven) ---
 
-  const HEALS: [RegExp, string, ReturnType<typeof getAnsiFormatState>][] = [
+  const HEALS: [string | string[], RegExp, string, ReturnType<typeof getAnsiFormatState>][] = [
     [
+      'trojzab',
       /Widzisz jak ogromny ognisty trojzab przysysa sie na moment do rany, a przez drzewce przebiegaja fale pulsujace w rytmie oszalalego serca napelniajace cie energia\./,
       '  widly lecza  ',
       c34,
     ],
-    [/Czujesz jak uzdrawiajaca energia przepelnia twe cialo\./, '  plaszcz leczy  ', c34],
-    [/Od twojego amuletu emanuje przyjemne cieplo\./, '  amulet leczy  ', c34],
+    ['uzdrawiajaca', /Czujesz jak uzdrawiajaca energia przepelnia twe cialo\./, '  plaszcz leczy  ', c34],
+    ['amuletu', /Od twojego amuletu emanuje przyjemne cieplo\./, '  amulet leczy  ', c34],
   ];
 
-  for (const [pattern, label, c] of HEALS) {
-    api.triggers.register(pattern, (line) => prependLabel(line, label, c), TAG);
+  for (const [tokens, pattern, label, c] of HEALS) {
+    registerTokenGate(api, tokens, pattern, (line) => prependLabel(line, label, c), TAG);
   }
 
   // Kruczek sword heal (full-line color)
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'iskrzyc',
     /Nagle kamienie na rekojesci miecza zaczynaja iskrzyc purpurowym swiatlem, zas jego ostrze pokrywa pajeczyna mieniacych sie na czerwono, pulsujacych zylek\. Zdaja sie one plynac lekko po czarnej stali, z kazdym ruchem blask od nich bijacy staje sie coraz bardziej intensywny by w koncu wystrzelic miriada jaskrawoczerwonych, swietlistych okruchow\. Czujesz przyjemne mrowienie gdy jakas magiczna sila przenika przez twoje cialo\./,
     (line) => col(line, c99),
     TAG,
@@ -311,7 +366,9 @@ export function setupColEventy(api: PluginApi): void {
 
   // --- Earth elemental hit notifications ---
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'omszalym',
     /Jedno z nich, zakonczone omszalym glazem trafia wprost w (.*)! Widzisz, jak bezwladnie odrywa sie od ziemi i wymachujac rekami przelatuje dosc spory kawalek, by tam gruchnac o ziemie\./,
     (line) => {
       api.command.send('sig Ktos polecial!');
@@ -319,7 +376,9 @@ export function setupColEventy(api: PluginApi): void {
     },
     TAG,
   );
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'omszalym',
     /Jedno z nich, zakonczone omszalym glazem trafia wprost w ciebie! Bezwladnie odrywasz sie od ziemi i wymachujac rekami przelatujesz dosc spory kawalek, by gruchnac o ziemie\. Czujesz, jak wszystkie bebechy wywrocily sie w twoim ciele\./,
     (line) => {
       api.command.send('sig Aucik!');
@@ -330,7 +389,9 @@ export function setupColEventy(api: PluginApi): void {
 
   // --- Blacksmith work end ---
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['konczy', 'czytac'],
     /^(?:Nie jestes w stanie dluzej czytac|.* konczy prace)\./,
     (line) => {
       api.command.send('play_tink');
