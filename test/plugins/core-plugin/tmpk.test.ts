@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockApi, createMockLine } from '../../helpers/mockApi';
+import { createMockApi, runLine } from '../../helpers/mockApi';
 import { createTmpkState, setupTmpk } from '../../../src/plugins/core-plugin/tmpk/tmpk';
 import { storage } from '../../../src/lib/storage';
 
@@ -33,25 +33,27 @@ describe('createTmpkState', () => {
 });
 
 describe('setupTmpk', () => {
-  it('registers a coloring trigger on init', () => {
-    const { api, triggers } = createMockApi();
-    setupTmpk(api);
-    const tmpkTrigger = triggers.find((t) => t.tag === 'tmpk');
-    expect(tmpkTrigger).toBeDefined();
+  it('registers a token trigger per list entry on init', () => {
+    const mock = createMockApi();
+    setupTmpk(mock.api);
+    const tmpkTokens = mock.tokenTriggers.filter((t) => t.tag === 'tmpk');
+    expect(tmpkTokens.length).toBeGreaterThan(0);
+    expect(tmpkTokens.some((t) => t.token === 'troll')).toBe(true);
+    expect(mock.triggers.filter((t) => t.tag === 'tmpk')).toHaveLength(0);
   });
 
-  it('trigger callback colors whole-word matches via line.color', () => {
-    const { api, triggers } = createMockApi();
-    setupTmpk(api);
-    const tmpkTrigger = triggers.find((t) => t.tag === 'tmpk')!;
+  it('colors whole-word matches via line.color', () => {
+    const mock = createMockApi();
+    setupTmpk(mock.api);
     // "troll" at index 14-19 is a standalone word → should be colored
-    const line = createMockLine('Widzisz tutaj troll.');
-    tmpkTrigger.callback(line, [] as unknown as RegExpMatchArray);
-    expect(line.color).toHaveBeenCalledWith([14, 19], expect.anything());
-    // "ork" inside "pagorkow" must not be colored
-    const line2 = createMockLine('Posrod pagorkow.');
-    tmpkTrigger.callback(line2, [] as unknown as RegExpMatchArray);
-    expect(line2.color).not.toHaveBeenCalled();
+    const line = runLine(mock, 'Widzisz tutaj troll.');
+    expect(line!.color).toHaveBeenCalledWith([14, 19], expect.anything());
+    // "ork" inside "pagorkow" must not be colored ("czarny ork" is listed)
+    const line2 = runLine(mock, 'Posrod pagorkow.');
+    expect(line2!.color).not.toHaveBeenCalled();
+    // multi-word name fires and colors the full phrase
+    const line3 = runLine(mock, 'Czarny ork sapie.');
+    expect(line3!.color).toHaveBeenCalledWith([0, 10], expect.anything());
   });
 
   it('tmpk+ adds item to list and persists it', () => {
@@ -101,21 +103,20 @@ describe('setupTmpk', () => {
     expect(api.output.print).toHaveBeenCalledWith(expect.stringContaining('wyzerowana'));
   });
 
-  it('tmpk+ re-registers trigger with updated pattern containing the new item', () => {
-    const { api, triggers, aliases } = createMockApi();
-    setupTmpk(api);
-    const addAlias = aliases.find((a) => a.pattern.test('tmpk+ wilk'))!;
+  it('tmpk+ re-registers token triggers including the new item', () => {
+    const mock = createMockApi();
+    setupTmpk(mock.api);
+    const addAlias = mock.aliases.find((a) => a.pattern.test('tmpk+ wilk'))!;
     addAlias.callback(['tmpk+ wilk', 'wilk'] as unknown as RegExpMatchArray);
-    const updatedTrigger = triggers.find((t) => t.tag === 'tmpk')!;
-    expect(updatedTrigger.pattern.toString()).toContain('wilk');
+    const tmpkTokens = mock.tokenTriggers.filter((t) => t.tag === 'tmpk');
+    expect(tmpkTokens.some((t) => t.token === 'wilk')).toBe(true);
   });
 
-  it('tmpk-- removes trigger entirely', () => {
-    const { api, triggers, aliases } = createMockApi();
-    setupTmpk(api);
-    const clearAlias = aliases.find((a) => a.pattern.test('tmpk--'))!;
+  it('tmpk-- removes all tmpk token triggers', () => {
+    const mock = createMockApi();
+    setupTmpk(mock.api);
+    const clearAlias = mock.aliases.find((a) => a.pattern.test('tmpk--'))!;
     clearAlias.callback(['tmpk--'] as unknown as RegExpMatchArray);
-    const remaining = triggers.filter((t) => t.tag === 'tmpk');
-    expect(remaining).toHaveLength(0);
+    expect(mock.tokenTriggers.filter((t) => t.tag === 'tmpk')).toHaveLength(0);
   });
 });

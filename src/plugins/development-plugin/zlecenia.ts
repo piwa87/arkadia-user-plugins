@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTokenGate } from '../../lib/registerTokenGate';
 
 const TAG = 'zlecenia';
 let zlAliasId: string;
@@ -15,7 +16,9 @@ export function setupZlecenia(api: PluginApi): void {
     return true;
   });
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zamowienia',
     /^(.+) mowi do ciebie: Na realizacje zamowienia mam /,
     (line) => {
       api.command.send('/zlecenia');

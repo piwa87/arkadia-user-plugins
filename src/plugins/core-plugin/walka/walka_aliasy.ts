@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { storage } from '../../../lib/storage';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 const TAG = 'walkaAliasy';
 
@@ -73,7 +74,9 @@ export function setupCombatAliases(
 
   // Already fighting — confirm OK and cancel attack timer
   const c35 = getAnsiFormatState(35, api);
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'walczysz',
     /^Juz walczysz z .*\.$/,
     (line) => {
       const msg = '       OK                     ';

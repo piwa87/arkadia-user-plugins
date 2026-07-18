@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 // #region Mountain movement
 
@@ -39,9 +40,11 @@ export function setupColMovements(api: PluginApi): void {
     return line.prependBuffer(prefix);
   };
 
-  api.triggers.register(exactPattern, (line) => applyOK(line), TAG);
-
-  for (const pattern of REGEX_PATTERNS) {
-    api.triggers.register(pattern, (line) => applyOK(line), TAG);
-  }
+  registerTokenGate(
+    api,
+    ['bezpiecznie', 'rozbieg', 'docierasz', 'zaczynasz', 'wchodzisz', 'odpadasz'],
+    [exactPattern, ...REGEX_PATTERNS],
+    (line) => applyOK(line),
+    TAG,
+  );
 }

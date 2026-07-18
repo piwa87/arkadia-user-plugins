@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 const RANY = [
   'ledwo muska',
@@ -38,7 +39,9 @@ export function setupCiosyKolory(api: PluginApi): void {
   ];
 
   // ciosy_moje: my hits — color the full conjugated verb including "sz" (ranisz, muskasz, masakrujesz)
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['muskasz', 'ranisz', 'masakrujesz'],
     new RegExp(`\\b(${RANY_ALT})sz\\b`, 'i'),
     (line, matches) => {
       const key = matches[1].toLowerCase();
@@ -53,7 +56,9 @@ export function setupCiosyKolory(api: PluginApi): void {
   );
 
   // ciosy_innych: hits from/at others — color severity word and "cie" when present
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['muska', 'rani', 'masakruje'],
     new RegExp(`\\b(${RANY_ALT})(?!sz)\\b`, 'i'),
     (line, matches) => {
       const key = matches[1].toLowerCase();

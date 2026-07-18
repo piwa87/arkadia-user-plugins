@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 const TAG = 'colEkwipunek';
 
@@ -9,21 +10,27 @@ export function setupColEkwipunek(api: PluginApi): void {
   const orange = getMyColor(5, api);
 
   // Item examination line
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'ekwipunku',
     /Ten element ekwipunku wyglada na .*\./,
     (line) => line.color([0, line.text.length], lightGray),
     TAG,
   );
 
   // Equip/unequip action lines
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['zdejmujesz', 'zakladasz', 'opuszczasz', 'dobywasz'],
     /(?:Zdejmujesz z siebie|Zakladasz|Opuszczasz|Dobywasz) .*\./,
     (line) => line.color([0, line.text.length], lightGray),
     TAG,
   );
 
   // Putting item into container — "Wkladasz <item> do <container>."
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wkladasz',
     /^Wkladasz (.*) do (.*)\.$/,
     (line, matches) => {
       if (!matches) return line;

@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 const TAG = 'colCialo';
 
@@ -8,7 +9,9 @@ export function setupColCialo(api: PluginApi): void {
   // Match "cialo adj noun" or "cialo adj adj noun" — 2 or 3 words after cialo
   const segmentRe = /[Cc]ialo(?:\s+[^\s,]+){2,3}/g;
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'cialo',
     /cialo/i,
     (line) => {
       const text = line.text;

@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { storage } from '../../../lib/storage';
 
 const TAG = 'tmpk';
@@ -44,12 +45,20 @@ export function createTmpkState(): TmpkState {
 
 function registerTrigger(api: PluginApi, state: TmpkState, color: unknown): void {
   if (state.list.length === 0) return;
-  api.triggers.register(
+  // One token trigger per name (indexed by the client, ~free per line) gated on
+  // the whole-word pattern; coloring keeps the \b regex — colorWords would also
+  // hit substrings. Note: a name only fires when it appears as a whole token,
+  // so occurrences glued to a hyphen/colon are not colored (same words the \b
+  // regex would have caught; not observed in game lines).
+  const highlightRe = new RegExp('\\b(?:' + state.list.map(escapeRegex).join('|') + ')\\b', 'gi');
+  registerTokenGate(
+    api,
+    state.list,
     buildPattern(state.list),
     (line) => {
-      const re = new RegExp('\\b(?:' + state.list.map(escapeRegex).join('|') + ')\\b', 'gi');
+      highlightRe.lastIndex = 0;
       let m: RegExpExecArray | null;
-      while ((m = re.exec((line as any).text)) !== null) {
+      while ((m = highlightRe.exec((line as any).text)) !== null) {
         (line as any).color([m.index, m.index + m[0].length], color);
       }
       return line;

@@ -86,6 +86,10 @@ export function createMockLine(text: string) {
       line.text = `${line.text.slice(0, range[0])}${replacement}${line.text.slice(range[1])}`;
       return line;
     }),
+    append: vi.fn((text: string) => {
+      line.text = `${line.text}${text}`;
+      return line;
+    }),
     prepend: vi.fn((prefix: string) => {
       line.text = `${prefix}${line.text}`;
       return line;

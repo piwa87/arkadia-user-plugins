@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { createColorWithBackground } from '../../../lib/colors/my-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 export function setupMiscTriggers(api: PluginApi): void {
   const tag = 'miscTriggers';
@@ -7,7 +8,9 @@ export function setupMiscTriggers(api: PluginApi): void {
   const col5bg2 = createColorWithBackground(5, 2, api);
 
   // col_podawania: Alert when someone hands you an item (not reflexive "sie")
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'daje',
     /^.* daje ci ([a-z]+\s).*.$/,
     (line, matches) => {
       if (matches[1] === 'sie ') return line;
@@ -22,7 +25,9 @@ export function setupMiscTriggers(api: PluginApi): void {
   );
 
   // dobywanie: Weapon draw — replace with spaced-out format, no color
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'dobywa',
     /^(.*) dobywa (.*)\.$/,
     (line, matches) => {
       const newText = `${matches[1]}    d o b y w a    ${matches[2]}.`;
@@ -33,7 +38,9 @@ export function setupMiscTriggers(api: PluginApi): void {
   );
 
   // juz_dobyte: "Already drawn" message — replace with compact styled notice
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'przeciez',
     /^Przeciez.*juz dobyt\w+\.$/,
     (line) => {
       const msg = '       bronie dobyte          ';

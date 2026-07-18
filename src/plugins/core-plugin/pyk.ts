@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { col3, col13 } from '../../lib/colors/my-colors';
 import { withDelay } from '../../lib/withDelay';
+import { registerTokenGate } from '../../lib/registerTokenGate';
 
 const TAG = 'atakPyk';
 const LEADER_WARN_INTERVAL = 5000;
@@ -109,8 +110,13 @@ export function setupAtakPyk(api: PluginApi): () => void {
     return line;
   };
 
-  api.triggers.register(/CEL ATT.*jako CEL ATAKU/, handleCelAtaku, TAG);
-  api.triggers.register(/^.*wskazuje .* jako cel ataku\.$/, handleCelAtaku, TAG);
+  registerTokenGate(
+    api,
+    ['att', 'wskazuje'],
+    [/CEL ATT.*jako CEL ATAKU/, /^.*wskazuje .* jako cel ataku\.$/],
+    handleCelAtaku,
+    TAG,
+  );
 
   return () => {
     if (cooldownTimer) clearTimeout(cooldownTimer);
