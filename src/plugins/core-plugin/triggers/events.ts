@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 export function setupEventTriggers(api: PluginApi): void {
   const tag = 'eventTriggers';
@@ -19,7 +20,9 @@ export function setupEventTriggers(api: PluginApi): void {
   };
 
   // Trap tile (blekitni_plyta)
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wcisnieta',
     /Jedna z nich jest jednak lekko wcisnieta, wyraznie odznaczajac sie od pozostalych\./,
     (line) => {
       printAlert('⚠  PULAPKA - PLYTA!', alertColor);
@@ -29,7 +32,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Undead coffin type: Szubienicznik
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'sztyletow',
     /Widzisz dlugi sarkofag pozbawiony jakichkolwiek ozdob, procz rzezby w ksztalcie czterech falistych sztyletow skierowanych ku sobie rekojesciami\. W srodku gwiazdy .*/,
     (line) => {
       printAlert('     Szubienicznik!', undeadColor);
@@ -39,7 +44,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Undead coffin type: Utopiec
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'pochylajacej',
     /Sarkofag wykonany jest z czarnego kamienia, jego wieko zdobione jest ornamentami z srebrzystego metalu\. Po srodku umieszczono wizerunek pieknej kobiety pochylajacej sie nad woda\..*/,
     (line) => {
       printAlert('     Utopiec!', undeadColor);
@@ -49,7 +56,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Undead coffin type: Kosciotrup
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'plaskorzezbe',
     /Na wieku wykuto plaskorzezbe przedstawiajaca rycerza o srogim spojrzeniu\. Dlonie groznego wojownika spoczywaja na rekojesci wielkiego miecza o falistym ostrzu\. Na napiersniku postaci lsni sie czarna gwiazda\. Ciezkie wieko przykrywa sarkofag\./,
     (line) => {
       printAlert('     Kosciotrup!', undeadColor);
@@ -59,7 +68,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Undead coffin type: Struchlec
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'inkrustacja',
     /Widzisz solidny sarkofag wykonany z czarnego marmuru poznaczonego jadeitowa inkrustacja\. Zielone wzory krzyzuja sie i okrazaja w wielu miejscach, tworzac intrygujace szlaki\..*/,
     (line) => {
       printAlert('     Struchlec!', undeadColor);
@@ -69,7 +80,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Poison (wyv_trutka_on)
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['trucizna', 'trucizny'],
     /Czujesz, ze do twego ciala d.* truciz.*/,
     (line) => {
       printAlert('[ trucizna ]', dangerColor);
@@ -79,7 +92,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Eating limit warning
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zjesc',
     /^(Nie sadzisz, zebys .* w stanie zjesc tyle|Nie dasz rady tego juz zjesc)\.?$/,
     (line) => {
       const msg = '--> Jedzenie OK';
@@ -91,7 +106,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Drinking limit warning
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'wmusic',
     /^Wypiles juz tak duzo, ze nie jestes w stanie wmusic w siebie wiecej\.?$/,
     (line) => {
       const msg = '--> Picie OK';
@@ -103,7 +120,9 @@ export function setupEventTriggers(api: PluginApi): void {
   );
 
   // Sarcophagus closed — play sound + flee
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'zasunieta',
     /^Kamienna plyta sarkofagu z glosnym zgrzytem zostaje zasunieta/,
     (line) => {
       api.command.send('play_basso');

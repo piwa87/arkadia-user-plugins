@@ -1,6 +1,7 @@
 import type { PluginApi, FormatStateSnapshot } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 import { registerTextAlias } from '../../lib/registerTextAlias';
+import { registerTokenGate } from '../../lib/registerTokenGate';
 
 export function setupBramy(api: PluginApi): void {
   const tag = 'bramy';
@@ -60,14 +61,22 @@ export function setupBramy(api: PluginApi): void {
   );
 
   // Gate/door closing event — prepend bg label with firebrick text + uncolored gap
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['zamyka', 'zamykaja', 'zamykajac', 'zamknieta', 'zamknela', 'zamknelo', 'zamknely', 'blokujac', 'opada', 'domyka'],
     /^(?:.*zamyka sie bezszelestnie\.|.*zamyka ciezkie skrzydlo bramy.*\.|.*przesuwa sie, zamykajac wejscie do miasta\.|.*kamienny blok przesuwa sie, blokujac przejscie\.|.* zostaje ona zamknieta\.|.* zamykaja sie|.* zamyka sie\.|.* zamknel\w+ sie\.|.* powoli opada w dol\.|.* domyka jedno skrzydlo bramy\..*|.* krata opada, zamykajac przejscie\.|Wartownik zamyka drzwiczki w jednym skrzydle bramy\.)/,
     (line) => prependLabel(line, '   ZAMKNIETE   ', zamknieteLabel),
     tag,
   );
 
   // Gate/door opening event — prepend bg label with skyblue text + uncolored gap + morse alert
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    [
+      'otwiera', 'otwieraja', 'otwierajac', 'uchyla', 'uchylaja', 'odslaniajac', 'bezpiecznie',
+      'otwarte', 'otwarta', 'otwarty', 'rozstepuja', 'rozstapily', 'przesuwaja',
+      'otworzyla', 'otworzylo', 'otworzyly',
+    ],
     /^(?:Wrota lekko uchylaja sie\.|Pien powoli odsuwa sie, odslaniajac.*\.|Mozna teraz bezpiecznie przejsc na druga strone\.|.*wrota powoli otwieraja sie\.|.*wrota otwieraja sie ukazujac.*|.*skrzydlo bramy uchyla sie\.|.*otwierajac .* miasta\.|.*metaliczny zgrzyt i odrzwia uchylaja sie,.*\.|.*do gory otwierajac.*|.* zostaj\w+ otwart\w+\.|.* straznik otwiera brame\.|.* rozst\w+ sie na boki.*|.* plyty bramy przesuwaja.*|.* otworzyl\w+ sie\.|.* otwieraja wejscie do twierdzy\.|.* otwiera sie\.|.* otwiera jedno skrzydlo bramy\.|.* i trzaskow wrota powoli otwieraja sie\.|.* mocno otwierajac brame\.|Udaje ci sie uniesc .* krate, otwierajac przejscie\.|Szorujac po podlodze jeden z regalow przesuwa sie, otwierajac przejscie\.|Szorujac po kamiennej podlodze zachodnia sciana otwiera sie niczym skrzydla drzwi\.|Slychac metaliczny dzwiek zasuwy i drzwiczki w jednym skrzydle bramy otwieraja sie\.)/,
     (line) => {
       api.command.send('play_morse');
@@ -77,7 +86,9 @@ export function setupBramy(api: PluginApi): void {
   );
 
   // Failed to open — firebrick inline label
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'otworzyc',
     /^Probujesz otworzyc (.*), ale nie udaje ci sie to\.$/,
     (line) => prependLabel(line, '   ZAMKNIETE   ', zamknieteLabel),
     tag,

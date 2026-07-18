@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 const TAG = 'glassSounds';
 
@@ -25,7 +26,9 @@ export function setupGlassSounds(api: PluginApi): void {
 
   // --- Transport arrivals ---
 
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    ['zatrzymuje', 'doplywa', 'przybija', 'drzenie', 'predkosc', 'kolysanie'],
     new RegExp(
       [
         'powoli zatrzymuje sie\\.',
@@ -45,7 +48,9 @@ export function setupGlassSounds(api: PluginApi): void {
   );
 
   // #region magik burns
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'spopielajac',
     /^Bialy, zimny plomien ogarnia (.*), w kilka chwil spopielajac .* calkowicie\./,
     (line) => {
       banner('        pozarlo magika        ', c41);
@@ -77,13 +82,15 @@ export function setupGlassSounds(api: PluginApi): void {
   ];
 
   for (const [pattern, fPlusCmd] of LIGHT_OUT) {
-    api.triggers.register(pattern, makeLightOutHandler(fPlusCmd), TAG);
+    registerTokenGate(api, 'wypala', pattern, makeLightOutHandler(fPlusCmd), TAG);
   }
 
   // --- Inventory ---
 
   // oil flask drained empty
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'oprozniajac',
     /oprozniajac zupelnie .* oleju/,
     (line) => {
       playGlass();
@@ -96,7 +103,9 @@ export function setupGlassSounds(api: PluginApi): void {
   // --- Notifications ---
 
   // new mail arrived
-  api.triggers.register(
+  registerTokenGate(
+    api,
+    'poczte',
     /^Masz nowa poczte od (.*)\./,
     (line) => {
       playGlass();
