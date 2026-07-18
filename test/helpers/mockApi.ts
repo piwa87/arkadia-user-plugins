@@ -20,17 +20,41 @@ export class MockAnsiAwareBuffer {
   }
 }
 
+export interface TriggerOptions {
+  stayOpenLines?: number;
+  caseInsensitive?: boolean;
+}
+
+export type TriggerPattern =
+  | RegExp
+  | string
+  | ((line: any, matches: null, type: string) => RegExpMatchArray | undefined)
+  | (RegExp | string)[];
+
 export interface RegisteredTrigger {
-  pattern: RegExp | string;
-  callback: (line: any, matches: RegExpMatchArray, type?: string) => any;
+  pattern: TriggerPattern;
+  callback: (line: any, matches: RegExpMatchArray, type?: string, originalLine?: string) => any;
   tag: string;
+  options?: TriggerOptions;
 }
 
 export interface RegisteredOneTimeTrigger {
-  pattern: RegExp | string;
-  callback: (line: any, matches: RegExpMatchArray, type?: string) => any;
+  pattern: TriggerPattern;
+  callback: (line: any, matches: RegExpMatchArray, type?: string, originalLine?: string) => any;
   tag: string;
+  options?: TriggerOptions;
 }
+
+export interface RegisteredTokenTrigger {
+  token: string;
+  words: string[];
+  callback: (line: any, matches: RegExpMatchArray, type?: string, originalLine?: string) => any;
+  tag: string;
+  options?: TriggerOptions;
+}
+
+// Mirrors the client tokenizer (Triggers.ts): split on whitespace + punctuation, lowercase.
+export const TOKEN_SPLIT = /[ \n\t.,!?*()/[\]]+/;
 
 export interface RegisteredAlias {
   pattern: RegExp;
@@ -56,10 +80,18 @@ export interface MockFooterComponent {
 export function createMockLine(text: string) {
   const line: any = {
     text,
-    color: vi.fn((range) => ({ text: line.text, appliedRange: range })),
+    color: vi.fn(() => line),
     colorWords: vi.fn(() => line),
     replace: vi.fn((range: [number, number], replacement: string) => {
       line.text = `${line.text.slice(0, range[0])}${replacement}${line.text.slice(range[1])}`;
+      return line;
+    }),
+    prepend: vi.fn((prefix: string) => {
+      line.text = `${prefix}${line.text}`;
+      return line;
+    }),
+    prependBuffer: vi.fn((buffer: { text: string }) => {
+      line.text = `${buffer.text}${line.text}`;
       return line;
     }),
     clone: vi.fn(() => createMockLine(line.text)),
@@ -71,35 +103,49 @@ export function createMockLine(text: string) {
 export function createMockApi(options?: { room?: any }) {
   const triggers: RegisteredTrigger[] = [];
   const oneTimeTriggers: RegisteredOneTimeTrigger[] = [];
+  const tokenTriggers: RegisteredTokenTrigger[] = [];
   const aliases: RegisteredAlias[] = [];
   const commandHooks: RegisteredCommandHook[] = [];
   const footerComponents: MockFooterComponent[] = [];
   const eventListeners = new Map<string, ((...args: unknown[]) => void)[]>();
   const room = options?.room;
 
+  const filterInPlace = <T extends { tag?: string }>(list: T[], keep: (item: T) => boolean) => {
+    const kept = list.filter(keep);
+    list.length = 0;
+    list.push(...kept);
+  };
+
   const api = {
     colors: {
       fromHex: vi.fn((value: string) => ({ type: 'hex', value })),
     },
     triggers: {
-      register: vi.fn((pattern, callback, tag) => {
-        triggers.push({ pattern, callback, tag });
-        return { pattern, callback, tag };
+      register: vi.fn((pattern, callback, tag, options?: TriggerOptions) => {
+        const entry = { pattern, callback, tag, options };
+        triggers.push(entry);
+        return entry;
       }),
-      registerOneTime: vi.fn((pattern, callback, tag) => {
-        oneTimeTriggers.push({ pattern, callback, tag });
-        return { pattern, callback, tag };
+      registerOneTime: vi.fn((pattern, callback, tag, options?: TriggerOptions) => {
+        const entry = { pattern, callback, tag, options };
+        oneTimeTriggers.push(entry);
+        return entry;
+      }),
+      registerToken: vi.fn((token: string, callback, tag, options?: TriggerOptions) => {
+        const words = token.toLowerCase().split(TOKEN_SPLIT).filter((w) => w.length > 0);
+        const entry = { token, words, callback, tag, options };
+        tokenTriggers.push(entry);
+        return entry;
       }),
       remove: vi.fn((trigger: unknown) => {
-        const idx = triggers.findIndex(
-          (t) => t.pattern === (trigger as any)?.pattern && t.callback === (trigger as any)?.callback,
-        );
-        if (idx >= 0) triggers.splice(idx, 1);
+        filterInPlace(triggers, (t) => t !== trigger);
+        filterInPlace(oneTimeTriggers, (t) => t !== trigger);
+        filterInPlace(tokenTriggers, (t) => t !== trigger);
       }),
       removeByTag: vi.fn((tag: string) => {
-        const keep = triggers.filter((t) => t.tag !== tag);
-        triggers.length = 0;
-        triggers.push(...keep);
+        filterInPlace(triggers, (t) => t.tag !== tag);
+        filterInPlace(oneTimeTriggers, (t) => t.tag !== tag);
+        filterInPlace(tokenTriggers, (t) => t.tag !== tag);
       }),
     },
     aliases: {
@@ -182,5 +228,101 @@ export function createMockApi(options?: { room?: any }) {
     AnsiAwareBuffer: MockAnsiAwareBuffer,
   } as unknown as PluginApi;
 
-  return { api, triggers, oneTimeTriggers, aliases, commandHooks, footerComponents, eventListeners };
+  return { api, triggers, oneTimeTriggers, tokenTriggers, aliases, commandHooks, footerComponents, eventListeners };
+}
+
+export type MockApi = ReturnType<typeof createMockApi>;
+
+/**
+ * Dispatch a line of game output through the registered triggers, replicating
+ * the client's pipeline (Triggers.parseLine): regular triggers in registration
+ * order first, then token triggers matched via the tokenized-bucket walk.
+ * Returns the final line object, or null when a trigger suppressed the line.
+ *
+ * Tests written against runLine stay valid whether a plugin registers a
+ * pattern as a regex trigger or as a token trigger.
+ */
+export function runLine(mock: MockApi, text: string, type = 'output') {
+  let line = createMockLine(text);
+  const originalText = text;
+  const plain = originalText.replace(/\s$/g, '');
+
+  const matchPattern = (
+    pattern: TriggerPattern,
+    options: TriggerOptions | undefined,
+  ): RegExpMatchArray | null | undefined => {
+    const subPatterns = Array.isArray(pattern) ? pattern : [pattern];
+    for (const sub of subPatterns) {
+      let matches: RegExpMatchArray | null | undefined;
+      if (sub instanceof RegExp) {
+        const re = options?.caseInsensitive && !sub.flags.includes('i')
+          ? new RegExp(sub.source, sub.flags + 'i')
+          : sub;
+        matches = plain.match(re);
+      } else if (typeof sub === 'string') {
+        const haystack = options?.caseInsensitive ? plain.toLowerCase() : plain;
+        const needle = options?.caseInsensitive ? sub.toLowerCase() : sub;
+        const index = haystack.indexOf(needle);
+        if (index > -1) {
+          matches = [plain.substring(index, index + sub.length)] as RegExpMatchArray;
+          matches.index = index;
+          matches.input = plain;
+        }
+      } else if (typeof sub === 'function') {
+        matches = sub(line, null, type);
+      }
+      if (matches) return matches;
+    }
+    return null;
+  };
+
+  const applyCallback = (
+    entry: { callback: RegisteredTrigger['callback'] },
+    matches: RegExpMatchArray,
+  ): 'dropped' | 'kept' => {
+    const result = entry.callback(line, matches, type, originalText);
+    if (result === null) return 'dropped';
+    if (result && result !== line && typeof result.text === 'string' && typeof result.color === 'function') {
+      line = result;
+    }
+    return 'kept';
+  };
+
+  for (const entry of [...mock.triggers]) {
+    const matches = matchPattern(entry.pattern, entry.options);
+    if (matches && entry.callback && applyCallback(entry, matches) === 'dropped') return null;
+  }
+
+  for (const entry of [...mock.oneTimeTriggers]) {
+    const matches = matchPattern(entry.pattern, entry.options);
+    if (!matches || !entry.callback) continue;
+    const idx = mock.oneTimeTriggers.indexOf(entry);
+    if (idx >= 0) mock.oneTimeTriggers.splice(idx, 1);
+    if (applyCallback(entry, matches) === 'dropped') return null;
+  }
+
+  if (mock.tokenTriggers.length > 0) {
+    const loweredTokens = plain.split(TOKEN_SPLIT).filter((t) => t.length > 0).map((t) => t.toLowerCase());
+    const seen = new Set<RegisteredTokenTrigger>();
+    for (let i = 0; i < loweredTokens.length; i++) {
+      const token = loweredTokens[i];
+      for (const entry of [...mock.tokenTriggers]) {
+        if (seen.has(entry) || entry.words.length === 0 || entry.words[0] !== token) continue;
+        if (entry.words.length > loweredTokens.length - i) continue;
+        let consecutive = true;
+        for (let j = 1; j < entry.words.length; j++) {
+          if (loweredTokens[i + j] !== entry.words[j]) {
+            consecutive = false;
+            break;
+          }
+        }
+        if (!consecutive) continue;
+        seen.add(entry);
+        const matches = matchPattern(entry.token, entry.options);
+        if (matches && entry.callback && applyCallback(entry, matches) === 'dropped') return null;
+      }
+    }
+  }
+
+  return line;
 }
