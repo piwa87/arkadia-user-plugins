@@ -5,8 +5,8 @@ import { startServer } from "./serve.mjs";
 
 // Plugins skipped during local dev — built on GitHub Pages instead.
 // my-sounds-plugin bundles ~2.6 MB of audio data and rarely changes;
-// arkadia-ra / ra-keys-plugin are external builds we don't iterate on locally.
-const DEV_EXCLUDE = ["my-sounds-plugin", "arkadia-ra", "ra-keys-plugin"];
+// arkadia-ra is an external build we don't iterate on locally.
+const DEV_EXCLUDE = ["my-sounds-plugin", "arkadia-ra"];
 
 let building = false;
 let queued = false;
