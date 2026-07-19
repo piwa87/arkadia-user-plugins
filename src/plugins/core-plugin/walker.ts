@@ -72,7 +72,7 @@ export function setupWalker(api: PluginApi): () => void {
   const armedDisarms = new Set<() => void>();
 
   api.triggers.register(
-    /\bzamkniet.*\b(bram\w*|wrot\w*)\b.*\bprowadzac\w+\s+na\s+(polnocny[\s-]+wschod|polnocny[\s-]+zachod|poludniowy[\s-]+wschod|poludniowy[\s-]+zachod|polnoc|poludnie|wschod|zachod|gore|gora|dol)\b/i,
+    /\bzamkniet.*\b(bram\w*|wrot\w*|krat\w*|furtk\w*)\b.*\bprowadzac\w+\s+na\s+(polnocny[\s-]+wschod|polnocny[\s-]+zachod|poludniowy[\s-]+wschod|poludniowy[\s-]+zachod|polnoc|poludnie|wschod|zachod|gore|gora|dol)\b/i,
     (line, matches) => {
       const gateCmd = api.map.getRoom()?.userData?.['gate'];
       if (!gateCmd) return line;
