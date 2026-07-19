@@ -1,6 +1,7 @@
 import type { PluginApi, AnsiAwareBuffer, FormatStateSnapshot } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { col0, col3, col4, col6, col9 } from '../../../lib/colors/my-colors';
+import { printBanner } from '../../../lib/printBanner';
 
 export interface KondycjeState {
   hp: number; // 1-7 (1=barely alive, 7=excellent)
@@ -20,7 +21,7 @@ export function createKondycjeState(): KondycjeState {
 }
 
 // Ordered worst→best. Index+1 = HP level used throughout.
-const HP_STATES = [
+export const HP_STATES = [
   'ledwo zyw',
   'ciezko rann',
   'w zlej kondycji',
@@ -245,16 +246,6 @@ function buildPlayerLine(
   return buf;
 }
 
-function printAlertBanner(api: PluginApi, text: string, color: string, lines = 3): void {
-  const c = api.colors.fromHex(color);
-  api.output.print('');
-  for (let i = 0; i < lines; i++) {
-    const buf = new api.AnsiAwareBuffer(text);
-    buf.color([0, buf.length], c);
-    api.output.print(buf);
-  }
-  api.output.print('');
-}
 
 function printOverwhelmAlert(api: PluginApi, name: string, count: number): void {
   const buf = new api.AnsiAwareBuffer();
@@ -307,12 +298,12 @@ export function setupKondycjeTriggers(api: PluginApi, state: KondycjeState): voi
           state.teamBadLastAlert = now;
           api.command.send('play_lowhp');
           const row = ' . '.repeat(14) + '   D R U Z Y N A   C I E Z K O   R A N N A   ' + ' . '.repeat(14);
-          printAlertBanner(api, row, col6);
+          printBanner(api, row, col6);
         } else if (hpLevel === 3 && now - state.teamBadLastAlert > 5_000) {
           state.teamBadLastAlert = now;
           api.command.send('play_lowhp');
           const row = ' . '.repeat(13) + '   D R U Z Y N A   W   Z L E J   K O N D Y C J I   ' + ' . '.repeat(13);
-          printAlertBanner(api, row, col6);
+          printBanner(api, row, col6);
         }
 
         if (attackerCount > 4) {

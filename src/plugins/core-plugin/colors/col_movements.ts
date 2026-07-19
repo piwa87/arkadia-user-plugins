@@ -1,6 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { escapeRegex } from '../../../lib/escapeRegex';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 // #region Mountain movement
@@ -22,9 +23,6 @@ const REGEX_PATTERNS: RegExp[] = [
 
 const TAG = 'colMovements';
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 export function setupColMovements(api: PluginApi): void {
   const exactPattern = new RegExp('^(?:' + EXACT_MESSAGES.map(escapeRegex).join('|') + ')\\.$');

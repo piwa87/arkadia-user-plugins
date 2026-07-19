@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import type { KondycjeState } from './kondycje_triggers';
+import { HP_STATES, type KondycjeState } from './kondycje_triggers';
 
 export function setupKondycjeAliases(api: PluginApi, state: KondycjeState): void {
   // k — show condition of all characters + fatigue
@@ -27,15 +27,7 @@ export function setupKondycjeAliases(api: PluginApi, state: KondycjeState): void
 
   // kon — test all 7 HP states for a male and female character via /fake
   api.aliases.register(/^kon\!$/, () => {
-    const states = [
-      'ledwo zyw',
-      'ciezko rann',
-      'w zlej kondycji',
-      'rann',
-      'lekko rann',
-      'w dobrym stanie',
-      'w swietnej kondycji',
-    ];
+    const states = HP_STATES;
     const maleSuffix = ['y', 'y', '', 'y', 'y', '', ''];
     const femaleSuffix = ['a', 'a', '', 'a', 'a', '', ''];
 

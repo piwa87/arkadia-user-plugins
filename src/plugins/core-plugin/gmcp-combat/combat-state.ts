@@ -1,5 +1,6 @@
 import type { PluginApi, LocationObject } from '@arkadia/plugin-types';
 import { col6 } from '../../../lib/colors/my-colors';
+import { printBanner } from '../../../lib/printBanner';
 
 export type { LocationObject };
 
@@ -18,16 +19,6 @@ const SWARM_ALERT_COOLDOWN = 5_000;
 
 const COL_SWARM = col6;
 
-function printBanner(api: PluginApi, text: string, color: string, lines = 3): void {
-  const c = api.colors.fromHex(color);
-  api.output.print('');
-  for (let i = 0; i < lines; i++) {
-    const buf = new api.AnsiAwareBuffer(text);
-    buf.color([0, buf.length], c);
-    api.output.print(buf);
-  }
-  api.output.print('');
-}
 
 export function createCombatState(): CombatState {
   return {

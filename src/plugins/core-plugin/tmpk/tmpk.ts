@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { escapeRegex } from '../../../lib/escapeRegex';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { storage } from '../../../lib/storage';
 
@@ -27,9 +28,6 @@ const DEFAULT_LIST = [
   'zwierzoczlek',
 ];
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 function buildPattern(list: string[]): RegExp {
   return new RegExp('\\b(?:' + list.map(escapeRegex).join('|') + ')\\b', 'i');

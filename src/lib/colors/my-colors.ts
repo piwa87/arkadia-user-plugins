@@ -39,25 +39,6 @@ export const col13 = '#a78e03';
 export const col14 = '#c0c0c0';
 export const col15 = '#ffffff';
 
-export const colorsRgb = [
-  col0_rgb,
-  col1_rgb,
-  col2_rgb,
-  col3_rgb,
-  col4_rgb,
-  col5_rgb,
-  col6_rgb,
-  col7_rgb,
-  col8_rgb,
-  col9_rgb,
-  col10_rgb,
-  col11_rgb,
-  col12_rgb,
-  col13_rgb,
-  col14_rgb,
-  col15_rgb,
-];
-
 export const colorsHex = [
   col0,
   col1,
@@ -79,16 +60,11 @@ export const colorsHex = [
 
 export type ColorNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
 
-export const getColorRgb = (num: ColorNumber): string => colorsRgb[num];
-export const getColorHex = (num: ColorNumber): string => colorsHex[num];
 
 export const getMyColor = (colIndex: ColorNumber, api: PluginApi): FormatStateSnapshot => {
   return api.colors.fromHex(colorsHex[colIndex]);
 };
 
-export const createColorFormat = (colIndex: ColorNumber, api: PluginApi): FormatStateSnapshot => {
-  return api.colors.fromHex(colorsHex[colIndex]);
-};
 
 export const createColorWithBackground = (
   fgIndex: ColorNumber,
