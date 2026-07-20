@@ -9,19 +9,15 @@ When exploring this codebase for the first time:
 
 For existing plugin examples, read `src/plugins/` — especially `core-plugin/` and `development-plugin/`.
 
-## API Reference — Always Consult Before Implementing
+## API Reference — Always Consult Before Implementing (the cheap way)
 
-Before writing any trigger, alias, event listener, or other plugin feature, read the relevant file from `src/instructions/`:
+Before writing any trigger, alias, event listener, or other plugin feature, consult the matching reference in `src/instructions/` (the file-to-topic table is in AGENTS.md below). Do it WITHOUT reading whole files:
 
-- `ALIASES_AND_COMMANDS_REFERENCE.md` — aliases, command sending, command hooks, cleanup pattern
-- `COMBAT_AND_OBJECTS_REFERENCE.md` — attack queue, attack controller, objects in room, object list filters
-- `EVENTS_REFERENCE.md` — all event names with payload types
-- `FUNCTIONAL_BIND_ALIAS_GUIDE.md` — worked example for the bind set/fire pattern
-- `GAME_SYSTEMS_REFERENCE.md` — containers, herbs, settings, people, button/trigger macros, location notes
-- `MAP_AND_GMCP_API_REFERENCE.md` — map API, GMCP API, room data
-- `NOTIFICATIONS_REFERENCE.md` — browser notifications API
-- `TRIGGERS_REFERENCE.md` — triggers, AnsiAwareBuffer methods, colors, output (start here for trigger work)
-- `UI_REFERENCE.md` — footer components, popups, context/popup menus, functional bind
+1. List the sections first: `grep -n '^##' src/instructions/<FILE>.md`
+2. Read ONLY the section you need (Read with offset/limit).
+3. Exception — always read in full before any trigger work: the `RULE #1` section at the top of `TRIGGERS_REFERENCE.md` (~50 lines). It is the difference between a trigger that costs nothing and one that runs on every line of game output.
+
+The hard rules are also machine-enforced, so skipping the docs does not skip the rules: `test/trigger-budget.test.ts` fails on new always-on triggers and `test/plugins/core-plugin/destroy.test.ts` fails on leaked cleanup. A PreToolUse hook additionally injects the convention summary on the first plugin-source edit of each session.
 
 ## Development Commands
 
