@@ -4,6 +4,49 @@ Reference for `api.triggers`, `AnsiAwareBuffer`, and `api.colors` — the core t
 
 ---
 
+## RULE #1 — Use `registerTokenGate`, not `api.triggers.register`
+
+**The client tests every `api.triggers.register` pattern against EVERY line of game output** (a linear walk — no indexing). Token triggers (`registerToken`) are bucketed by word and cost ~nothing on lines that don't contain the word. This repo therefore keeps a hard budget on always-on regex triggers, enforced by `test/trigger-budget.test.ts` — **if you add a plain `register()` call, that test will fail.**
+
+Default for any trigger that matches a known phrase:
+
+```typescript
+import { registerTokenGate } from '../../lib/registerTokenGate';
+
+// (api, gateWords, pattern, callback, tag)
+registerTokenGate(
+  api,
+  'zdenominowane',                        // gate word(s) — see rules below
+  /Twoje pieniadze zostaly zdenominowane\./, // the full pattern, unchanged
+  (line) => prependLabel(line, ' DENOMINACJA ', c34),
+  TAG,
+);
+```
+
+The gate registers one indexed token trigger per word and runs `pattern` only on lines containing one of the words. The callback contract is identical to a plain trigger (`line`, `matches` with capture groups, return `line`/modified/`null`).
+
+**Gate word rules:**
+
+- Pick the **rarest word** that appears in *every* line the pattern can match. Lines are tokenized by splitting on spaces and `. , ! ? * ( ) / [ ]` — a gate word must survive that split as a whole token (matching is case-insensitive).
+- A pattern with alternations needs gate words covering **every branch** (e.g. closing-gate lines gate on `['zamyka', 'zamykaja', 'zamykajac', 'zamknieta', ...]`).
+- Polish inflections are separate tokens — list each form (`['zmeczony', 'zmeczona']`). Tokens are ~free; adding one more is always cheaper than a broad regex.
+- If one line can contain several of the gate words, the callback still fires **once** (built-in per-line guard).
+- `pattern` may be an array — tried in order, first match wins (use to fold several old triggers with one shared handler into one gate).
+
+**When is plain `api.triggers.register` still correct?** Only when no word is common to all matchable lines — i.e. genuine full-line parsers. Current legitimate uses (7 in the whole repo): kondycje/zmeczenie condition parsers, bramy `^Otwart\w+`/`^Zamkniet\w+` room descriptions, walker's gate matcher. If you think you have an 8th case, anchor it with `^` + a literal prefix and raise the budget in `test/trigger-budget.test.ts` with a comment justifying it.
+
+**Simple word highlighting** doesn't need a gate at all — use `registerToken` directly:
+
+```typescript
+api.triggers.registerToken('zloto', (line) =>
+  line.colorWords('zloto', gold, { caseInsensitive: true }),
+  TAG, { caseInsensitive: true });
+```
+
+Always pass `{ caseInsensitive: true }` to `registerToken` — without it a capitalized occurrence (line start) passes the token index but fails the client's second literal check. Multi-word phrases work too (`'czarny ork'` matches consecutive tokens).
+
+---
+
 ## Trigger Callback Signature
 
 ```typescript
@@ -67,7 +110,9 @@ api.triggers.remove(trigger: Trigger): void
 api.triggers.removeByTag(tag: string): void
 ```
 
-**Tag convention:** use your plugin name as the tag on every registration so `removeByTag` cleans up everything in `destroy()`.
+**Tag convention:** use your module name as the tag on every registration (including `registerTokenGate` and `registerToken`) so `removeByTag` cleans up everything in `destroy()`.
+
+**Cleanup is NOT automatic.** The client's unload cleanup removes aliases, UI components, hooks and macros — but **not triggers and not `api.events.on` listeners**. A plugin that skips `removeByTag`/`events.off` in `destroy()` duplicates all its triggers on every plugin reload. In core-plugin, add every new tag to the `TRIGGER_TAGS` list in `src/plugins/core-plugin/index.ts` — `test/plugins/core-plugin/destroy.test.ts` fails if you forget. `removeByTag` also removes token triggers.
 
 ---
 
@@ -227,7 +272,7 @@ Reference for translating CMud/zMUD XML `<trigger>` values to plugin API calls.
 ### `#SAY {text}` → extra output, keep line
 
 ```typescript
-api.triggers.register(/pattern/, (line) => {
+registerTokenGate(api, 'gateword', /pattern/, (line) => {
   api.output.print('extra text');
   return line;
 }, tag);
@@ -239,7 +284,7 @@ For colored extra output build an `AnsiAwareBuffer` and pass it to `api.output.p
 
 ```typescript
 const color = getAnsiFormatState(N, api);
-api.triggers.register(/pattern/, (line) => {
+registerTokenGate(api, 'gateword', /pattern/, (line) => {
   const buf = new api.AnsiAwareBuffer();
   buf.append('label', color);
   buf.append(' ');
@@ -252,7 +297,7 @@ api.triggers.register(/pattern/, (line) => {
 Color the original line first (indices don't shift until prepend), then prepend:
 
 ```typescript
-api.triggers.register(/pattern/, (line) => {
+registerTokenGate(api, 'gateword', /pattern/, (line) => {
   line.color([0, line.text.length], colorM);
   const buf = new api.AnsiAwareBuffer();
   buf.append('label', colorN);
@@ -265,7 +310,7 @@ api.triggers.register(/pattern/, (line) => {
 
 ```typescript
 const color = getAnsiFormatState(N, api);
-api.triggers.register(/pattern/, (line) => {
+registerTokenGate(api, 'gateword', /pattern/, (line) => {
   const msg = 'replacement text';
   line.replace([0, line.text.length], msg);
   return line.color([0, msg.length], color);
@@ -282,7 +327,7 @@ const color = getMyColor(N, api);
 // N > 15 — ANSI palette (fg + bg)
 const color = getAnsiFormatState(N, api);
 
-api.triggers.register(/pattern/, (line) => line.color([0, line.text.length], color), tag);
+registerTokenGate(api, 'gateword', /pattern/, (line) => line.color([0, line.text.length], color), tag);
 ```
 
 ### CMud command values inside triggers
@@ -305,12 +350,12 @@ api.triggers.register(/pattern/, (line) => line.color([0, line.text.length], col
 When multiple patterns share an identical callback shape, collapse them into a loop:
 
 ```typescript
-const ANNOUNCES: [RegExp, string][] = [
-  [/pattern1/, 'message1'],
-  [/pattern2/, 'message2'],
+const ANNOUNCES: [string | string[], RegExp, string][] = [
+  ['gateword1', /pattern1/, 'message1'],
+  [['forma1', 'forma2'], /pattern2/, 'message2'], // one entry per inflection
 ];
-for (const [pattern, msg] of ANNOUNCES) {
-  api.triggers.register(pattern, (line) => {
+for (const [tokens, pattern, msg] of ANNOUNCES) {
+  registerTokenGate(api, tokens, pattern, (line) => {
     megaphone(api, msg);
     return line;
   }, TAG);
@@ -345,24 +390,31 @@ export function setupMyTriggers(api: PluginApi): void {
     return line.prependBuffer(buf);
   };
 
-  api.triggers.register(/danger/, (line) => col(line, c38), TAG);
-  api.triggers.register(/found/, (line) => prependLabel(line, '[ item ]', c38), TAG);
-  api.triggers.register(/event/, (line) => { say('  WARNING!', c38); return line; }, TAG);
+  registerTokenGate(api, 'danger', /danger/, (line) => col(line, c38), TAG);
+  registerTokenGate(api, 'found', /found/, (line) => prependLabel(line, '[ item ]', c38), TAG);
+  registerTokenGate(api, 'event', /event/, (line) => { say('  WARNING!', c38); return line; }, TAG);
 }
 ```
 
-### Shared banner for two patterns with identical output
+Note: `say`/banner printing to output already has a shared helper — `printBanner` in `src/lib/printBanner.ts`. `escapeRegex` lives in `src/lib/escapeRegex.ts`. Check `src/lib/` before writing a new helper.
 
-Extract the action to a named function when two patterns do exactly the same thing:
+### Two patterns with identical output → one gate with a pattern array
+
+`registerTokenGate` accepts an array of patterns (tried in order, first match wins), so two old triggers with the same handler become one gate:
 
 ```typescript
-const showBurzaBanner = () => {
-  api.output.print('');
-  say('   BURZA PIASKOWA - ON!!!', c4);
-  api.output.print('');
-};
-api.triggers.register(/pattern1/, (line) => { showBurzaBanner(); return line; }, TAG);
-api.triggers.register(/pattern2/, (line) => { showBurzaBanner(); return line; }, TAG);
+registerTokenGate(
+  api,
+  ['piaskowa'],            // gate words must cover BOTH patterns
+  [/pattern1/, /pattern2/],
+  (line) => {
+    api.output.print('');
+    say('   BURZA PIASKOWA - ON!!!', c4);
+    api.output.print('');
+    return line;
+  },
+  TAG,
+);
 ```
 
 ### Build colors once, use everywhere
@@ -382,28 +434,28 @@ api.triggers.register(/x/, (line) => line.color([0, line.text.length], getAnsiFo
 
 ## Examples
 
-### Highlight a word in gold
+### Highlight a word (token trigger — no gate needed)
 
 ```typescript
-api.triggers.register(/zloto/i, (line) => {
-  const idx = line.text.toLowerCase().indexOf("zloto");
-  if (idx !== -1) line.color([idx, idx + 5], api.colors.fromHex('#ffd700'));
-  return line;
-}, tag);
+api.triggers.registerToken("zloto", (line) => {
+  return line.colorWords("zloto", api.colors.fromHex('#ffd700'), { caseInsensitive: true });
+}, tag, { caseInsensitive: true });
 ```
 
-### Colorize all matches of multiple words
+### Colorize several words — one token trigger per word
 
 ```typescript
-api.triggers.register(/miecz|tarcza/, (line) => {
-  return line.colorWords(["miecz", "tarcza"], api.colors.fromHex('#00cfff'), { caseInsensitive: true });
-}, tag);
+for (const word of ['miecz', 'tarcza']) {
+  api.triggers.registerToken(word, (line) =>
+    line.colorWords(word, api.colors.fromHex('#00cfff'), { caseInsensitive: true }),
+    tag, { caseInsensitive: true });
+}
 ```
 
 ### Capture a number and print a message
 
 ```typescript
-api.triggers.register(/Zdobywacie (\d+) zlota/, (line, matches) => {
+registerTokenGate(api, 'zdobywacie', /Zdobywacie (\d+) zlota/, (line, matches) => {
   const amount = parseInt(matches[1]);
   api.output.print(`>> Zdobyto ${amount} zlota!`);
   return line;
@@ -413,15 +465,7 @@ api.triggers.register(/Zdobywacie (\d+) zlota/, (line, matches) => {
 ### Suppress a line
 
 ```typescript
-api.triggers.register(/^Czas to pieniadz/, () => null, tag);
-```
-
-### Token trigger for single word
-
-```typescript
-api.triggers.registerToken("zloto", (line, matches) => {
-  return line.colorWords("zloto", api.colors.fromHex('#ffd700'), { caseInsensitive: true });
-}, tag);
+registerTokenGate(api, 'pieniadz', /^Czas to pieniadz/, () => null, tag);
 ```
 
 ### One-time trigger (waits for next match then removes itself)

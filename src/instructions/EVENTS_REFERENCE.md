@@ -17,7 +17,7 @@ api.events.off(event: EventKey, listener: Function): void
 api.events.emit(event: EventKey, ...args): void
 ```
 
-Always call `api.events.off()` in `destroy()` for any listeners you register.
+Always call `api.events.off()` in `destroy()` for any listeners you register. The client does NOT auto-remove listeners on plugin unload — a skipped `off()` fires forever after reloads. Preferred pattern: the setup function stores the handler, registers it, and returns `() => api.events.off('event', handler)`; the plugin's `destroy()` calls the returned cleanup (see `setupDooAliases` in core-plugin).
 
 ---
 

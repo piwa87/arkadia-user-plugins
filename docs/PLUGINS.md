@@ -1123,7 +1123,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 ## Dobre Praktyki
 
 1. **Używaj unikalnych tagów** - Unikaj konfliktów z innymi pluginami
-2. **Czyść w destroy()** - Usuwaj event listenery
+2. **Czyść w destroy()** - Usuwaj event listenery i triggery (`api.triggers.removeByTag`) — klient NIE usuwa ich automatycznie przy przeładowaniu pluginu (aliasy i komponenty UI usuwa sam)
+2a. **Wydajność triggerów** - Każdy trigger z `api.triggers.register` jest testowany na KAŻDEJ linii outputu. Dla fraz używaj `api.triggers.registerToken` (indeksowany po słowie, ~darmowy) — w tym repo: helper `src/lib/registerTokenGate.ts`
 3. **Używaj TypeScript** - Zainstaluj `@arkadia/plugin-types` dla pełnego wsparcia IDE
 4. **Testuj dokładnie** - Sprawdź plugin przed udostępnieniem
 5. **Wersjonuj semantycznie** - 1.0.0, 1.1.0, 2.0.0 itp.

@@ -142,7 +142,7 @@ export async function destroy() {
 
 ## Cleanup Pattern
 
-Always store IDs and clean up in `destroy()`:
+What the client auto-removes on unload: **aliases, command hooks, UI components, macros, command suggestions**. What it does NOT auto-remove: **triggers and `api.events.on` listeners** — those leak per-line work on every plugin reload if `destroy()` skips them. So `removeByTag` + `events.off` are mandatory; removing alias/hook IDs is optional hygiene:
 
 ```typescript
 const TAG = "myPlugin";

@@ -36,7 +36,7 @@ yarn build
 
 - Put most logic into small helpers under `src/lib/`.
 - Unit-test helpers directly with Vitest.
-- Test plugin registration and command behavior with a mocked `PluginApi`.
+- Test plugin registration and command behavior with a mocked `PluginApi`; drive trigger behavior through `runLine` from `test/helpers/mockApi.ts` (works for regex and token triggers alike).
 - Use the local dev server only for smoke tests in the real client.
 
 That keeps deploys out of the main feedback loop.

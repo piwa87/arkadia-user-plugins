@@ -29,8 +29,13 @@ src/plugins/my-feature-plugin/
 ```typescript
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 
+const TAG = "myFeature"; // unique across all your plugins
+
+// The client calls destroy() with NO arguments — keep the api from init.
+let apiRef: PluginApi | null = null;
+
 export async function init(api: PluginApi): Promise<PluginInfo> {
-  const tag = "myFeature"; // unique across all your plugins
+  apiRef = api;
 
   // Register triggers, aliases, events here
 
@@ -42,31 +47,52 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 
 export async function destroy(): Promise<void> {
-  // Remove event listeners you added via api.events.on()
-  // Clear any setInterval / setTimeout handles
-  // Triggers and aliases registered with `tag` are cleaned up automatically
+  // The client does NOT auto-remove triggers or api.events.on listeners.
+  apiRef?.triggers.removeByTag(TAG);
+  // ...also events.off() every listener and clear any timers here.
+  apiRef = null;
 }
 ```
 
-## Triggers
+**Directory plugins:** the `*-plugin.ts` entry wrapper must re-export **both** functions — `export { init, destroy } from './my-feature-plugin/index';`. If it only exports `init`, the client never runs your cleanup and every plugin reload duplicates all your triggers.
+
+## Triggers — ALWAYS use registerTokenGate for phrase matching
+
+The client tests every plain `api.triggers.register` pattern against **every line of game output**; token triggers are word-indexed and ~free. This repo enforces a budget on always-on triggers (`test/trigger-budget.test.ts` fails if you add one). Read `src/instructions/TRIGGERS_REFERENCE.md` RULE #1 before writing any trigger.
 
 ```typescript
-api.triggers.register(
-  /Zdobywasz (\d+) punktow/,  // RegExp, string, or array for multi-line sequences
+import { registerTokenGate } from '../lib/registerTokenGate';
+
+// (api, gateWords, pattern, callback, tag)
+registerTokenGate(
+  api,
+  'punktow',                   // rare word present in every matchable line
+  /Zdobywasz (\d+) punktow/,   // the pattern, unchanged — capture groups work
   (line, matches) => {
-    const xp = matches[1];
-    api.output.print(`+${xp} PD`);
-    return line;              // return line to keep it, null to suppress
+    api.output.print(`+${matches[1]} PD`);
+    return line;               // return line to keep it, null to suppress
   },
-  tag
+  TAG,
 );
 
-// One-time trigger (self-removes after first match)
+// Gate words must survive the client tokenizer (split on spaces and .,!?*()/[]),
+// cover every alternation branch, and include each Polish inflection
+// (['zmeczony', 'zmeczona']). Extra tokens are free.
+
+// Simple word coloring — direct token trigger, no gate:
+api.triggers.registerToken('zloto', (line) =>
+  line.colorWords('zloto', gold, { caseInsensitive: true }),
+  TAG, { caseInsensitive: true });
+
+// One-time trigger (self-removes after first match) — fine as-is, it leaves
+// the walk after firing. Always pass a tag so armed-but-unmatched ones are
+// removable; for delayed-command one-shots use lib/registerTempTrigger.
 api.triggers.registerOneTime(/Potwierdzono/, (line) => {
-  // ...
   return line;
-}, tag);
+}, TAG);
 ```
+
+Plain `api.triggers.register` is allowed **only** for full-line parsers where no single word is common to all matchable lines (7 exist in the repo; a new one needs a justified budget bump in `test/trigger-budget.test.ts`).
 
 **Regex must be ASCII-only.** Polish letters in patterns are forbidden — write `umarl` not `umarł`, `mezczyzna` not `mężczyzna`. Game output is normalized before matching.
 
@@ -133,7 +159,7 @@ api.output.print(buffer);       // AnsiAwareBuffer
 
 ## Destroy lifecycle
 
-Remove only what isn't cleaned up automatically:
+The client auto-removes aliases, UI components, command hooks, and macros on unload. It does **NOT** remove triggers or `api.events.on` listeners — those are yours:
 
 ```typescript
 let intervalId: ReturnType<typeof setInterval>;
@@ -149,10 +175,11 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 export async function destroy() {
   clearInterval(intervalId);
   api.events.off("mapMove", onMove);
+  api.triggers.removeByTag(TAG); // covers token gates and token triggers too
 }
 ```
 
-Triggers registered with a `tag` are removed automatically — no manual cleanup needed for those. Aliases must be removed by the ID returned from `api.aliases.register()`.
+In **core-plugin**, don't hand-roll this: add your trigger tag to the `TRIGGER_TAGS` list in `src/plugins/core-plugin/index.ts` and (for event listeners) return a cleanup function from your setup and wire it into `destroy()` there. `test/plugins/core-plugin/destroy.test.ts` fails if anything leaks.
 
 ## Shared helpers
 
@@ -177,18 +204,19 @@ src/plugins/my-feature-plugin.ts   →   test/my-feature-plugin.test.ts
 src/lib/helpers.ts                 →   test/lib/helpers.test.ts
 ```
 
-Use the mock API from `test/helpers/mockApi.ts`:
+Use the mock API from `test/helpers/mockApi.ts` and drive triggers through `runLine` — it replicates the client's dispatch (regular triggers, then token triggers via the tokenized-bucket walk), so the same test passes whether the trigger is a regex or a token gate. Never locate triggers via `pattern.test(...)`; token triggers have no regex pattern.
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { createMockApi } from '../helpers/mockApi';
+import { describe, it, expect } from 'vitest';
+import { createMockApi, runLine } from '../helpers/mockApi';
 import { init } from '../../src/plugins/my-feature-plugin';
 
 describe('my-feature-plugin', () => {
-  it('registers a trigger', async () => {
-    const api = createMockApi();
-    await init(api as any);
-    expect(api.triggers.register).toHaveBeenCalled();
+  it('reacts to the XP line', async () => {
+    const mock = createMockApi();
+    await init(mock.api);
+    runLine(mock, 'Zdobywasz 50 punktow.');
+    expect(mock.api.output.print).toHaveBeenCalledWith('+50 PD');
   });
 });
 ```
@@ -197,12 +225,13 @@ Test pure helpers in `src/lib/` without the API at all.
 
 ## After adding a plugin
 
-- [ ] Entry file is `src/plugins/**/*-plugin.ts`
+- [ ] Entry file is `src/plugins/**/*-plugin.ts` and re-exports **both** `init` and `destroy`
+- [ ] Phrase triggers use `registerTokenGate` (or `registerToken`) — `yarn test` passes `trigger-budget.test.ts`
 - [ ] Trigger patterns are ASCII-only
 - [ ] Colored text: plain `append` after colored content passes explicit state
-- [ ] `tag` is unique across all plugins in the repo
-- [ ] `destroy()` cleans up intervals and `api.events.on()` listeners
-- [ ] Test file added under `test/`
+- [ ] `tag` is unique across all plugins in the repo and passed to every registration
+- [ ] `destroy()` calls `removeByTag`, `events.off()` for every listener, and clears timers (client auto-cleans aliases/UI/hooks — not these)
+- [ ] Test file added under `test/`, driving triggers via `runLine`
 - [ ] `yarn typecheck` passes
 - [ ] `yarn test` passes
 - [ ] `yarn build` produces the `.js` file in `dist/`

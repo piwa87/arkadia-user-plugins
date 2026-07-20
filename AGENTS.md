@@ -110,13 +110,21 @@ Before implementing any new trigger, alias, event listener, or other plugin feat
 
 ```typescript
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
+import { registerTokenGate } from '../lib/registerTokenGate';
+
+const TAG = "myPlugin"; // unique tag for cleanup
+
+// The client calls destroy() with NO arguments — keep the api from init.
+let apiRef: PluginApi | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
-  const tag = "myPlugin"; // unique tag for cleanup
+  apiRef = api;
 
-  api.triggers.register(/pattern/i, (line, matches) => {
+  // Phrase triggers go through registerTokenGate (see TRIGGERS_REFERENCE.md
+  // RULE #1) — never bare api.triggers.register for phrase matching.
+  registerTokenGate(api, 'gateword', /pattern with gateword/i, (line, matches) => {
     return line; // or null to suppress, or modified line
-  }, tag);
+  }, TAG);
 
   return {
     name: "My Plugin",
@@ -126,30 +134,64 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 
 export async function destroy(): Promise<void> {
-  // cleanup if needed
+  // The client does NOT auto-remove triggers or event listeners — do it here.
+  apiRef?.triggers.removeByTag(TAG);
+  apiRef = null;
 }
+```
+
+**Entry wrappers must re-export BOTH lifecycle functions.** For directory plugins the `*-plugin.ts` entry is a one-liner — if it only exports `init`, the client never runs your cleanup:
+
+```typescript
+export { init, destroy } from './my-plugin/index';
 ```
 
 ## Testing
 
 - Tests live in `test/` mirroring `src/` paths
 - Use `test/helpers/mockApi.ts` for a `PluginApi` mock
+- **Test triggers through `runLine(mock, 'game line text')`** — it replicates the client's dispatch (regular triggers in order, then token triggers via the tokenized-bucket walk), so tests keep passing whether a trigger is a regex or a token gate. Never find triggers by `pattern.test(...)` — that breaks for token triggers. See `test/plugins/core-plugin/col_eventy.test.ts` for the style.
 - Test logic in `src/lib/` directly (pure functions, no API needed)
-- Test plugin registration with the mock API
+- Guard tests to know about: `test/trigger-budget.test.ts` (fails when always-on triggers are added) and `test/plugins/core-plugin/destroy.test.ts` (fails when a trigger tag or listener isn't cleaned up)
 
 ```bash
 yarn test              # run all tests
 yarn test -- --watch   # watch mode
 ```
 
+## Performance Model (why the trigger rules exist)
+
+The client runs **every** `api.triggers.register()` pattern against **every line of game output** in a linear walk. Token triggers (`api.triggers.registerToken`) are word-indexed and cost ~nothing on non-matching lines. Consequences, enforced by tests:
+
+- **Phrase triggers must use `registerTokenGate`** from `src/lib/registerTokenGate.ts` (gate word + original pattern; identical callback contract). Bare `register()` is reserved for genuine full-line parsers — currently 7 in the whole repo — and adding one fails `test/trigger-budget.test.ts` unless you consciously raise the budget. Full rules: `src/instructions/TRIGGERS_REFERENCE.md` (RULE #1).
+- **Cleanup is not automatic for triggers and events.** The client's unload cleanup removes aliases, UI components, command hooks, and macros — but NOT triggers and NOT `api.events.on` listeners. Skipping `removeByTag`/`events.off` in `destroy()` duplicates all per-line work on every plugin reload. `test/plugins/core-plugin/destroy.test.ts` enforces this for core-plugin: every new trigger tag must be added to `TRIGGER_TAGS` in `src/plugins/core-plugin/index.ts`.
+- **Never throw from a trigger callback** — the client has no per-trigger try/catch; one exception silently aborts processing of the rest of the output batch.
+- Build colors/regexes once at setup time, never inside callbacks; `api.output.print` inside a trigger callback is batched (cheap), from timers it renders immediately.
+
+## Shared lib helpers (`src/lib/`) — reuse before writing new ones
+
+| Helper | Use for |
+| --- | --- |
+| `registerTokenGate.ts` | **Default for all phrase triggers** — token-indexed gate + original pattern |
+| `registerTempTrigger.ts` | Delayed one-shot triggers; default tag `tempTriggers` keeps armed ones removable |
+| `registerTextAlias.ts` | Simple alias → command mappings |
+| `printBanner.ts` | Multi-line colored alert banners |
+| `escapeRegex.ts` | Escaping user/dynamic strings for RegExp |
+| `withDelay.ts` | Randomized-delay callbacks |
+| `storage.ts` | localStorage JSON persistence (`p:` prefix) |
+| `notifications.ts` | Browser notifications |
+| `getCharName.ts` | Character-conditional setup (`onCharName`) |
+| `colors/` | CMud palette helpers (`getMyColor`, `getAnsiFormatState`); note: `bg0`'s `'##...'` double-hash is deliberate — do not "fix" it |
+
 ## Coding Guidelines
 
 - Use `yarn`, never `npm`
 - Import types with `import type` from `@arkadia/plugin-types`
 - All plugin code must compile to browser ESM (no Node.js APIs)
-- Use a unique `tag` string per plugin for trigger cleanup — pass it to every `api.triggers.register()` call; call `api.triggers.removeByTag(tag)` in `destroy()`. Aliases do **not** use tags — store the ID returned by `api.aliases.register()` and call `api.aliases.remove(id)` in `destroy()`
+- Use a unique `tag` string per module — pass it to every trigger registration (`registerTokenGate`, `registerToken`, `register`, `registerOneTime`) and call `api.triggers.removeByTag(tag)` in `destroy()`; `removeByTag` covers token triggers too. In core-plugin, also add the tag to `TRIGGER_TAGS` in `index.ts`
 - Always return from trigger callbacks: modified `line`, original `line`, or `null` (to suppress)
-- In `destroy()`, remove all event listeners, intervals, aliases, command hooks, and UI components registered during `init()`
+- In `destroy()`, remove everything the client won't: trigger tags, `api.events.on` listeners (`events.off`), intervals/timeouts, audio contexts. (Aliases, UI components, hooks, and macros ARE auto-removed on unload — explicit removal is optional.)
+- Modules registering `api.events.on` listeners should return a cleanup function from their setup and have it called in the plugin's `destroy()` (see `setupDooAliases` for the pattern)
 - Never include Polish characters in regex patterns — keep patterns ASCII-compatible
 - Read the relevant instruction file from `src/instructions/` before implementing any new feature
 
