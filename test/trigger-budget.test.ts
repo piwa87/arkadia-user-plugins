@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { destroy as destroyCore, init as initCore } from '../src/plugins/core-plugin/index';
 import { destroy as destroyDev, init as initDev } from '../src/plugins/development-plugin/index';
+import { destroy as destroyRkg, init as initRkg } from '../src/plugins/rkg-plugin/index';
 import { createMockApi } from './helpers/mockApi';
 
 /**
@@ -31,5 +32,26 @@ describe('per-line trigger budget', () => {
 
     await destroyCore();
     destroyDev();
+  });
+
+  it('keeps rkg-plugin off the per-line walk entirely', async () => {
+    // rkg-plugin's triggers are all armed on demand — the noun highlighter is
+    // token-indexed, the dialogue's parsers exist only during a run, and the
+    // transcript recorder's catch-all only while it is recording.
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+    });
+
+    const rkg = createMockApi();
+    await initRkg(rkg.api);
+
+    expect(rkg.triggers).toHaveLength(0);
+    expect(rkg.oneTimeTriggers).toHaveLength(0);
+    expect(rkg.tokenTriggers.length).toBeGreaterThan(0);
+
+    await destroyRkg();
   });
 });
