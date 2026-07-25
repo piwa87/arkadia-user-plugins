@@ -1,7 +1,7 @@
 # RKG wall — Cloudflare Worker + static assets + D1.
 # One deploy serves both the site and the /api/* endpoints (same origin).
 
-name = "rkg-wall"
+name = "rkg"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
