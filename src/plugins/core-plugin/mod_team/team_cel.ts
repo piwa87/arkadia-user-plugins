@@ -93,22 +93,3 @@ export function registerCelTriggers(api: PluginApi, tag: string): void {
   );
 }
 
-/** Sample lines exercising each cel trigger (Cresa = target, Isil = teammate). */
-const CELTEST_LINES = [
-  'Wskazujesz Cresa jako cel ataku.',
-  'Wskazujesz Cresa jako cel obrony.',
-  'Isil wskazuje Cresa jako cel ataku.',
-  'Isil wskazuje Cresa jako cel obrony.',
-];
-
-/**
- * `celtest` dev alias: fakes each sample line through the MUD output (via the
- * client `/fake` command) so the cel triggers can be verified live. Returns the
- * alias id for cleanup. Note: celobrony_ktos only fires if "Isil" is in the team.
- */
-export function registerCelTestAlias(api: PluginApi): string {
-  return api.aliases.register(/^celtest$/i, () => {
-    for (const text of CELTEST_LINES) api.command.send(`/fake ${text}`);
-    return true;
-  });
-}

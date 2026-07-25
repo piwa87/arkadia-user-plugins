@@ -6,11 +6,11 @@ import {
   getCurrentTeam,
   getCurrentLeader,
   getMissingNames,
-} from '../../../../src/plugins/development-plugin/mod_team/team';
+} from '../../../../src/plugins/core-plugin/mod_team/team';
 import {
   forgetLearnedNames,
   getLearnedNames,
-} from '../../../../src/plugins/development-plugin/mod_team/team_state';
+} from '../../../../src/plugins/core-plugin/mod_team/team_state';
 
 function sentCommands(mock: ReturnType<typeof createMockApi>): string[] {
   return (mock.api.command.send as any).mock.calls.map(([cmd]: [string]) => cmd);

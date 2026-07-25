@@ -26,9 +26,11 @@ describe('per-line trigger budget', () => {
     expect(core.oneTimeTriggers).toHaveLength(0);
     expect(dev.oneTimeTriggers).toHaveLength(0);
 
-    // Sanity: the converted triggers actually registered as token gates.
-    expect(core.tokenTriggers.length).toBeGreaterThan(60);
-    expect(dev.tokenTriggers.length).toBeGreaterThan(20);
+    // Sanity: the converted triggers actually registered as token gates. The
+    // bulk (including mod_team, which moved out of development-plugin) is
+    // core's; development-plugin is down to zlecenia alone.
+    expect(core.tokenTriggers.length).toBeGreaterThan(150);
+    expect(dev.tokenTriggers.length).toBeGreaterThan(0);
 
     await destroyCore();
     destroyDev();

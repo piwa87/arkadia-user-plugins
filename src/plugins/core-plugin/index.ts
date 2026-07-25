@@ -50,6 +50,8 @@ import {
   setupPingSounds,
   setupStatsAliases,
   setupTeamAliases,
+  setupTeam,
+  destroyTeam,
   setupTmpk,
   setupTravelAliases,
   setupWsiadaczAliases,
@@ -80,6 +82,9 @@ const TRIGGER_TAGS = [
   'colEventy',
   'colMovements',
   'eventTriggers',
+  'kol_druzyna',
+  'mod_team',
+  'mod_team:wylap',
   'glassSounds',
   'kondycje',
   'miscTriggers',
@@ -109,6 +114,7 @@ let cleanupLocationTriggers: (() => void) | null = null;
 let cleanupDoo: (() => void) | null = null;
 let cleanupAtakiTriggers: (() => void) | null = null;
 let cleanupTriggerTags: (() => void) | null = null;
+let cleanupTeam: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -165,6 +171,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupPostAliases(api);
   setupStatsAliases(api);
   setupTeamAliases(api);
+  setupTeam(api); // mod_team: declensions, shield/attack banners, leadership, wylap
   setupTmpk(api);
   setupTravelAliases(api);
   cleanupWalker = setupWalker(api);
@@ -172,6 +179,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupZiola = setupZiolaAliases(api);
   setupZmeczenieTriggers(api, zmeczenieState);
   cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
+  cleanupTeam = () => destroyTeam(api);
   cleanupTriggerTags = () => {
     for (const tag of TRIGGER_TAGS) api.triggers.removeByTag(tag);
   };
@@ -226,6 +234,8 @@ export async function destroy(): Promise<void> {
   cleanupDoo = null;
   cleanupAtakiTriggers?.();
   cleanupAtakiTriggers = null;
+  cleanupTeam?.(); // detaches teamChange, clears the wylap capture and the bind
+  cleanupTeam = null;
   cleanupTriggerTags?.();
   cleanupTriggerTags = null;
   teardownKeyboardBindings();

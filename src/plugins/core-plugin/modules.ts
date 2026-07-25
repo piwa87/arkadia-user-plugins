@@ -41,6 +41,7 @@ export { setupGlassSounds } from './sounds/glass_sound';
 export { setupPingSounds } from './sounds/ping_sounds';
 export { setupStatsAliases } from './stats';
 export { setupTeamAliases } from './team';
+export { setupTeam, destroyTeam } from './mod_team/team';
 export { setupTmpk } from './tmpk/tmpk';
 export { setupTravelAliases } from './travel/travel_aliases';
 export { setupWsiadaczAliases } from './travel/wsiadacz';

@@ -68,7 +68,7 @@ let watchdog: ReturnType<typeof setTimeout> | null = null;
 
 function print(api: PluginApi, text: string, color: string): void {
   const buf = new api.AnsiAwareBuffer();
-  buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
+  buf.append('[druzyna] ', api.colors.fromHex(COLOR_PREFIX));
   buf.append(text, api.colors.fromHex(color));
   api.output.print(buf);
 }
@@ -238,7 +238,7 @@ function complete(api: PluginApi, run: Capture, onFinished?: () => void): void {
   run.learned.push(entry.M);
 
   const buf = new api.AnsiAwareBuffer();
-  buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
+  buf.append('[druzyna] ', api.colors.fromHex(COLOR_PREFIX));
   buf.append('Odmieniono: ', api.colors.fromHex(complete4 ? COLOR_OK : COLOR_WARN));
   buf.append(entry.M.padEnd(14), api.colors.fromHex(COLOR_NAME));
   buf.append(

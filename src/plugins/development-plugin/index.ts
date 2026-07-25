@@ -1,6 +1,5 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupZlecenia, destroyZlecenia } from './zlecenia';
-import { setupTeam, destroyTeam } from './mod_team/team';
 
 // The client calls destroy() with no arguments, so keep the api from init.
 let apiRef: PluginApi | null = null;
@@ -8,7 +7,6 @@ let apiRef: PluginApi | null = null;
 export async function init(api: PluginApi): Promise<PluginInfo> {
   apiRef = api;
   setupZlecenia(api);
-  setupTeam(api);
 
   const info: PluginInfo = {
     name: 'Development Plugin',
@@ -24,6 +22,5 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 export function destroy(): void {
   if (!apiRef) return;
   destroyZlecenia(apiRef);
-  destroyTeam(apiRef);
   apiRef = null;
 }

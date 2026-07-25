@@ -1,8 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { getMyColor } from '../../../lib/colors/my-colors';
 import {
-  getCurrentTeam,
-  getCurrentLeader,
   getMissingNames,
   getLearnedNames,
   forgetLearnedNames,
@@ -12,58 +9,43 @@ import {
 import { startWylap, cancelWylap, printLearned } from './team_wylap';
 import { registerZaslonyTriggers } from './team_zaslony';
 import { destroyTeamColors, rebuildTeamColorTokens } from './team_colors';
-import { registerCelTriggers, registerCelTestAlias } from './team_cel';
+import { registerCelTriggers } from './team_cel';
 import { setupAtaki, destroyAtaki } from './team_ataki';
 import { setupLider, destroyLider } from './team_lider';
+
+/**
+ * mod_team — the team module (ported from CMUD `mod_druzyna`).
+ *
+ * Owns the live team as declension objects and everything keyed on them: shield
+ * (zaslony) and attack banners, cel ataku/obrony, team-name coloring, leadership
+ * handover, and the `wylap` declension capture.
+ *
+ * Output is intentionally quiet: nothing is printed on a team rebuild unless a
+ * member cannot be declined, in which case the missing names are reported and
+ * the capture is offered (bind + `wylap` command).
+ */
 
 // Re-export the live team state for consumers (and tests) importing from here.
 export { getCurrentTeam, getCurrentLeader, getMissingNames } from './team_state';
 
 const TAG = 'mod_team';
 
-// Colors for the diagnostic output.
-const COLOR_PREFIX = '#777777'; // "[mod_team]" marker — muted gray
+// Colors for the team messages.
+const COLOR_PREFIX = '#777777'; // "[druzyna]" marker — muted gray
 const COLOR_WARN = '#ff8800'; // "Brak w bazie" warning — orange
 const COLOR_NAME = '#ffd700'; // a name — gold
-const COLOR_CASE = '#888888'; // case labels (B:/C:/...) — gray
-const COLOR_FORM = '#cccccc'; // case forms — light gray
 
-// ---- Diagnostic output -------------------------------------------------------
-
+/**
+ * "Brak w bazie: <name>" — this member cannot be declined, so every feature
+ * keyed on their case forms (shield banners, attack labels, coloring) will miss
+ * them until `wylap` fills the gap.
+ */
 function warnMissing(api: PluginApi, name: string): void {
   const buf = new api.AnsiAwareBuffer();
-  buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
+  buf.append('[druzyna] ', api.colors.fromHex(COLOR_PREFIX));
   buf.append('Brak w bazie: ', api.colors.fromHex(COLOR_WARN));
   buf.append(name, api.colors.fromHex(COLOR_NAME));
   api.output.print(buf);
-}
-
-/** Dev echo: dump the live team with every declension (odmiana). */
-function printTeam(api: PluginApi): void {
-  const team = getCurrentTeam();
-  const leader = getCurrentLeader();
-
-  const header = new api.AnsiAwareBuffer();
-  header.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
-  header.append(`Druzyna (${team.length}):`, api.colors.fromHex(COLOR_NAME));
-  api.output.print(header);
-
-  for (const m of team) {
-    const lead = leader && leader.M === m.M ? '* ' : '  ';
-    const buf = new api.AnsiAwareBuffer();
-    buf.append(`  ${lead}`, api.colors.fromHex(COLOR_PREFIX));
-    buf.append(m.M.padEnd(14), api.colors.fromHex(COLOR_NAME));
-    for (const [label, form] of [
-      ['B', m.B],
-      ['C', m.C],
-      ['D', m.D],
-      ['N', m.N],
-    ] as const) {
-      buf.append(` ${label}:`, api.colors.fromHex(COLOR_CASE));
-      buf.append(form, api.colors.fromHex(COLOR_FORM));
-    }
-    api.output.print(buf);
-  }
 }
 
 // ---- wylap -------------------------------------------------------------------
@@ -79,7 +61,10 @@ function runWylap(api: PluginApi, names: string[]): void {
 
 // ---- Live-team rebuild -------------------------------------------------------
 
-/** Rebuild the live team from the client's current team state, then echo it. */
+/**
+ * Rebuild the live team from the client's current team state. Silent unless a
+ * member cannot be declined — then it warns per name and offers the capture.
+ */
 function rebuild(api: PluginApi): void {
   const missing = rebuildTeamState(api);
 
@@ -96,23 +81,22 @@ function rebuild(api: PluginApi): void {
     // client additionally prints a clickable "bind <key>: wylap" line.
     api.bind.set('wylap', () => runWylap(api, getMissingNames()));
     const buf = new api.AnsiAwareBuffer();
-    buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
+    buf.append('[druzyna] ', api.colors.fromHex(COLOR_PREFIX));
     buf.append(
-      `Wpisz "wylap" (lub nacisnij ${api.bind.getLabel()}), aby odmienic brakujace.`,
+      `Wpisz "wylap" (lub nacisnij ${api.bind.getLabel()}), aby odmienic brakujace. ` +
+        '"wylap <imie>" odmienia pojedyncza nazwe.',
       api.colors.fromHex(COLOR_WARN),
     );
     api.output.print(buf);
   }
 
   rebuildTeamColorTokens(api);
-  printTeam(api);
 }
 
 // ---- Lifecycle ---------------------------------------------------------------
 
 let teamChangeListener: (() => void) | null = null;
 let wylapAliasId: string | undefined;
-let celtestAliasId: string | undefined;
 
 export function setupTeam(api: PluginApi): void {
   teamChangeListener = () => rebuild(api);
@@ -145,7 +129,6 @@ export function setupTeam(api: PluginApi): void {
 
   registerZaslonyTriggers(api, TAG);
   registerCelTriggers(api, TAG);
-  celtestAliasId = registerCelTestAlias(api);
   setupAtaki(api, TAG);
   setupLider(api, TAG);
 
@@ -161,10 +144,6 @@ export function destroyTeam(api: PluginApi): void {
   if (wylapAliasId) {
     api.aliases.remove(wylapAliasId);
     wylapAliasId = undefined;
-  }
-  if (celtestAliasId) {
-    api.aliases.remove(celtestAliasId);
-    celtestAliasId = undefined;
   }
   destroyAtaki(api);
   destroyLider(api);

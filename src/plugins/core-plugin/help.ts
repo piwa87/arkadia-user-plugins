@@ -165,6 +165,11 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'pd', desc: 'leave team' },
       { cmd: 'obd', desc: 'inspect team' },
       { cmd: 'pm / pmd', desc: 'sneak / sneak with team' },
+      { cmd: 'prpr <n|imie>', desc: 'pass leadership to team slot n (or a name)' },
+      { cmd: 'wylap', desc: 'decline team names missing from the DB' },
+      { cmd: 'wylap <imie>', desc: 'decline one name (odmien) and remember it' },
+      { cmd: 'wylap lista', desc: 'list remembered declensions' },
+      { cmd: 'wylap zapomnij', desc: 'forget remembered declensions' },
 
       { section: 'OPTIONS' },
       { cmd: 'opa', desc: 'show panic options' },
