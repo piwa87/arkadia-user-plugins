@@ -126,3 +126,10 @@ export interface GlosResponse {
 export interface BladResponse {
   blad: string;
 }
+
+/** What `DELETE /api/nazwy` wiped. Beta-only admin route, see `api/README.md`. */
+export interface CzystkaResponse {
+  nazwy: number;
+  glosy: number;
+  zdarzenia: number;
+}

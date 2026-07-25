@@ -6,6 +6,7 @@ import { withDelay } from '../../lib/withDelay';
 import type { Baza } from './store';
 import { RKG_PRZYMIOTNIKI } from './data/adjectives';
 import { RKG_TYPY } from './data/types';
+import { RZECZOWNIKI_SEED } from './data/seed';
 import { pick } from './generator';
 
 /**
@@ -24,7 +25,7 @@ import { pick } from './generator';
  * The nouns are the exception: their pool barely changes, so rather than walk
  * the category sub-menus on every run (an extra round-trip that spams the game),
  * we keep a comprehensive static base in `data/seed.ts` and answer the noun
- * prompt directly with a random one. `rkgnazwy+ <slowo>` tops it up by hand.
+ * prompt directly with a random one.
  *
  * Prompt-driven, not timer-driven: each answer is sent only after the game's
  * actual question for that step arrives (verbatim from a real transcript). All
@@ -51,6 +52,8 @@ const PLEC = 'dowolnej';
 
 interface Ctx {
   typ?: string;
+  /** What we answered, or what the type dictated when the question was skipped. */
+  plec?: string;
   przymiotnik?: string;
   rzeczownik?: string;
   liczba?: Liczba;
@@ -61,7 +64,13 @@ interface Ctx {
   pendingNazwa: boolean;
 }
 
-export function setupKreator(api: PluginApi, baza: Baza): () => void {
+export function setupKreator(
+  api: PluginApi,
+  baza: Baza,
+  // Called once a run has produced a complete club, so the Sala Chwaly can
+  // offer to publish it. Optional so the runner stands alone in tests.
+  poZakonczeniu?: (w: WpisLokalny) => void,
+): () => void {
   const kolorInfo = getAnsiFormatState(3, api);
   const kolorNazwy = getAnsiFormatState(110, api);
   const kolorRoli = getAnsiFormatState(11, api);
@@ -182,12 +191,41 @@ export function setupKreator(api: PluginApi, baza: Baza): () => void {
     });
   };
 
+  // Gender-locked types (`braterstwo`, ...) are never asked about plec: the game
+  // states the restriction and jumps straight to the name question. So wait for
+  // either prompt, with a transient collector picking up the restriction line so
+  // the record stays accurate.
   const krokPlec = () => {
     post(3, 'plec');
-    czekaj(/Jakiej plci maja byc czlonkowie/i, () => {
-      send(PLEC);
-      krokNazwa();
-    });
+    api.triggers.register(
+      /pozwala na przyjmowanie wylacznie (mezczyzn|kobiet)/i,
+      (line, m) => {
+        if (ctx && m?.[1]) ctx.plec = m[1].toLowerCase() === 'kobiet' ? 'zenskiej' : 'meskiej';
+        return line;
+      },
+      TAG_MENU,
+    );
+    czekajNaJedno([
+      {
+        re: /Jakiej plci maja byc czlonkowie/i,
+        fn: () => {
+          api.triggers.removeByTag(TAG_MENU);
+          ctx!.plec = PLEC;
+          send(PLEC);
+          krokNazwa();
+        },
+      },
+      {
+        re: /Jaka ma byc nazwa klubu/i,
+        fn: () => {
+          // plec was skipped — the type dictates it, and the collector above has
+          // already recorded which. Fold in what krokNazwa would have done.
+          api.triggers.removeByTag(TAG_MENU);
+          send('nazwa');
+          krokRzeczownik();
+        },
+      },
+    ]);
   };
 
   const krokNazwa = () => {
@@ -203,7 +241,7 @@ export function setupKreator(api: PluginApi, baza: Baza): () => void {
   const krokRzeczownik = () => {
     post(5, 'rzeczownik');
     czekaj(/Podaj rzeczownik lub wyswietl/i, () => {
-      const noun = baza.rzeczowniki.length > 0 ? pick(baza.rzeczowniki) : 'miecz';
+      const noun = pick(RZECZOWNIKI_SEED);
       ctx!.rzeczownik = noun;
       send(noun);
       krokPrzymiotnik();
@@ -353,15 +391,21 @@ export function setupKreator(api: PluginApi, baza: Baza): () => void {
         przypadek,
         wynik,
         charakter: CHARAKTER,
-        plec: PLEC,
+        plec: cur.plec ?? PLEC,
         role,
       };
-      baza.dodajWpis(wpis);
+      const zapisany = baza.dodajWpis(wpis);
       sprzatnij();
       drukuj(`[rkg] ${wynik}`, kolorNazwy);
       if (role.przywodca) drukuj(`      przywodca: ${role.przywodca}`, kolorRoli);
       if (role.zastepca) drukuj(`      zastepca:  ${role.zastepca}`, kolorRoli);
       if (role.czlonek) drukuj(`      czlonek:   ${role.czlonek}`, kolorRoli);
+      // The offer must not be able to take the run down with it.
+      try {
+        poZakonczeniu?.(zapisany);
+      } catch {
+        /* the club is already stored — rkghof can still publish it by hand */
+      }
     } else {
       przerwij('nie udalo sie zebrac wszystkich danych', false);
     }

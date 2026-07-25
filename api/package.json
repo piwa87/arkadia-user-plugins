@@ -7,7 +7,7 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "db:init": "wrangler d1 execute rkg-wall --remote --file=schema.sql",
-    "db:init:local": "wrangler d1 execute rkg-wall --local --file=schema.sql"
+    "db:reset": "wrangler d1 execute rkg-wall --remote --file=reset.sql"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",

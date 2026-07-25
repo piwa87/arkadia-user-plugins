@@ -2,7 +2,7 @@ import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 import type { Baza } from './store';
 
-export function setupAliasy(api: PluginApi, baza: Baza, odswiezPodswietlenie: () => void): void {
+export function setupAliasy(api: PluginApi, baza: Baza): void {
   // Colors are built once here, never inside a callback.
   const kolorNazwy = getAnsiFormatState(110, api);
   const kolorRoli = getAnsiFormatState(11, api);
@@ -23,11 +23,9 @@ export function setupAliasy(api: PluginApi, baza: Baza, odswiezPodswietlenie: ()
     ['rkg-', 'przerwij trwajacy run'],
     ['rkgshow!', 'pokaz zebrane kluby wraz z tytulami wladz'],
     ['rkghof', 'okno Sali Chwaly: wyslij i przegladaj publiczne nazwy'],
+    ['rkgwyslij [x]', 'wyslij ostatni klub na sciane (x = nick, - = anonimowo)'],
     ['rkgnick <x>', 'ustaw publiczny nick (rkgnick - = anonim + cofnij zgode)'],
-    ['rkgwall <url>', 'ustaw adres serwera sciany'],
-    ['rkgnazwy', 'pokaz baze rzeczownikow'],
-    ['rkgnazwy+ <x>', 'dodaj rzeczownik do bazy'],
-    ['rkg? / rkg?? / rkg?-', 'rejestrator logu dialogu: start / pokaz / stop'],
+    ['rkgnuke <klucz>', 'BETA: skasuj cala sciane (rkgnuke - = tylko lokalna lista)'],
     ['rkg / rkghelp', 'ta pomoc'],
   ];
 
@@ -57,32 +55,6 @@ export function setupAliasy(api: PluginApi, baza: Baza, odswiezPodswietlenie: ()
       if (w.role?.czlonek) drukuj(`      czlonek:   ${w.role.czlonek}`, kolorRoli);
     }
     info(`[rkg] razem: ${baza.wpisy.length}`);
-    return true;
-  });
-
-  // ── rkgnazwy — the noun base the dialogue answers from ────────────────────
-  api.aliases.register(/^rkgnazwy$/i, () => {
-    info(
-      baza.rzeczowniki.length === 0
-        ? '[rkg] rzeczowniki: (pusto)'
-        : `[rkg] rzeczowniki (${baza.rzeczowniki.length}): ${baza.rzeczowniki.join(', ')}`,
-    );
-    return true;
-  });
-
-  api.aliases.register(/^rkgnazwy\+\s+(.+)$/i, (matches) => {
-    const slowo = matches?.[1]?.trim().toLowerCase();
-    if (!slowo) {
-      info('[rkg] uzycie: rkgnazwy+ <slowo>');
-      return true;
-    }
-    if (baza.rzeczowniki.includes(slowo)) {
-      info(`[rkg] juz jest: ${slowo}`);
-      return true;
-    }
-    baza.scalRzeczowniki([slowo]);
-    odswiezPodswietlenie();
-    info(`[rkg] dodano: ${slowo}`);
     return true;
   });
 }

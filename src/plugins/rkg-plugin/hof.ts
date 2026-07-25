@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import type {
+  CzystkaResponse,
   GlosResponse,
   ListaResponse,
   Pozycja,
@@ -9,28 +10,30 @@ import type {
 } from '../../shared/rkg-api';
 import { WZORZEC_NICKA } from '../../shared/rkg-grammar';
 import { storage } from '../../lib/storage';
+import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
+import { getCharName } from '../../lib/getCharName';
 import type { Baza } from './store';
 
 /**
  * "Sala Chwaly" — share generated clubs to the public wall and browse the top
- * ones, from a popup inside the client.
+ * ones.
+ *
+ * Two front-ends, deliberately: the end-of-run offer is a single clickable line
+ * in the game output (`zaproponuj`), because publishing is a one-shot yes/no and
+ * a modal for it is heavier than the decision; the popup is only for browsing
+ * "Moje"/"Top", where a window earns its keep.
  *
  * The wall API is a different origin than the game client, so every call goes
  * through `zapytaj`, which never throws and never blocks: it times out, and any
- * failure returns `{ ok: false }` so the popup can show a message. `rkg!`,
+ * failure returns `{ ok: false }` so the caller can show a message. `rkg!`,
  * `rkgshow!` and the "Moje" tab all keep working with the wall down.
  */
 
-const DOMYSLNY_WALL = 'https://rkg.piwa87.workers.dev';
-const KL_WALL = 'rkg:wall';
+const WALL = 'https://rkg.piwa87.workers.dev';
 const KL_GLOSUJACY = 'rkg:glosujacy';
 const KL_NICK = 'rkg:nick';
 const KL_ZGODA = 'rkg:zgoda';
 const TIMEOUT_MS = 8000;
-
-function wallBase(): string {
-  return (storage.get<string>(KL_WALL) ?? DOMYSLNY_WALL).replace(/\/+$/, '');
-}
 
 function glosujacy(): string {
   let id = storage.get<string>(KL_GLOSUJACY);
@@ -43,10 +46,21 @@ function glosujacy(): string {
 
 type Odp<T> = { ok: true; dane: T } | { ok: false; blad: string };
 
-export function setupHof(api: PluginApi, baza: Baza): () => void {
+export interface Hof {
+  /** Offer to publish a just-generated club as a clickable line of output. */
+  zaproponuj(w: WpisLokalny): void;
+  zatrzymaj(): void;
+}
+
+export function setupHof(api: PluginApi, baza: Baza): Hof {
   const aktywne = new Set<AbortController>();
+  const wTrakcie = new Set<string>();
   let popup: Awaited<ReturnType<PluginApi['ui']['registerPersistentPopup']>> | null = null;
   let zakladka: 'moje' | 'top' = 'moje';
+
+  // Built once, never inside a callback.
+  const kolorInfo = getAnsiFormatState(3, api);
+  const kolorAkcja = getAnsiFormatState(14, api);
 
   const info = (t: string) => api.output.print(`[rkg] ${t}`);
 
@@ -55,7 +69,7 @@ export function setupHof(api: PluginApi, baza: Baza): () => void {
     aktywne.add(ctrl);
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     try {
-      const res = await fetch(wallBase() + sciezka, { ...init, signal: ctrl.signal });
+      const res = await fetch(WALL + sciezka, { ...init, signal: ctrl.signal });
       const data = await res.json().catch(() => null);
       if (!res.ok) return { ok: false, blad: (data && data.blad) || `HTTP ${res.status}` };
       return { ok: true, dane: data as T };
@@ -82,7 +96,11 @@ export function setupHof(api: PluginApi, baza: Baza): () => void {
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
-  async function wyslij(w: WpisLokalny): Promise<void> {
+  async function wyslij(w: WpisLokalny, nick?: string | null): Promise<void> {
+    // `undefined` = whatever is saved; `null` = deliberately anonymous.
+    const podpis = nick === undefined ? storage.get<string>(KL_NICK) : nick;
+    if (wTrakcie.has(w.id)) return;
+    wTrakcie.add(w.id);
     const payload: ZgloszenieRequest = {
       typ: w.typ,
       przymiotnik: w.przymiotnik,
@@ -91,19 +109,24 @@ export function setupHof(api: PluginApi, baza: Baza): () => void {
       przypadek: w.przypadek,
       wynik: w.wynik,
       role: w.role,
-      nick: storage.get<string>(KL_NICK) || undefined,
+      nick: podpis || undefined,
       glosujacy: glosujacy(),
     };
-    const odp = await zapytaj<ZgloszenieResponse>('/api/nazwy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (odp.ok) {
-      baza.oznaczWyslany(w.id, odp.dane.id);
-      info(odp.dane.duplikat ? `juz bylo: ${w.wynik}` : `wyslano: ${w.wynik}`);
-    } else {
-      info(`nie wyslano (${odp.blad})`);
+    try {
+      const odp = await zapytaj<ZgloszenieResponse>('/api/nazwy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (odp.ok) {
+        baza.oznaczWyslany(w.id, odp.dane.id);
+        const jako = podpis ? ` jako ${podpis}` : ' anonimowo';
+        info(odp.dane.duplikat ? `juz bylo: ${w.wynik}` : `wyslano${jako}: ${w.wynik}`);
+      } else {
+        info(`nie wyslano (${odp.blad})`);
+      }
+    } finally {
+      wTrakcie.delete(w.id);
     }
     przerysuj();
   }
@@ -114,6 +137,95 @@ export function setupHof(api: PluginApi, baza: Baza): () => void {
     } else {
       pokazZgode(w);
     }
+  }
+
+  /**
+   * The nick to offer: whatever you saved, else your own character name from
+   * GMCP (title-cased). Null when neither is usable — the offer then only has an
+   * anonymous action, plus a hint about `rkgnick`.
+   */
+  function domyslnyNick(): string | null {
+    const zapisany = storage.get<string>(KL_NICK);
+    if (zapisany) return zapisany;
+    const imie = getCharName(api); // lowercased, '' until GMCP reports it
+    if (!imie) return null;
+    const kandydat = imie.charAt(0).toUpperCase() + imie.slice(1);
+    return WZORZEC_NICKA.test(kandydat) ? kandydat : null;
+  }
+
+  /** Printed once, before the first send, so the choice is an informed one. */
+  function ujawnij(): void {
+    if (storage.get<boolean>(KL_ZGODA)) return;
+    const t = '[rkg] na publiczna sciane ida: nazwa klubu, tytuly wladz i nick. Nic wiecej.';
+    const buf = new api.AnsiAwareBuffer(t);
+    buf.color([0, t.length], kolorInfo);
+    api.output.print(buf);
+  }
+
+  function klik(w: WpisLokalny, nick: string | null): void {
+    if (w.wyslane) {
+      info(`juz wyslane: ${w.wynik}`);
+      return;
+    }
+    // Choosing "anonimowo" is a per-send choice; it does not erase a saved nick.
+    if (nick) storage.set(KL_NICK, nick);
+    storage.set(KL_ZGODA, true);
+    void wyslij(w, nick);
+  }
+
+  /**
+   * The end-of-run offer: one line of output with clickable actions. No window —
+   * publishing is a yes/no, and the nick decision is "me or anonymous", which
+   * two links answer without any typing.
+   *
+   * Never throws: it runs from the dialogue runner's timer, where an exception
+   * would abort the run. If the client cannot render links it degrades to a hint.
+   */
+  function zaproponuj(w: WpisLokalny): void {
+    try {
+      ujawnij();
+      const nick = domyslnyNick();
+      const buf = new api.AnsiAwareBuffer('[rkg] na sciane?  ', kolorInfo);
+      if (nick) {
+        akcja(buf, `[wyslij jako ${nick}]`, `Wyslij na sciane i zapamietaj nick ${nick}`, () =>
+          klik(w, nick),
+        );
+        akcja(buf, '  [anonimowo]', 'Wyslij bez podpisu', () => klik(w, null));
+      } else {
+        akcja(buf, '[wyslij anonimowo]', 'Wyslij bez podpisu', () => klik(w, null));
+      }
+      akcja(buf, '  [nie]', 'Zostaw tylko lokalnie', () =>
+        info('ok — pozniej: rkgwyslij albo rkghof'),
+      );
+      if (!nick) buf.append('   (podpis: rkgnick <x>)', kolorInfo);
+      api.output.print(buf);
+    } catch {
+      info('rkghof — okno Sali Chwaly, aby wyslac klub na sciane');
+    }
+  }
+
+  /** Append a clickable, underlined action to a line of output. */
+  function akcja(
+    buf: InstanceType<PluginApi['AnsiAwareBuffer']>,
+    tekst: string,
+    tytul: string,
+    fn: () => void,
+  ): void {
+    buf.append(tekst, {
+      ...kolorAkcja,
+      underline: true,
+      // A click handler must never throw into the client's event loop.
+      hyperlink: {
+        title: tytul,
+        onClick: () => {
+          try {
+            fn();
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+    });
   }
 
   async function glosuj(id: string, wartosc: 1 | -1): Promise<void> {
@@ -284,31 +396,78 @@ export function setupHof(api: PluginApi, baza: Baza): () => void {
     return true;
   });
 
-  api.aliases.register(/^rkgwall(?:\s+(.+))?$/i, (m) => {
+  // ── rkgwyslij — the keyboard path to the same thing the links do ───────────
+  api.aliases.register(/^rkgwyslij(?:\s+(.+))?$/i, (m) => {
     const arg = m?.[1]?.trim();
-    if (!arg) {
-      info(`wall: ${wallBase()}`);
+    const w = [...baza.wpisy].reverse().find((x) => !x.wyslane);
+    if (!w) {
+      info('nie ma czego wyslac — uzyj rkg!');
       return true;
     }
-    if (!/^https?:\/\//.test(arg)) {
-      info('podaj pelny adres, np. rkgwall https://rkg-wall.twoj.workers.dev');
+    let nick: string | null;
+    if (!arg) nick = domyslnyNick();
+    else if (arg === '-') nick = null;
+    else if (!WZORZEC_NICKA.test(arg)) {
+      info('nick: 2-16 znakow A-Z, 0-9, _ lub -');
       return true;
-    }
-    storage.set(KL_WALL, arg.replace(/\/+$/, ''));
-    info(`wall ustawiony: ${wallBase()}`);
+    } else nick = arg;
+    ujawnij();
+    klik(w, nick);
     return true;
   });
 
-  return () => {
-    for (const c of aktywne) c.abort();
-    aktywne.clear();
-    popup?.close();
-    popup = null;
+  // ── rkgnuke — beta wipe ────────────────────────────────────────────────────
+  // Clears the public wall AND the local list, in that order: if the server call
+  // fails there is nothing to be out of sync with. The key is never stored — it
+  // is typed each time, so a published plugin file gives nobody the ability.
+  api.aliases.register(/^rkgnuke(?:\s+(.+))?$/i, (m) => {
+    const klucz = m?.[1]?.trim();
+    if (!klucz) {
+      info('uzycie: rkgnuke <klucz> — kasuje CALA sciane i lokalna liste, bez cofniecia');
+      info('       rkgnuke - — kasuje tylko lokalna liste (rkg:wpisy), sciany nie rusza');
+      return true;
+    }
+    if (klucz === '-') {
+      const ile = baza.wyczysc();
+      info(`lokalna lista wyczyszczona (${ile}) — sciana bez zmian`);
+      przerysuj();
+      return true;
+    }
+    void (async () => {
+      const odp = await zapytaj<CzystkaResponse>('/api/nazwy', {
+        method: 'DELETE',
+        headers: { 'X-RKG-Admin': klucz },
+      });
+      if (!odp.ok) {
+        info(`nie wyczyszczono (${odp.blad})`);
+        return;
+      }
+      const lokalne = baza.wyczysc();
+      topPozycje = null; // force the Top tab to refetch rather than show ghosts
+      info(
+        `sciana wyczyszczona: ${odp.dane.nazwy} nazw, ${odp.dane.glosy} glosow` +
+          ` (lokalnie: ${lokalne})`,
+      );
+      przerysuj();
+    })();
+    return true;
+  });
+
+  return {
+    zaproponuj,
+    zatrzymaj: () => {
+      for (const c of aktywne) c.abort();
+      aktywne.clear();
+      popup?.close();
+      popup = null;
+    },
   };
 }
 
 const STYLE = `
-.rkg-hof { min-width: 280px; max-width: 420px; font: 13px/1.45 system-ui, sans-serif; }
+/* The popup body supplies no padding of its own — without this the content sits
+   flush in the corner. */
+.rkg-hof { min-width: 280px; max-width: 420px; padding: 14px 16px 16px; box-sizing: border-box; font: 13px/1.45 system-ui, sans-serif; }
 .rkg-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .rkg-tab { border: 1px solid #8884; background: transparent; color: inherit; padding: 5px 14px; border-radius: 999px; cursor: pointer; }
 .rkg-tab.akt { background: #f0b42933; border-color: #f0b429; font-weight: 600; }

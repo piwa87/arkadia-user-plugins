@@ -50,13 +50,27 @@ function podaj(mock: Mock, ...linie: string[]) {
  * Drive a full `utworz klub` walkthrough, transcript-faithful (including the
  * `* option` menus and the multi-line summary), ending at the confirmation.
  */
-function przejdzCalyDialog(mock: Mock, opcje: { pluraleTantum?: boolean } = {}) {
+function przejdzCalyDialog(
+  mock: Mock,
+  opcje: { pluraleTantum?: boolean; plecNarzucona?: boolean } = {},
+) {
   odpal(mock, 'rkg!');
   podaj(mock, 'Jaki charakter ma miec klub? Jawny czy niejawny?');
   // Type is answered from the static list; the menu bullets are ignored.
   podaj(mock, 'Jakiego typu ma to byc klub? Do wyboru masz:', '\t* banda', '\t* loza', '\t* liga');
-  podaj(mock, 'Jakiej plci maja byc czlonkowie klubu? Dowolnej czy wylacznie meskiej?');
-  podaj(mock, 'Jaka ma byc nazwa klubu? Utworzona od twojego imienia czy nazwa wlasna?');
+  if (opcje.plecNarzucona) {
+    // A gender-locked type (braterstwo): the game states the restriction and
+    // never asks about plec.
+    podaj(
+      mock,
+      'Klub bedzie braterstwem. Ten typ pozwala na przyjmowanie wylacznie mezczyzn.',
+      '',
+      'Jaka ma byc nazwa klubu? Utworzona od twojego imienia czy nazwa wlasna?',
+    );
+  } else {
+    podaj(mock, 'Jakiej plci maja byc czlonkowie klubu? Dowolnej czy wylacznie meskiej?');
+    podaj(mock, 'Jaka ma byc nazwa klubu? Utworzona od twojego imienia czy nazwa wlasna?');
+  }
   // Noun: answered directly from the static base, single round-trip.
   podaj(mock, 'Podaj rzeczownik lub wyswietl dopuszczone do uzytku z jednej z kategorii:', '\t* bronie', '\t* ryby');
   podaj(mock, 'Podaj przymiotnik, ktory ma okreslac wybrany rzeczownik.');
@@ -199,6 +213,29 @@ describe('rkg! creation dialogue', () => {
     await destroy();
   });
 
+  it('handles a gender-locked type where the game skips the plec question', async () => {
+    const mock = createMockApi();
+    await init(mock.api);
+
+    przejdzCalyDialog(mock, { plecNarzucona: true });
+
+    const cmds = wyslane(mock);
+    // It recovered: reached the summary and cancelled, never stalled.
+    expect(cmds[cmds.length - 1]).toBe('**');
+    expect(cmds).not.toContain('dowolnej'); // never answered a question not asked
+    expect(cmds).toContain('nazwa');
+    expect(mock.triggers).toHaveLength(0);
+    expect(mock.oneTimeTriggers).toHaveLength(0);
+    expect(wydrukowane(mock).some((t) => t.includes('przerwano'))).toBe(false);
+
+    const wpisy = storage.get<WpisLokalny[]>('rkg:wpisy') ?? [];
+    expect(wpisy).toHaveLength(1);
+    // The restriction the game stated is recorded instead of our default.
+    expect(wpisy[0].plec).toBe('meskiej');
+
+    await destroy();
+  });
+
   it('only sends the next answer once its prompt arrives', async () => {
     const mock = createMockApi();
     await init(mock.api);
@@ -243,6 +280,34 @@ describe('rkg! creation dialogue', () => {
     expect(printed.some((t) => t.includes('przerwano'))).toBe(true);
     expect(mock.oneTimeTriggers).toHaveLength(0);
     expect(mock.triggers).toHaveLength(0);
+
+    await destroy();
+  });
+
+  it('offers the finished club for publishing, inline', async () => {
+    const mock = createMockApi();
+    await init(mock.api);
+
+    przejdzCalyDialog(mock);
+
+    expect(wydrukowane(mock).some((t) => t.includes('na sciane?'))).toBe(true);
+
+    await destroy();
+  });
+
+  it('still records the club when the offer cannot be rendered', async () => {
+    const mock = createMockApi();
+    // A client that chokes on the clickable line must not take the run with it.
+    (mock.api.output.print as any).mockImplementation((arg: any) => {
+      if (String(arg?.text ?? arg).includes('na sciane?')) throw new Error('brak linkow');
+    });
+    await init(mock.api);
+
+    przejdzCalyDialog(mock);
+
+    // The run completed normally: cancelled the dialogue and stored the club.
+    expect(wyslane(mock)[wyslane(mock).length - 1]).toBe('**');
+    expect(storage.get<WpisLokalny[]>('rkg:wpisy') ?? []).toHaveLength(1);
 
     await destroy();
   });

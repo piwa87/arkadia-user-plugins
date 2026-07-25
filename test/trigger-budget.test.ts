@@ -35,9 +35,8 @@ describe('per-line trigger budget', () => {
   });
 
   it('keeps rkg-plugin off the per-line walk entirely', async () => {
-    // rkg-plugin's triggers are all armed on demand — the noun highlighter is
-    // token-indexed, the dialogue's parsers exist only during a run, and the
-    // transcript recorder's catch-all only while it is recording.
+    // rkg-plugin registers nothing at init: the dialogue's parsers are armed on
+    // demand and live only for the duration of a run.
     vi.stubGlobal('localStorage', {
       getItem: () => null,
       setItem: () => {},
@@ -50,7 +49,7 @@ describe('per-line trigger budget', () => {
 
     expect(rkg.triggers).toHaveLength(0);
     expect(rkg.oneTimeTriggers).toHaveLength(0);
-    expect(rkg.tokenTriggers.length).toBeGreaterThan(0);
+    expect(rkg.tokenTriggers).toHaveLength(0);
 
     await destroyRkg();
   });

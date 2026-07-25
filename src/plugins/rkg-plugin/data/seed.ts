@@ -6,7 +6,7 @@
  * `zastepca` — itself a leadership title, not an accepted noun, so the dialogue
  * would have rejected it. The pool changes rarely, so `rkg!` answers the noun
  * prompt directly from this base rather than walking the category sub-menus on
- * every run. `rkgnazwy+ <slowo>` tops it up by hand.
+ * every run. The base is fixed in code — edit this file to extend it.
  *
  * Kept grouped by category (verbatim game output) so it stays diffable when the
  * MUD adds a noun. The lists are flattened and de-duplicated below — several

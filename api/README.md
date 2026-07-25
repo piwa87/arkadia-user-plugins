@@ -30,26 +30,40 @@ npx wrangler login
 # 1. create the database, then paste the printed database_id into wrangler.toml
 npx wrangler d1 create rkg-wall
 
-# 2. create the tables (remote + local dev copy)
+# 2. create the tables
 yarn db:init
-yarn db:init:local
 
 # 3. build the site so the Worker has assets to serve
 cd ../web && yarn install && yarn build && cd ../api
+
+# 4. beta only — the key that authorises wiping the wall (see below)
+npx wrangler secret put RKG_ADMIN
 ```
 
-Set `RKG_CORS` in `wrangler.toml` to the Arkadia web client's real origin (plus
-`http://localhost:3030` for local plugin dev). Tune `RKG_LIMIT_ZGLOSZEN` /
-`RKG_LIMIT_GLOSOW` (per-device hourly caps) if needed.
+Set `RKG_CORS` in `wrangler.toml` to the Arkadia web client's real origin — that
+is the origin of the page the plugin runs in, not wherever the plugin `.js` is
+hosted. Tune `RKG_LIMIT_ZGLOSZEN` / `RKG_LIMIT_GLOSOW` (per-device hourly caps)
+if needed.
 
-## Develop locally
+There is no local setup: one remote database, one deployment. Everything is
+exercised against the deployed Worker.
+
+## Wiping the wall (beta)
+
+Two ways, both irreversible:
 
 ```bash
-cd api && npx wrangler dev        # serves site + API on http://localhost:8787
+cd api && yarn db:reset            # runs reset.sql against the remote D1
 ```
 
-Point the plugin at it in-game with `rkgwall http://localhost:8787`, then use the
-**Wyslij** button in the `rkghof` popup.
+or in the game client: `rkgnuke <klucz>`, where `<klucz>` is the `RKG_ADMIN`
+secret. That calls `DELETE /api/nazwy` and then clears the local list too.
+`rkgnuke -` clears only the local list.
+
+`RKG_ADMIN` is a Worker **secret**, never a `[vars]` entry — it must not be in
+this repo, and the plugin never stores it (you type it each time). With the
+secret unset the DELETE route answers 404, which is where it should be left once
+beta is over.
 
 ## Deploy
 
@@ -57,10 +71,9 @@ Point the plugin at it in-game with `rkgwall http://localhost:8787`, then use th
 cd web && yarn build && cd ../api && npx wrangler deploy
 ```
 
-The Worker prints its URL (e.g. `https://rkg-wall.<you>.workers.dev`). Set that as
-the plugin's wall with `rkgwall <url>` (or bake it into `DOMYSLNY_WALL` in
-`src/plugins/rkg-plugin/hof.ts` before building the plugin). A custom domain can be
-attached in the Cloudflare dashboard.
+The Worker prints its URL (e.g. `https://rkg-wall.<you>.workers.dev`). Put that in
+`WALL` in `src/plugins/rkg-plugin/hof.ts` and rebuild the plugin. A custom domain
+can be attached in the Cloudflare dashboard.
 
 ## API
 
@@ -69,6 +82,7 @@ attached in the Cloudflare dashboard.
 | `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (dedupes by normalised name; repeat bumps `zgloszenia`) |
 | `GET` | `/api/nazwy?sort=top\|nowe\|losowe&cursor&limit` | — | `ListaResponse` |
 | `POST` | `/api/nazwy/:id/glos` | `GlosRequest` (`wartosc` 1/-1/0) | `GlosResponse` |
+| `DELETE` | `/api/nazwy` | — (header `X-RKG-Admin: <RKG_ADMIN>`) | `CzystkaResponse` — wipes every row; 404 when `RKG_ADMIN` is unset |
 
 Types are the single source of truth in [`src/shared/rkg-api.ts`](../src/shared/rkg-api.ts).
 

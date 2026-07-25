@@ -37,21 +37,21 @@ function odpal(mock: Mock, wejscie: string): boolean {
 }
 
 describe('rkg-plugin init', () => {
-  it('registers no always-on regex triggers', async () => {
+  it('registers no triggers at all — everything is armed on demand', async () => {
     const mock = createMockApi();
     await init(mock.api);
     expect(mock.triggers).toHaveLength(0);
     expect(mock.oneTimeTriggers).toHaveLength(0);
+    expect(mock.tokenTriggers).toHaveLength(0);
     await destroy();
   });
 
-  it('highlights tracked nouns via token triggers', async () => {
+  it('leaves game output untouched', async () => {
     const mock = createMockApi();
     await init(mock.api);
-    expect(mock.tokenTriggers.map((t) => t.token)).toContain('korbacz');
 
     const line = runLine(mock, 'Na ziemi lezy zardzewialy korbacz.');
-    expect(line!.colorWords).toHaveBeenCalled();
+    expect(line!.colorWords).not.toHaveBeenCalled();
     await destroy();
   });
 });
@@ -94,87 +94,14 @@ describe('rkgshow!', () => {
   });
 });
 
-describe('rkgnazwy', () => {
-  it('adds a noun, persists it and starts highlighting it', async () => {
-    const mock = createMockApi();
-    await init(mock.api);
-
-    odpal(mock, 'rkgnazwy+ mantikora');
-    expect(mock.tokenTriggers.map((t) => t.token)).toContain('mantikora');
-
-    (mock.api.output.print as any).mockClear();
-    odpal(mock, 'rkgnazwy');
-    expect(wydrukowane(mock)[0]).toContain('mantikora');
-    await destroy();
-  });
-
-  it('refuses a duplicate without touching the list', async () => {
-    const mock = createMockApi();
-    await init(mock.api);
-    odpal(mock, 'rkgnazwy+ mantikora');
-    const przed = mock.tokenTriggers.length;
-
-    (mock.api.output.print as any).mockClear();
-    odpal(mock, 'rkgnazwy+ mantikora');
-
-    expect(wydrukowane(mock)[0]).toContain('juz jest');
-    expect(mock.tokenTriggers).toHaveLength(przed);
-    await destroy();
-  });
-});
-
-describe('rkg? recorder', () => {
-  it('captures output only while recording', async () => {
-    const mock = createMockApi();
-    await init(mock.api);
-
-    runLine(mock, 'linia przed nagraniem');
-    odpal(mock, 'rkg?');
-    runLine(mock, 'Jaki typ organizacji?');
-    odpal(mock, 'rkg?-');
-    runLine(mock, 'linia po nagraniu');
-
-    (mock.api.output.print as any).mockClear();
-    odpal(mock, 'rkg??');
-    const zrzut = wydrukowane(mock).join('\n');
-
-    expect(zrzut).toContain('Jaki typ organizacji?');
-    expect(zrzut).not.toContain('linia przed nagraniem');
-    expect(zrzut).not.toContain('linia po nagraniu');
-    await destroy();
-  });
-
-  it('removes its catch-all trigger when stopped', async () => {
-    const mock = createMockApi();
-    await init(mock.api);
-
-    odpal(mock, 'rkg?');
-    expect(mock.triggers).toHaveLength(1);
-    odpal(mock, 'rkg?-');
-    expect(mock.triggers).toHaveLength(0);
-    await destroy();
-  });
-
-  it('passes lines through unchanged', async () => {
-    const mock = createMockApi();
-    await init(mock.api);
-    odpal(mock, 'rkg?');
-    const line = runLine(mock, 'Jaki typ organizacji?');
-    expect(line).not.toBeNull();
-    expect(line!.text).toBe('Jaki typ organizacji?');
-    await destroy();
-  });
-});
-
 describe('rkg-plugin destroy', () => {
-  it('leaves no trigger of any kind behind, even mid-recording', async () => {
+  it('leaves no trigger of any kind behind', async () => {
     const mock = createMockApi();
     await init(mock.api);
-    expect(mock.tokenTriggers.length).toBeGreaterThan(0);
 
-    // Arm the recorder so destroy() has a live regular trigger to clean up too.
-    odpal(mock, 'rkg?');
-    expect(mock.triggers.length).toBeGreaterThan(0);
+    // Start a run so destroy() has live dialogue triggers to clean up.
+    odpal(mock, 'rkg!');
+    expect(mock.oneTimeTriggers.length).toBeGreaterThan(0);
 
     await destroy();
 

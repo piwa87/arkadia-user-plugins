@@ -1,4 +1,5 @@
 import type {
+  CzystkaResponse,
   GlosResponse,
   ListaResponse,
   Pozycja,
@@ -23,6 +24,12 @@ export interface Env {
   RKG_CORS?: string;
   RKG_LIMIT_ZGLOSZEN?: string;
   RKG_LIMIT_GLOSOW?: string;
+  /**
+   * Admin key for `DELETE /api/nazwy` (the beta wipe). A Worker SECRET, never a
+   * var — set it with `wrangler secret put RKG_ADMIN`. Unset means the route is
+   * disabled outright, which is the correct state once beta ends.
+   */
+  RKG_ADMIN?: string;
 }
 
 const GODZINA = 3_600_000;
@@ -41,8 +48,8 @@ function naglowkiCors(req: Request, env: Env): Record<string, string> {
   const h: Record<string, string> = { Vary: 'Origin' };
   if (origin && dozwolone.includes(origin)) {
     h['Access-Control-Allow-Origin'] = origin;
-    h['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS';
-    h['Access-Control-Allow-Headers'] = 'Content-Type';
+    h['Access-Control-Allow-Methods'] = 'GET,POST,DELETE,OPTIONS';
+    h['Access-Control-Allow-Headers'] = 'Content-Type,X-RKG-Admin';
     h['Access-Control-Max-Age'] = '86400';
   }
   return h;
@@ -230,6 +237,42 @@ async function postGlos(id: string, req: Request, env: Env, cors: Record<string,
   return json(res, 200, cors);
 }
 
+/**
+ * `DELETE /api/nazwy` — wipe the wall, keep the schema. Beta escape hatch for
+ * the one person running this; there is no undo and no soft-delete.
+ *
+ * Auth is a single shared key in the `X-RKG-Admin` header, compared against the
+ * `RKG_ADMIN` secret. No secret configured → 404, so the route is invisible
+ * (and unusable) on a deployment that has not opted in.
+ */
+async function deleteWszystko(req: Request, env: Env, cors: Record<string, string>) {
+  const klucz = env.RKG_ADMIN;
+  if (!klucz) return blad('nie znaleziono', 404, cors);
+  if (!bezpiecznyRowny(req.headers.get('X-RKG-Admin') ?? '', klucz)) {
+    return blad('brak dostepu', 403, cors);
+  }
+
+  // Children first — glosy/zdarzenia are meaningless without their names.
+  const glosy = await env.DB.prepare('DELETE FROM glosy').run();
+  const zdarzenia = await env.DB.prepare('DELETE FROM zdarzenia').run();
+  const nazwy = await env.DB.prepare('DELETE FROM nazwy').run();
+
+  const res: CzystkaResponse = {
+    nazwy: nazwy.meta.changes ?? 0,
+    glosy: glosy.meta.changes ?? 0,
+    zdarzenia: zdarzenia.meta.changes ?? 0,
+  };
+  return json(res, 200, cors);
+}
+
+/** Length-independent, early-exit-free comparison — no timing oracle on the key. */
+function bezpiecznyRowny(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let rozne = 0;
+  for (let i = 0; i < a.length; i++) rozne |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return rozne === 0;
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -244,6 +287,7 @@ export default {
       if (url.pathname === '/api/nazwy') {
         if (req.method === 'GET') return await getLista(url, env, cors);
         if (req.method === 'POST') return await postZgloszenie(req, env, cors);
+        if (req.method === 'DELETE') return await deleteWszystko(req, env, cors);
       }
       const m = url.pathname.match(/^\/api\/nazwy\/([A-Za-z0-9-]{8,64})\/glos$/);
       if (m && req.method === 'POST') return await postGlos(m[1], req, env, cors);

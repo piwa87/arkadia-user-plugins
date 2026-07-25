@@ -1,11 +1,29 @@
 import { vi } from 'vitest';
 import type { PluginApi } from '@arkadia/plugin-types';
 
+export interface MockSegment {
+  text: string;
+  state?: any;
+}
+
 export class MockAnsiAwareBuffer {
-  constructor(public text: string = '') {}
-  append(text: string, _state?: unknown): this {
+  /** Appended pieces with their format state — lets tests reach hyperlinks. */
+  segments: MockSegment[] = [];
+  constructor(public text: string = '', state?: unknown) {
+    if (text) this.segments.push({ text, state });
+  }
+  append(text: string, state?: unknown): this {
     this.text += text;
+    this.segments.push({ text, state });
     return this;
+  }
+  /** Click the first segment whose text contains `label`. */
+  klik(label: string): void {
+    const seg = this.segments.find(
+      (s) => s.text.includes(label) && s.state?.hyperlink?.onClick,
+    );
+    if (!seg) throw new Error(`brak klikalnego segmentu: ${label}`);
+    seg.state.hyperlink.onClick(new Event('click') as MouseEvent);
   }
   appendBuffer(buffer: MockAnsiAwareBuffer): this {
     this.text += buffer.text;

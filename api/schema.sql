@@ -1,6 +1,6 @@
 -- RKG wall — D1 (SQLite) schema.
--- Apply with:  wrangler d1 execute rkg-wall --file=schema.sql        (remote)
---              wrangler d1 execute rkg-wall --local --file=schema.sql (local dev)
+-- Apply with:  yarn db:init   (wrangler d1 execute rkg-wall --remote --file=schema.sql)
+-- Wipe rows with: yarn db:reset (see reset.sql)
 
 CREATE TABLE IF NOT EXISTS nazwy (
   id            TEXT PRIMARY KEY,

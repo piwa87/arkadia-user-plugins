@@ -39,9 +39,6 @@ describe('utworzBaze', () => {
     expect(utworzBaze().wpisy).toHaveLength(0);
   });
 
-  it('seeds the noun base', () => {
-    expect(utworzBaze().rzeczowniki).toContain('korbacz');
-  });
 });
 
 describe('dodajWpis', () => {
@@ -78,20 +75,15 @@ describe('oznaczWyslany', () => {
   });
 });
 
-describe('scalRzeczowniki', () => {
-  it('adds new words lowercased and skips repeats', () => {
+describe('wyczysc', () => {
+  it('drops every entry, in memory and on disk', () => {
     const baza = utworzBaze();
-    baza.scalRzeczowniki(['Pled', 'pled', 'korbacz']);
-    expect(baza.rzeczowniki).toContain('pled');
-    expect(baza.rzeczowniki.filter((w) => w === 'pled')).toHaveLength(1);
-    expect(utworzBaze().rzeczowniki).toContain('pled');
-  });
+    baza.dodajWpis(DANE);
+    baza.dodajWpis({ ...DANE, wynik: 'Liga Wrednych Kotow' });
 
-  it('ignores blanks', () => {
-    const baza = utworzBaze();
-    const przed = baza.rzeczowniki.length;
-    baza.scalRzeczowniki(['', '   ']);
-    expect(baza.rzeczowniki).toHaveLength(przed);
+    expect(baza.wyczysc()).toBe(2);
+    expect(baza.wpisy).toHaveLength(0);
+    expect(utworzBaze().wpisy).toHaveLength(0);
   });
 });
 
