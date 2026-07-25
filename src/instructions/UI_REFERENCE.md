@@ -184,14 +184,22 @@ api.bind.clear(): void
 api.bind.getLabel(): string  // returns key label, e.g. "CTRL+]"
 ```
 
+**Gotcha — never pass `printable: null`.** The client dispatches a key press
+only to a bind slot whose `printable` is non-null (`FunctionalBind.isActive()`
+is `currentPrintable !== null`), so `api.bind.set(null, cb)` stores a callback
+that can never fire — by key or by `executeFunctionalBind`. Always pass a
+printable *and* the callback: the callback still takes precedence, and the
+client prints a clickable `bind <key>: <printable>` line as a bonus. Use the
+plugin's own alias as the printable so both paths do the same thing.
+
 ### Examples
 
 ```typescript
 // Bind a command
 api.bind.set("atakuj goblina");
 
-// Bind a callback
-api.bind.set(null, () => {
+// Bind a callback — printable must be non-null (see gotcha above)
+api.bind.set("wylap", () => {
   api.output.print("Akcja!");
 });
 

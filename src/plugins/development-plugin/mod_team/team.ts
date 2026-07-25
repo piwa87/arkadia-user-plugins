@@ -1,6 +1,15 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
-import { getCurrentTeam, getCurrentLeader, getMissingNames, rebuildTeamState, resetTeamState } from './team_state';
+import {
+  getCurrentTeam,
+  getCurrentLeader,
+  getMissingNames,
+  getLearnedNames,
+  forgetLearnedNames,
+  rebuildTeamState,
+  resetTeamState,
+} from './team_state';
+import { startWylap, cancelWylap, printLearned } from './team_wylap';
 import { registerZaslonyTriggers } from './team_zaslony';
 import { destroyTeamColors, rebuildTeamColorTokens } from './team_colors';
 import { registerCelTriggers, registerCelTestAlias } from './team_cel';
@@ -56,22 +65,15 @@ function printTeam(api: PluginApi): void {
   }
 }
 
-// ---- wylap (stub — implemented in a later step) ------------------------------
+// ---- wylap -------------------------------------------------------------------
 
 /**
- * Capture declensions for names missing from the DB.
- * TODO: implement wylap capture (legacy `wylap` / `odmien` flow that asks the
- * game to decline a name and writes the forms back into team_names).
+ * Capture declensions for names missing from the DB: asks the game to decline
+ * each one (`odmien <name>`), stores the forms, then rebuilds the team so they
+ * take effect. Manual only — fired from the functional bind or `wylap`.
  */
 function runWylap(api: PluginApi, names: string[]): void {
-  const buf = new api.AnsiAwareBuffer();
-  buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
-  if (names.length === 0) {
-    buf.append('wylap: brak nazw do odmiany.', api.colors.fromHex(COLOR_WARN));
-  } else {
-    buf.append(`wylap (TODO): odmienilbym ${names.join(', ')}`, api.colors.fromHex(COLOR_WARN));
-  }
-  api.output.print(buf);
+  startWylap(api, names, () => rebuild(api));
 }
 
 // ---- Live-team rebuild -------------------------------------------------------
@@ -83,9 +85,15 @@ function rebuild(api: PluginApi): void {
   for (const name of missing) warnMissing(api, name);
 
   if (missing.length > 0) {
-    // Pre-wire a key bind so the user can fire the (future) wylap capture for
-    // the names we could not decline. The capture itself is implemented later.
-    api.bind.set(null, () => runWylap(api, getMissingNames()));
+    // Wire the functional bind so the user can fire the wylap capture for the
+    // names we could not decline.
+    //
+    // The printable MUST be non-null: the client only dispatches a key press to
+    // a bind slot whose `currentPrintable !== null` (FunctionalBind.isActive),
+    // so `set(null, cb)` installs a callback that can never fire. With a
+    // printable the callback still wins (FunctionalBind.set prefers it) and the
+    // client additionally prints a clickable "bind <key>: wylap" line.
+    api.bind.set('wylap', () => runWylap(api, getMissingNames()));
     const buf = new api.AnsiAwareBuffer();
     buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
     buf.append(`Nacisnij ${api.bind.getLabel()}, aby odmienic brakujace.`, api.colors.fromHex(COLOR_WARN));
@@ -107,8 +115,19 @@ export function setupTeam(api: PluginApi): void {
   api.events.on('teamChange', teamChangeListener);
 
   // Reachable by command as well as by the functional bind.
-  wylapAliasId = api.aliases.register(/^wylap$/i, () => {
-    runWylap(api, getMissingNames());
+  //   wylap           — decline the names currently missing from the DB
+  //   wylap lista     — print the learned declensions (paste-ready DB lines)
+  //   wylap zapomnij  — drop everything learned so far
+  wylapAliasId = api.aliases.register(/^wylap(?:\s+(lista|zapomnij))?$/i, (matches) => {
+    const sub = matches?.[1]?.toLowerCase();
+    if (sub === 'lista') {
+      printLearned(api, getLearnedNames());
+    } else if (sub === 'zapomnij') {
+      forgetLearnedNames();
+      rebuild(api);
+    } else {
+      runWylap(api, getMissingNames());
+    }
     return true;
   });
 
@@ -135,6 +154,7 @@ export function destroyTeam(api: PluginApi): void {
     celtestAliasId = undefined;
   }
   destroyAtaki(api);
+  cancelWylap(api); // drops the wylap parsers + watchdog if a capture is mid-flight
   api.bind.clear();
   api.triggers.removeByTag(TAG);
   destroyTeamColors(api);

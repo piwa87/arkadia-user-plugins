@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { createMockApi, runLine } from '../../../helpers/mockApi';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createMockApi, runLine, type MockApi } from '../../../helpers/mockApi';
 import {
   setupTeam,
   destroyTeam,
@@ -7,6 +7,10 @@ import {
   getCurrentLeader,
   getMissingNames,
 } from '../../../../src/plugins/development-plugin/mod_team/team';
+import {
+  forgetLearnedNames,
+  getLearnedNames,
+} from '../../../../src/plugins/development-plugin/mod_team/team_state';
 
 function sentCommands(mock: ReturnType<typeof createMockApi>): string[] {
   return (mock.api.command.send as any).mock.calls.map(([cmd]: [string]) => cmd);
@@ -63,9 +67,10 @@ describe('mod_team', () => {
     });
     expect(getMissingNames()).toEqual(['Nieznany']);
 
-    // Warning printed and the functional bind armed to fire wylap.
+    // Warning printed and the functional bind armed to fire wylap. The
+    // printable must be non-null or the client never dispatches the key press.
     expect(api.output.print).toHaveBeenCalled();
-    expect(api.bind.set).toHaveBeenCalledWith(null, expect.any(Function));
+    expect(api.bind.set).toHaveBeenCalledWith('wylap', expect.any(Function));
 
     destroyTeam(api);
   });
@@ -98,18 +103,153 @@ describe('mod_team', () => {
     destroyTeam(api);
   });
 
-  it('the wylap alias fires the stub with the missing names', () => {
-    const { api, aliases } = createMockApi();
-    (api.team.getMembers as any).mockReturnValue(['Nieznany']);
-    setupTeam(api);
+  describe('wylap (odmiana capture)', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      forgetLearnedNames();
+    });
 
-    const wylap = aliases.find((a) => a.pattern.test('wylap'));
-    expect(wylap).toBeDefined();
-    (api.output.print as any).mockClear();
-    wylap!.callback();
-    expect(api.output.print).toHaveBeenCalled();
+    /** Fire the functional bind the missing-name warning armed. */
+    function fireBind(mock: MockApi): void {
+      const calls = (mock.api.bind.set as any).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      calls[calls.length - 1][1]();
+    }
 
-    destroyTeam(api);
+    function replyOdmien(mock: MockApi, forms: Record<string, string>): void {
+      runLine(mock, `${forms.M} odmienia sie nastepujaco:`);
+      runLine(mock, '');
+      runLine(mock, `  Mianownik: ${forms.M},`);
+      runLine(mock, ` Dopelniacz: ${forms.D},`);
+      runLine(mock, `   Celownik: ${forms.C},`);
+      runLine(mock, `    Biernik: ${forms.B},`);
+      runLine(mock, `  Narzednik: ${forms.N},`);
+      runLine(mock, `Miejscownik: ${forms.Ms}.`);
+    }
+
+    const JASKO = { M: 'Jasko', D: 'Jaska', C: 'Jaskowi', B: 'Jaska', N: 'Jaskiem', Ms: 'Jasku' };
+
+    it('asks the game to decline missing names and learns the forms', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Jasko']);
+      setupTeam(mock.api);
+      expect(getMissingNames()).toEqual(['Jasko']);
+
+      fireBind(mock);
+      expect(sentCommands(mock)).toContain('odmien Jasko');
+
+      replyOdmien(mock, JASKO);
+      vi.runAllTimers(); // completion delay + the final team rebuild
+
+      expect(getLearnedNames()).toEqual([
+        { M: 'Jasko', B: 'Jaska', C: 'Jaskowi', D: 'Jaska', N: 'Jaskiem' },
+      ]);
+      // The rebuild resolves the name from the learned entry — no longer missing.
+      expect(getMissingNames()).toEqual([]);
+      expect(getCurrentTeam()[0]).toMatchObject({ M: 'Jasko', B: 'Jaska', N: 'Jaskiem' });
+      // Parsers are armed on demand only — nothing left on the per-line walk.
+      expect(mock.triggers).toHaveLength(0);
+      expect(mock.oneTimeTriggers).toHaveLength(0);
+
+      destroyTeam(mock.api);
+    });
+
+    it('walks the whole queue of missing names one command at a time', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Jasko', 'Bolko']);
+      setupTeam(mock.api);
+
+      fireBind(mock);
+      expect(sentCommands(mock)).toContain('odmien Jasko');
+      expect(sentCommands(mock)).not.toContain('odmien Bolko');
+
+      replyOdmien(mock, JASKO);
+      // Only the inter-command gap — running all timers here would also fire
+      // Bolko's freshly armed watchdog.
+      vi.advanceTimersByTime(700);
+      expect(sentCommands(mock)).toContain('odmien Bolko');
+
+      replyOdmien(mock, { M: 'Bolko', D: 'Bolka', C: 'Bolkowi', B: 'Bolka', N: 'Bolkiem', Ms: 'Bolku' });
+      vi.runAllTimers();
+
+      expect(getLearnedNames().map((e) => e.M)).toEqual(['Jasko', 'Bolko']);
+      expect(getMissingNames()).toEqual([]);
+
+      destroyTeam(mock.api);
+    });
+
+    it('gives up on a name the game never answers and disarms the parsers', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Nieznany']);
+      setupTeam(mock.api);
+
+      fireBind(mock);
+      expect(mock.triggers.length).toBeGreaterThan(0); // armed while waiting
+
+      vi.advanceTimersByTime(5000); // watchdog
+      vi.runAllTimers();
+
+      expect(getLearnedNames()).toEqual([]);
+      expect(getMissingNames()).toEqual(['Nieznany']);
+      expect(mock.triggers).toHaveLength(0);
+      expect(mock.oneTimeTriggers).toHaveLength(0);
+
+      destroyTeam(mock.api);
+    });
+
+    it('does not touch the line — the game odmien block still prints', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Jasko']);
+      setupTeam(mock.api);
+      fireBind(mock);
+
+      const header = 'Jasko odmienia sie nastepujaco:';
+      expect(runLine(mock, header)!.text).toBe(header);
+      const biernik = '    Biernik: Jaska,';
+      expect(runLine(mock, biernik)!.text).toBe(biernik);
+
+      destroyTeam(mock.api);
+    });
+
+    it('wylap lista prints learned entries, wylap zapomnij drops them', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Jasko']);
+      setupTeam(mock.api);
+
+      fireBind(mock);
+      replyOdmien(mock, JASKO);
+      vi.runAllTimers();
+
+      const wylap = mock.aliases.find((a) => a.pattern.test('wylap'))!;
+      (mock.api.output.print as any).mockClear();
+      wylap.callback(['wylap lista', 'lista'] as unknown as RegExpMatchArray);
+      const printed = (mock.api.output.print as any).mock.calls.map(([b]: [any]) => b?.text ?? String(b));
+      expect(printed.some((t: string) => t.includes("{ M: 'Jasko', B: 'Jaska'"))).toBe(true);
+
+      wylap.callback(['wylap zapomnij', 'zapomnij'] as unknown as RegExpMatchArray);
+      expect(getLearnedNames()).toEqual([]);
+      expect(getMissingNames()).toEqual(['Jasko']);
+
+      destroyTeam(mock.api);
+    });
+
+    it('refuses to start a second capture while one is running', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Jasko']);
+      setupTeam(mock.api);
+
+      fireBind(mock);
+      fireBind(mock);
+      expect(sentCommands(mock).filter((c) => c === 'odmien Jasko')).toHaveLength(1);
+
+      destroyTeam(mock.api);
+    });
   });
 
   describe('zaslona triggers', () => {

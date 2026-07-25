@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { storage } from '../../../lib/storage';
 import { DRUZYNA_NAMES, type DruzynaName } from './team_names';
 
 /**
@@ -19,6 +20,53 @@ function getNameIndex(): Map<string, DruzynaName> {
     }
   }
   return nameIndex;
+}
+
+// ---- Learned names (wylap capture) -------------------------------------------
+
+/**
+ * Names declined at runtime by the `wylap` capture (game `odmien <name>`) and
+ * persisted in localStorage. They shadow nothing — they are consulted only for
+ * names the generated master DB does not know.
+ */
+const LEARNED_KEY = 'mod_team:odmiany';
+
+let learnedIndex: Map<string, DruzynaName> | null = null;
+
+function getLearnedIndex(): Map<string, DruzynaName> {
+  if (!learnedIndex) {
+    learnedIndex = new Map();
+    for (const entry of storage.get<DruzynaName[]>(LEARNED_KEY) ?? []) {
+      learnedIndex.set(entry.M.toLowerCase(), entry);
+    }
+  }
+  return learnedIndex;
+}
+
+/** All runtime-learned declensions, in insertion order. */
+export function getLearnedNames(): DruzynaName[] {
+  return [...getLearnedIndex().values()];
+}
+
+/** Store a captured declension (in memory + localStorage). Overwrites by M. */
+export function learnName(entry: DruzynaName): void {
+  const index = getLearnedIndex();
+  index.set(entry.M.toLowerCase(), entry);
+  try {
+    storage.set(LEARNED_KEY, [...index.values()]);
+  } catch {
+    // No localStorage (tests / restricted context) — keep the in-memory copy.
+  }
+}
+
+/** Drop all learned declensions, in memory and on disk. Used by `wylap zapomnij`. */
+export function forgetLearnedNames(): void {
+  learnedIndex = new Map();
+  try {
+    storage.remove(LEARNED_KEY);
+  } catch {
+    // No localStorage — the in-memory reset above is all we can do.
+  }
 }
 
 // ---- Live team state ---------------------------------------------------------
@@ -63,11 +111,13 @@ function isSelf(name: string): boolean {
 }
 
 /**
- * Resolve a base (mianownik) name against the DB. Unknown names get a fallback
- * object whose every case form is the raw name (legacy "Brak w bazie" path).
+ * Resolve a base (mianownik) name against the master DB, then against the names
+ * learned by `wylap`. Unknown names get a fallback object whose every case form
+ * is the raw name (legacy "Brak w bazie" path).
  */
 function resolveName(name: string): { entry: DruzynaName; missing: boolean } {
-  const found = getNameIndex().get(name.toLowerCase());
+  const key = name.toLowerCase();
+  const found = getNameIndex().get(key) ?? getLearnedIndex().get(key);
   if (found) return { entry: found, missing: false };
   return { entry: { M: name, B: name, C: name, D: name, N: name }, missing: true };
 }
