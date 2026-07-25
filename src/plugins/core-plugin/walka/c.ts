@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { ensureWeaponDrawn, type DobywanieState } from '../dobywanie/dobywanie_aliases';
+import { ensureWeaponDrawn, type DobywanieState } from '../dobywanie/state';
 
 /**
  * The `c` / `cc` killing aliases — the most-used combat commands. Migrated from

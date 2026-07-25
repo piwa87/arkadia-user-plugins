@@ -1,129 +1,110 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { storage } from '../../../lib/storage';
 import { registerTextAlias } from '../../../lib/registerTextAlias';
+import type { DobywanieState } from '../dobywanie/state';
 
-// --- State ---
+// jens's weapon-drawing (dobywanie) aliases. Migrated from the CMUD
+// `aliasy_dobywania` class. jens carries one weapon at a time (mace / sword /
+// axe); `dob1/dob2/dob3` pick which one `dob` draws.
 
-export type WeaponType = 'maczuga' | 'miecz' | 'topor';
-
-export interface DobywanieState {
-  /** true = weapon is drawn, false = put away */
-  drawn: boolean;
-  /** currently selected weapon (dob/db will draw this) */
-  weapon: WeaponType;
-  /** true = armor is worn */
-  armorWorn: boolean;
-}
+type WeaponType = 'maczuga' | 'miecz' | 'topor';
 
 const WEAPON_KEY = 'dobywanie_weapon';
 
-export function createDobywanieState(): DobywanieState {
-  const savedWeapon = storage.get<WeaponType>(WEAPON_KEY);
-  return { drawn: false, weapon: savedWeapon ?? 'maczuga', armorWorn: true };
-}
+export function setupJensDobywanie(api: PluginApi, state: DobywanieState): void {
+  // Character-local state (the shared DobywanieState only tracks `drawn`).
+  let weapon: WeaponType = storage.get<WeaponType>(WEAPON_KEY) ?? 'maczuga';
+  let armorWorn = true;
 
-// --- Private helpers ---
+  const putAllAway = (): void => {
+    state.drawn = false;
+    api.command.send('wloz miecz do nitowanej pochwy');
+    api.command.send('wloz dobyta bron do swojego temblaka');
+    api.command.send('gzzarzuc zalozona tarcze');
+    api.command.send('otu');
+  };
 
-function putAllAway(api: PluginApi, state: DobywanieState): void {
-  state.drawn = false;
-  api.command.send('wloz miecz do nitowanej pochwy');
-  api.command.send('wloz dobyta bron do swojego temblaka');
-  api.command.send('gzzarzuc zalozona tarcze');
-  api.command.send('otu');
-}
+  const drawMace = (): void => {
+    state.drawn = true;
+    api.command.send('wez maczuge ze swojego temblaka');
+    api.command.send('dobadz maczugi');
+    api.command.send('gzzdejmij');
+    api.command.send('zaloz tarcze');
+  };
 
-function drawMace(api: PluginApi, state: DobywanieState): void {
-  state.drawn = true;
-  api.command.send('wez maczuge ze swojego temblaka');
-  api.command.send('dobadz maczugi');
-  api.command.send('gzzdejmij');
-  api.command.send('zaloz tarcze');
-}
+  const drawSword = (): void => {
+    state.drawn = true;
+    api.command.send('wez miecz z nitowanej pochwy');
+    api.command.send('dobadz miecza');
+    api.command.send('zaloz tarcze');
+  };
 
-function drawSword(api: PluginApi, state: DobywanieState): void {
-  state.drawn = true;
-  api.command.send('wez miecz z nitowanej pochwy');
-  api.command.send('dobadz miecza');
-  api.command.send('zaloz tarcze');
-}
+  const drawAxe = (): void => {
+    state.drawn = true;
+    api.command.send('wez topor ze swojego temblaka');
+    api.command.send('dobadz topora');
+    api.command.send('gzzdejmij');
+    api.command.send('zaloz tarcze');
+  };
 
-function drawAxe(api: PluginApi, state: DobywanieState): void {
-  state.drawn = true;
-  api.command.send('wez topor ze swojego temblaka');
-  api.command.send('dobadz topora');
-  api.command.send('gzzdejmij');
-  api.command.send('zaloz tarcze');
-}
+  const drawCurrent = (): void => {
+    switch (weapon) {
+      case 'maczuga':
+        drawMace();
+        break;
+      case 'miecz':
+        drawSword();
+        break;
+      case 'topor':
+        drawAxe();
+        break;
+    }
+  };
 
-function drawCurrent(api: PluginApi, state: DobywanieState): void {
-  switch (state.weapon) {
-    case 'maczuga':
-      drawMace(api, state);
-      break;
-    case 'miecz':
-      drawSword(api, state);
-      break;
-    case 'topor':
-      drawAxe(api, state);
-      break;
-  }
-}
+  // Let the shared `c`/`cc` kill aliases auto-draw the selected weapon.
+  state.drawCurrent = () => drawCurrent();
 
-// --- Public helpers ---
-
-/**
- * Draw the currently selected weapon if it isn't already in hands.
- * CMUD `#IF (@gdzie_bron=0) {dob}` — used by the `c` killing alias so an attack
- * auto-fetches weapons first. `drawn` is maintained by the dob/opu aliases.
- */
-export function ensureWeaponDrawn(api: PluginApi, state: DobywanieState): void {
-  if (!state.drawn) drawCurrent(api, state);
-}
-
-// --- Alias setup ---
-
-export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): void {
   // dob / db — draw currently selected weapon
   api.aliases.register(/^(?:dob|db)$/, () => {
-    drawCurrent(api, state);
+    drawCurrent();
     return true;
   });
 
   // dobmc — draw mace explicitly
   api.aliases.register(/^dobmc$/, () => {
-    drawMace(api, state);
+    drawMace();
     return true;
   });
 
   // dobm — draw sword explicitly
   api.aliases.register(/^dobm$/, () => {
-    drawSword(api, state);
+    drawSword();
     return true;
   });
 
   // dobt — draw axe explicitly
   api.aliases.register(/^dobt$/, () => {
-    drawAxe(api, state);
+    drawAxe();
     return true;
   });
 
   // dob1/dob2/dob3 — select active weapon (persisted to localStorage)
   api.aliases.register(/^dob1$/, () => {
-    state.weapon = 'maczuga';
+    weapon = 'maczuga';
     storage.set(WEAPON_KEY, 'maczuga');
     api.output.print('--> Macka');
     return true;
   });
 
   api.aliases.register(/^dob2$/, () => {
-    state.weapon = 'miecz';
+    weapon = 'miecz';
     storage.set(WEAPON_KEY, 'miecz');
     api.output.print('--> Miecz');
     return true;
   });
 
   api.aliases.register(/^dob3$/, () => {
-    state.weapon = 'topor';
+    weapon = 'topor';
     storage.set(WEAPON_KEY, 'topor');
     api.output.print('--> Topor');
     return true;
@@ -131,7 +112,7 @@ export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): vo
 
   // opu — sheathe all weapons, sling shield, wrap in cloak
   api.aliases.register(/^opu$/, () => {
-    putAllAway(api, state);
+    putAllAway();
     return true;
   });
 
@@ -143,11 +124,11 @@ export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): vo
 
   // skifb1 — sheathe everything, switch to mace, draw mace
   api.aliases.register(/^skifb1$/, () => {
-    putAllAway(api, state);
-    state.weapon = 'maczuga';
+    putAllAway();
+    weapon = 'maczuga';
     storage.set(WEAPON_KEY, 'maczuga');
     api.output.print('--> Macka');
-    drawMace(api, state);
+    drawMace();
     return true;
   });
 
@@ -183,17 +164,17 @@ export function setupDobywanieAliases(api: PluginApi, state: DobywanieState): vo
 
   // zb! — toggle armor set on/off
   api.aliases.register(/^zb!$/, () => {
-    if (!state.armorWorn) {
+    if (!armorWorn) {
       api.command.send('wlz kapelusz');
       api.command.send('wyj wszystkie zbroje');
       api.command.send('zaloz je');
-      state.armorWorn = true;
+      armorWorn = true;
     } else {
       api.command.send('wlz wszystkie zbroje');
       api.command.send('wyj kapelusz');
       api.command.send('zaloz kapelusz');
       api.command.send('przekrzyw kapelusz nonszalancko');
-      state.armorWorn = false;
+      armorWorn = false;
     }
     return true;
   });

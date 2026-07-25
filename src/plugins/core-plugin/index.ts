@@ -10,7 +10,6 @@ import {
   setupColMovements,
   setupDebugAliases,
   createDobywanieState,
-  setupDobywanieAliases,
   setupDooAliases,
   setupEquipmentAliases,
   setupBattleAliases,
@@ -19,9 +18,11 @@ import {
   setupGmcpCombat,
   setupHelpAliases,
   setupJensEmotes,
+  setupJensDobywanie,
   setupPalenie,
   setupTorbaAliases,
   setupGertrudaEmotes,
+  setupGertrudaDobywanie,
   setupPlecakAliases,
   onCharName,
   setupKarczmaAliases,
@@ -134,7 +135,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupColMovements(api);
   setupCombatAliases(api, targets, ORDINALS, updateFooter);
   setupDebugAliases(api);
-  setupDobywanieAliases(api, dobywanieState);
+  // Weapon-drawing (dobywanie) aliases are character-specific and registered in
+  // onCharName below; the kill alias only needs the shared drawn/drawCurrent state.
   setupKillAlias(api, targets, dobywanieState);
   cleanupDoo = setupDooAliases(api);
   setupEquipmentAliases(api);
@@ -178,10 +180,12 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupCharName = onCharName(api, (name) => {
     if (name === 'jens') {
       setupJensEmotes(api);
+      setupJensDobywanie(api, dobywanieState);
       cleanupPalenie = setupPalenie(api);
       cleanupTorba = setupTorbaAliases(api);
     } else if (name === 'gertruda') {
       setupGertrudaEmotes(api);
+      setupGertrudaDobywanie(api, dobywanieState);
       cleanupPlecak = setupPlecakAliases(api);
     }
     api.output.print(`[Core Plugin] character: ${name}`);
