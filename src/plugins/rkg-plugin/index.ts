@@ -1,6 +1,7 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupAliasy } from './aliases';
 import { utworzBaze } from './store';
+import { setupHof } from './hof';
 import { setupPodswietlenie, TAG_PODSWIETLENIE } from './highlight';
 import { setupKreator, TAG_KREATOR, TAG_MENU } from './creator';
 import { setupRejestrator, TAG_REJESTRATOR } from './recorder';
@@ -24,6 +25,7 @@ const TRIGGER_TAGS = [
 let apiRef: PluginApi | null = null;
 let zatrzymajRejestrator: (() => void) | null = null;
 let zatrzymajKreator: (() => void) | null = null;
+let zatrzymajHof: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   apiRef = api;
@@ -33,6 +35,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupAliasy(api, baza, odswiezPodswietlenie);
   zatrzymajRejestrator = setupRejestrator(api);
   zatrzymajKreator = setupKreator(api, baza);
+  zatrzymajHof = setupHof(api, baza);
 
   const info: PluginInfo = {
     name: 'Rendom Klub Dżenerejtor',
@@ -49,6 +52,8 @@ export async function destroy(): Promise<void> {
   zatrzymajRejestrator = null;
   zatrzymajKreator?.();
   zatrzymajKreator = null;
+  zatrzymajHof?.();
+  zatrzymajHof = null;
   if (apiRef) {
     for (const tag of TRIGGER_TAGS) apiRef.triggers.removeByTag(tag);
   }

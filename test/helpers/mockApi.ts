@@ -232,6 +232,26 @@ export function createMockApi(options?: { room?: any }) {
         footerComponents.push({ id, initialContent: content, handle });
         return handle;
       }),
+      addPopupMenuEntry: vi.fn((_label: unknown, _onSelect: () => void) => ({
+        setLabel: vi.fn(),
+        setDisabled: vi.fn(),
+        remove: vi.fn(),
+      })),
+      // Note: does not invoke createContent — the node test env has no `document`.
+      // Popup DOM rendering is exercised live in the client, not here.
+      registerPersistentPopup: vi.fn(async (_opts: { createContent: () => unknown }) => ({
+        id: 'mock',
+        wasRestored: false,
+        isOpen: false,
+        isPinned: false,
+        open: vi.fn(async () => {}),
+        close: vi.fn(),
+        setTitle: vi.fn(),
+        setBody: vi.fn(),
+        setPinned: vi.fn(),
+        setHeaderActions: vi.fn(),
+        onClose: vi.fn(),
+      })),
     },
     AnsiAwareBuffer: MockAnsiAwareBuffer,
   } as unknown as PluginApi;

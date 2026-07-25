@@ -1,0 +1,26 @@
+# RKG wall — Cloudflare Worker + static assets + D1.
+# One deploy serves both the site and the /api/* endpoints (same origin).
+
+name = "rkg-wall"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# The built static site (see ../web). The Worker serves everything that is not
+# an asset; /api/* is handled in code, other paths fall through to ASSETS.
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rkg-wall"
+# Fill in after `wrangler d1 create rkg-wall`:
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[vars]
+# Origins allowed to call the API cross-origin (the Arkadia plugin). The site
+# itself is same-origin and needs no entry. Set this to the Arkadia web client's
+# real origin before going live.
+RKG_CORS = "https://arkadia.rpg.pl,http://localhost:3030"
+RKG_LIMIT_ZGLOSZEN = "30"
+RKG_LIMIT_GLOSOW = "300"

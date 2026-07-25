@@ -27,12 +27,13 @@ export function wzorzecLiniiGry(typy: readonly string[]): RegExp {
 }
 
 /**
- * Strict whole-string shape for a submitted name: a known type followed by
- * exactly two capitalised words. Verified against all 104 names the CMud module
- * had collected — all pass.
+ * Strict whole-string shape for a submitted name: a known type followed by two
+ * or three capitalised words. Two is the norm; three covers the one two-word
+ * noun ('potwor morski'), e.g. `Liga Wredne Potwory Morskie`. Verified against
+ * all 104 names the CMud module had collected — all pass.
  */
 export function wzorzecNazwy(typy: readonly string[]): RegExp {
-  return new RegExp(`^(?:${alternatywaTypow(typy)}) [A-Z][a-z]{2,20} [A-Z][a-z]{2,20}$`, 'i');
+  return new RegExp(`^(?:${alternatywaTypow(typy)})(?: [A-Z][a-z]{2,20}){2,3}$`, 'i');
 }
 
 /** Nouns are harvested from the game's menus — ASCII words, possibly two of them. */
