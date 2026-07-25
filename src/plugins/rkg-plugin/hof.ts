@@ -21,7 +21,7 @@ import type { Baza } from './store';
  * `rkgshow!` and the "Moje" tab all keep working with the wall down.
  */
 
-const DOMYSLNY_WALL = 'https://rkg-wall.example.workers.dev';
+const DOMYSLNY_WALL = 'https://rkg-wall.piotrek-370.workers.dev';
 const KL_WALL = 'rkg:wall';
 const KL_GLOSUJACY = 'rkg:glosujacy';
 const KL_NICK = 'rkg:nick';

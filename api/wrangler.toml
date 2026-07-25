@@ -15,12 +15,12 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "rkg-wall"
 # Fill in after `wrangler d1 create rkg-wall`:
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "a4ddd84a-d649-4c63-b3a6-603841e20af8"
 
 [vars]
 # Origins allowed to call the API cross-origin (the Arkadia plugin). The site
-# itself is same-origin and needs no entry. Set this to the Arkadia web client's
-# real origin before going live.
-RKG_CORS = "https://arkadia.rpg.pl,http://localhost:3030"
+# itself is same-origin and needs no entry. The client is the community web
+# client hosted on GitHub Pages — its origin is the host only (no path).
+RKG_CORS = "https://delwing.github.io,http://localhost:3030"
 RKG_LIMIT_ZGLOSZEN = "30"
 RKG_LIMIT_GLOSOW = "300"
