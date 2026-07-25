@@ -14,6 +14,7 @@ import { registerZaslonyTriggers } from './team_zaslony';
 import { destroyTeamColors, rebuildTeamColorTokens } from './team_colors';
 import { registerCelTriggers, registerCelTestAlias } from './team_cel';
 import { setupAtaki, destroyAtaki } from './team_ataki';
+import { setupLider, destroyLider } from './team_lider';
 
 // Re-export the live team state for consumers (and tests) importing from here.
 export { getCurrentTeam, getCurrentLeader, getMissingNames } from './team_state';
@@ -96,7 +97,10 @@ function rebuild(api: PluginApi): void {
     api.bind.set('wylap', () => runWylap(api, getMissingNames()));
     const buf = new api.AnsiAwareBuffer();
     buf.append('[mod_team] ', api.colors.fromHex(COLOR_PREFIX));
-    buf.append(`Nacisnij ${api.bind.getLabel()}, aby odmienic brakujace.`, api.colors.fromHex(COLOR_WARN));
+    buf.append(
+      `Wpisz "wylap" (lub nacisnij ${api.bind.getLabel()}), aby odmienic brakujace.`,
+      api.colors.fromHex(COLOR_WARN),
+    );
     api.output.print(buf);
   }
 
@@ -114,17 +118,25 @@ export function setupTeam(api: PluginApi): void {
   teamChangeListener = () => rebuild(api);
   api.events.on('teamChange', teamChangeListener);
 
-  // Reachable by command as well as by the functional bind.
-  //   wylap           — decline the names currently missing from the DB
-  //   wylap lista     — print the learned declensions (paste-ready DB lines)
-  //   wylap zapomnij  — drop everything learned so far
-  wylapAliasId = api.aliases.register(/^wylap(?:\s+(lista|zapomnij))?$/i, (matches) => {
-    const sub = matches?.[1]?.toLowerCase();
+  // Reachable by command as well as by the functional bind — the bind slot is
+  // shared with the rest of the client and may be taken over at any moment, so
+  // the command form is the reliable one.
+  //   wylap             — decline the names currently missing from the DB
+  //   wylap <imie> ...  — decline the given name(s), whatever the team state
+  //   wylap lista       — print the learned declensions (paste-ready DB lines)
+  //   wylap zapomnij    — drop everything learned so far
+  wylapAliasId = api.aliases.register(/^wylap(?:\s+(.+))?$/i, (matches) => {
+    const arg = matches?.[1]?.trim() ?? '';
+    const sub = arg.toLowerCase();
     if (sub === 'lista') {
       printLearned(api, getLearnedNames());
     } else if (sub === 'zapomnij') {
       forgetLearnedNames();
       rebuild(api);
+    } else if (arg) {
+      // Explicit names — space-separated, e.g. "wylap Jasko Bolko". The game
+      // replies with the canonical mianownik, so case here does not matter.
+      runWylap(api, arg.split(/\s+/));
     } else {
       runWylap(api, getMissingNames());
     }
@@ -135,6 +147,7 @@ export function setupTeam(api: PluginApi): void {
   registerCelTriggers(api, TAG);
   celtestAliasId = registerCelTestAlias(api);
   setupAtaki(api, TAG);
+  setupLider(api, TAG);
 
   // Initial state.
   rebuild(api);
@@ -154,6 +167,7 @@ export function destroyTeam(api: PluginApi): void {
     celtestAliasId = undefined;
   }
   destroyAtaki(api);
+  destroyLider(api);
   cancelWylap(api); // drops the wylap parsers + watchdog if a capture is mid-flight
   api.bind.clear();
   api.triggers.removeByTag(TAG);

@@ -238,6 +238,60 @@ describe('mod_team', () => {
       destroyTeam(mock.api);
     });
 
+    it('fails a name at once when the game answers "Odmien <kto/co>?"', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Nieznany', 'Jasko']);
+      setupTeam(mock.api);
+
+      fireBind(mock);
+      runLine(mock, 'Odmien <kto/co>?');
+      vi.advanceTimersByTime(700); // the completion gap, well under the 5s watchdog
+
+      // Moved straight on to the next name instead of waiting out the watchdog.
+      expect(sentCommands(mock)).toContain('odmien Jasko');
+      expect(getLearnedNames()).toEqual([]);
+
+      destroyTeam(mock.api);
+    });
+
+    it('wylap <imie> declines an explicit name, whatever the team state', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue([]); // nothing missing
+      setupTeam(mock.api);
+
+      const wylap = mock.aliases.find((a) => a.pattern.test('wylap'))!;
+      wylap.callback(['wylap jasko', 'jasko'] as unknown as RegExpMatchArray);
+      expect(sentCommands(mock)).toContain('odmien jasko');
+
+      // The game answers with the canonical mianownik — that is what gets stored.
+      replyOdmien(mock, JASKO);
+      vi.runAllTimers();
+      expect(getLearnedNames()).toEqual([
+        { M: 'Jasko', B: 'Jaska', C: 'Jaskowi', D: 'Jaska', N: 'Jaskiem' },
+      ]);
+
+      destroyTeam(mock.api);
+    });
+
+    it('wylap <imie> <imie> queues several explicit names', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue([]);
+      setupTeam(mock.api);
+
+      const wylap = mock.aliases.find((a) => a.pattern.test('wylap'))!;
+      wylap.callback(['wylap Jasko Bolko', 'Jasko Bolko'] as unknown as RegExpMatchArray);
+      expect(sentCommands(mock)).toContain('odmien Jasko');
+
+      replyOdmien(mock, JASKO);
+      vi.advanceTimersByTime(700);
+      expect(sentCommands(mock)).toContain('odmien Bolko');
+
+      destroyTeam(mock.api);
+    });
+
     it('refuses to start a second capture while one is running', () => {
       vi.useFakeTimers();
       const mock = createMockApi();
@@ -463,6 +517,97 @@ describe('mod_team', () => {
 
       const stranger = 'Obcy wskazuje Cresa jako cel obrony.';
       expect(runLine(mock, stranger)!.text).toBe(stranger);
+
+      destroyTeam(mock.api);
+    });
+  });
+
+  describe('prowadzenie (leadership handover)', () => {
+    it('rewrites the line when you hand leadership over', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Vindael']);
+      setupTeam(mock.api);
+
+      const line = runLine(mock, 'Przekazujesz prowadzenie druzyny Vindaelowi.');
+      expect(line!.text).toContain('PRZEKAZUJESZ PROWADZENIE');
+      expect(line!.text).toContain('Vindaelowi');
+
+      destroyTeam(mock.api);
+    });
+
+    it('prints the PROWADZISZ banner and keeps the line when you take over', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Vindael']);
+      setupTeam(mock.api);
+      (mock.api.output.print as any).mockClear();
+
+      const text = 'Vindael przekazuje ci prowadzenie druzyny.';
+      expect(runLine(mock, text)!.text).toBe(text);
+      const printed = (mock.api.output.print as any).mock.calls.map(([b]: [any]) => b?.text ?? String(b));
+      expect(printed.some((t: string) => t.includes('P R O W A D Z I S Z !'))).toBe(true);
+
+      destroyTeam(mock.api);
+    });
+
+    it('rewrites a handover between two other people', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(mock.api);
+
+      const line = runLine(mock, 'Vindael przekazuje prowadzenie druzyny Soroko.');
+      expect(line!.text).toContain('PRZEKAZAL DRUZYNE');
+      expect(line!.text).toContain('Vindael');
+      expect(line!.text).toContain('Soroko');
+
+      destroyTeam(mock.api);
+    });
+
+    it('prpr <n> passes leadership using the slot celownik, prpr <name> as typed', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
+      setupTeam(mock.api);
+
+      const prpr = mock.aliases.find((a) => a.pattern.test('prpr 2'))!;
+      prpr.callback(['prpr 2', '2'] as unknown as RegExpMatchArray);
+      expect(sentCommands(mock)).toContain('przekaz prowadzenie soroko'); // C form of slot 2
+      expect(sentCommands(mock)).toContain('druzyna');
+
+      // Out-of-range and non-numeric args fall back to the literal argument.
+      prpr.callback(['prpr 9', '9'] as unknown as RegExpMatchArray);
+      expect(sentCommands(mock)).toContain('przekaz prowadzenie 9');
+      prpr.callback(['prpr Obcemu', 'Obcemu'] as unknown as RegExpMatchArray);
+      expect(sentCommands(mock)).toContain('przekaz prowadzenie obcemu');
+
+      destroyTeam(mock.api);
+    });
+  });
+
+  describe('team loss alerts (sound only — the client owns the tracking)', () => {
+    it('plays basso when you lose someone behind you', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Vindael']);
+      setupTeam(mock.api);
+
+      const text = 'Gubisz gdzies za soba Vindaela.';
+      expect(runLine(mock, text)!.text).toBe(text); // line untouched
+      expect(sentCommands(mock)).toContain('play_basso');
+
+      destroyTeam(mock.api);
+    });
+
+    it('plays basso when a teammate disconnects, but not when they stay', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue(['Vindael']);
+      setupTeam(mock.api);
+
+      runLine(mock, 'Vindael traci kontakt z rzeczywistoscia.');
+      expect(sentCommands(mock).filter((c) => c === 'play_basso')).toHaveLength(1);
+
+      // Still in game — nothing to alert about.
+      runLine(mock, 'Vindael traci kontakt z rzeczywistoscia. Mimo to, nie opuszcza swiata Arkadii.');
+      // Not on our team — someone else's problem.
+      runLine(mock, 'Obcy traci kontakt z rzeczywistoscia.');
+      expect(sentCommands(mock).filter((c) => c === 'play_basso')).toHaveLength(1);
 
       destroyTeam(mock.api);
     });

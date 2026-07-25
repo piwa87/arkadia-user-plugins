@@ -147,14 +147,37 @@ function arm(api: PluginApi, run: Capture, onFinished?: () => void): void {
   // run) must do nothing — identity of the capture object is the guard.
   const isStale = () => capture !== run;
 
+  /** Give up on the current name and move on. */
+  const fail = (reason: string) => {
+    api.triggers.removeByTag(TAG_WYLAP);
+    clearWatchdog();
+    run.failed.push(run.name);
+    print(api, `wylap: ${run.name} — ${reason}.`, COLOR_WARN);
+    askNext(api, onFinished);
+  };
+
   clearWatchdog();
   watchdog = setTimeout(() => {
     if (isStale()) return;
-    api.triggers.removeByTag(TAG_WYLAP);
-    run.failed.push(run.name);
-    print(api, `wylap: brak odpowiedzi na "odmien ${run.name}".`, COLOR_WARN);
-    askNext(api, onFinished);
+    fail('brak odpowiedzi');
   }, WATCHDOG_MS);
+
+  // The game's usage error — it did not recognise the name at all. Fails the
+  // name immediately instead of sitting out the whole watchdog.
+  api.triggers.registerOneTime(
+    /^\s*Odmien <kto\/co>\?\s*$/i,
+    (line) => {
+      if (isStale()) return line;
+      // Never work inline in a trigger callback: a throw here would abort the
+      // client's processing of the rest of the output batch.
+      withDelay(GAP_MIN, GAP_MAX, () => {
+        if (isStale()) return;
+        fail('gra nie rozpoznaje tej nazwy');
+      });
+      return line;
+    },
+    TAG_WYLAP,
+  );
 
   // Header — "<Name> odmienia sie nastepujaco:". Only extends the watchdog;
   // the case lines below carry the actual data.
