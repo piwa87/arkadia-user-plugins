@@ -22,10 +22,10 @@ export function setupAliasy(api: PluginApi, baza: Baza): void {
     ['rkg!', 'przejdz dialog "utworz klub", losuj nazwe i tytuly, na koncu anuluj'],
     ['rkg-', 'przerwij trwajacy run'],
     ['rkgshow!', 'pokaz zebrane kluby wraz z tytulami wladz'],
-    ['rkghof', 'okno Sali Chwaly: wyslij i przegladaj publiczne nazwy'],
-    ['rkgwyslij [x]', 'wyslij ostatni klub na sciane (x = nick, - = anonimowo)'],
-    ['rkgnick <x>', 'ustaw publiczny nick (rkgnick - = anonim + cofnij zgode)'],
-    ['rkgnuke <klucz>', 'BETA: skasuj cala sciane (rkgnuke - = tylko lokalna lista)'],
+    ['rkghof', 'okno RKG: lokalne kluby + ranking online'],
+    ['rkgwyslij [x]', 'wyslij ostatni klub do rankingu (x = nick, - = anonimowo)'],
+    ['rkgnick <x>', 'ustaw publiczny nick (rkgnick - = anonimowo)'],
+    ['rkgnuke <klucz>', 'BETA: skasuj caly ranking (rkgnuke - = tylko lokalne)'],
     ['rkg / rkghelp', 'ta pomoc'],
   ];
 

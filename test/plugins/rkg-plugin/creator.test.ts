@@ -284,13 +284,20 @@ describe('rkg! creation dialogue', () => {
     await destroy();
   });
 
-  it('offers the finished club for publishing, inline', async () => {
+  it('announces the club and offers what to do with it', async () => {
     const mock = createMockApi();
     await init(mock.api);
 
     przejdzCalyDialog(mock);
+    const out = wydrukowane(mock).join('\n');
 
-    expect(wydrukowane(mock).some((t) => t.includes('na sciane?'))).toBe(true);
+    expect(out).toContain('Wylosowany nowy klub:');
+    expect(out).toContain('Loza Maluskich Korbaczy');
+    expect(out).toContain('Opcje:');
+    expect(out).toContain('wyslij do rankingu');
+    expect(out).toContain('nie wysylaj');
+    expect(out).toContain('otworz okno lokalnych');
+    expect(out).toContain('Link do rankingu:');
 
     await destroy();
   });
@@ -299,7 +306,7 @@ describe('rkg! creation dialogue', () => {
     const mock = createMockApi();
     // A client that chokes on the clickable line must not take the run with it.
     (mock.api.output.print as any).mockImplementation((arg: any) => {
-      if (String(arg?.text ?? arg).includes('na sciane?')) throw new Error('brak linkow');
+      if (String(arg?.text ?? arg).includes('Opcje:')) throw new Error('brak linkow');
     });
     await init(mock.api);
 

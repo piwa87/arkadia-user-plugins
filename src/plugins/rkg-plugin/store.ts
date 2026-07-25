@@ -19,6 +19,13 @@ export interface Baza {
   readonly wpisy: readonly WpisLokalny[];
   dodajWpis(dane: Omit<WpisLokalny, 'id' | 'kiedy' | 'wyslane'>): WpisLokalny;
   oznaczWyslany(id: string, zdalneId: string): void;
+  /**
+   * Drop one club. Refuses (returns false) for a club already on the wall —
+   * deleting it locally would only lose the record of what we published.
+   */
+  usun(id: string): boolean;
+  /** Drop every club that was never published. Returns how many went. */
+  usunNiewyslane(): number;
   /** Drop every captured club. Used by `rkgnuke`; there is no undo. */
   wyczysc(): number;
 }
@@ -65,6 +72,24 @@ export function utworzBaze(): Baza {
       if (!wpis) return;
       wpis.wyslane = zdalneId;
       zapisz(KLUCZ_WPISY, wpisy);
+    },
+
+    usun(id: string): boolean {
+      const i = wpisy.findIndex((w) => w.id === id);
+      if (i < 0 || wpisy[i].wyslane) return false;
+      wpisy.splice(i, 1);
+      zapisz(KLUCZ_WPISY, wpisy);
+      return true;
+    },
+
+    usunNiewyslane(): number {
+      const zostaja = wpisy.filter((w) => w.wyslane);
+      const ile = wpisy.length - zostaja.length;
+      if (ile === 0) return 0;
+      wpisy.length = 0;
+      wpisy.push(...zostaja);
+      zapisz(KLUCZ_WPISY, wpisy);
+      return ile;
     },
 
     wyczysc(): number {

@@ -82,6 +82,7 @@ export interface RegisteredAlias {
 export interface RegisteredCommandHook {
   callback: (command: string, echo?: boolean, options?: unknown) => string | null | undefined;
   priority?: number;
+  id?: string;
 }
 
 export interface MockFooterComponent {
@@ -132,6 +133,7 @@ export function createMockApi(options?: { room?: any }) {
   const tokenTriggers: RegisteredTokenTrigger[] = [];
   const aliases: RegisteredAlias[] = [];
   const commandHooks: RegisteredCommandHook[] = [];
+  let licznikHookow = 0;
   const footerComponents: MockFooterComponent[] = [];
   const eventListeners = new Map<string, ((...args: unknown[]) => void)[]>();
   const room = options?.room;
@@ -218,10 +220,19 @@ export function createMockApi(options?: { room?: any }) {
     },
     commandHooks: {
       register: vi.fn((callback, priority) => {
-        commandHooks.push({ callback, priority });
-        return `hook-${commandHooks.length}`;
+        // Ids stay stable as hooks come and go, so unregister can really remove
+        // one — a test can then assert that a one-shot hook let go of the input.
+        const id = `hook-${(licznikHookow += 1)}`;
+        commandHooks.push({ callback, priority, id });
+        return id;
       }),
-      unregister: vi.fn(),
+      unregister: vi.fn((id: string) => {
+        const kept = commandHooks.filter((h) => h.id !== id);
+        const usuniety = kept.length !== commandHooks.length;
+        commandHooks.length = 0;
+        commandHooks.push(...kept);
+        return usuniety;
+      }),
     },
     map: {
       getRoom: vi.fn(() => room),

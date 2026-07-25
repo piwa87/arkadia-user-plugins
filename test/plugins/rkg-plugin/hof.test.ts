@@ -80,13 +80,22 @@ function printed(mock: Mock): string[] {
   );
 }
 
-/** The last buffer printed — the clickable offer line. */
-function ostatniBufor(mock: Mock): MockAnsiAwareBuffer {
-  const bufory = (mock.api.output.print as any).mock.calls
+/** Click the most recently printed option whose label contains `etykieta`. */
+function klikOpcje(mock: Mock, etykieta: string): void {
+  const buf = (mock.api.output.print as any).mock.calls
     .map(([a]: [unknown]) => a)
-    .filter((a: unknown) => a instanceof MockAnsiAwareBuffer);
-  expect(bufory.length, 'nic nie wydrukowano jako bufor').toBeGreaterThan(0);
-  return bufory.at(-1) as MockAnsiAwareBuffer;
+    .filter((a: unknown): a is MockAnsiAwareBuffer => a instanceof MockAnsiAwareBuffer)
+    .reverse()
+    .find((b: MockAnsiAwareBuffer) => b.text.includes(etykieta));
+  expect(buf, `brak opcji: ${etykieta}`).toBeDefined();
+  buf!.klik(etykieta);
+}
+
+/** Answer the outstanding nick prompt the way typing would. */
+function wpisz(mock: Mock, tekst: string): string | null | undefined {
+  const hook = mock.commandHooks[mock.commandHooks.length - 1];
+  expect(hook, 'nie zapytano o nick').toBeDefined();
+  return hook!.callback(tekst);
 }
 
 /** Pretend GMCP knows who we are. */
@@ -154,12 +163,60 @@ describe('setupHof registration', () => {
     await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
     const okno = zbudujOkno(mock);
 
-    // The padded container the popup body relies on, plus the club and its
-    // send button.
+    // The padded, full-height container the popup body relies on.
     expect(okno.className).toContain('rkg-hof');
+    expect(okno.tekst).toContain('Lokalne');
     expect(okno.tekst).toContain('Loza Maluskich Korbaczy');
     expect(okno.przycisk('Wyslij')).toBeTruthy();
     cleanup();
+  });
+});
+
+describe('the local list', () => {
+  async function okno(mock: Mock) {
+    odpal(mock, 'rkghof');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    return zbudujOkno(mock);
+  }
+
+  it('deletes a single unsent club', async () => {
+    const { mock, baza } = setup();
+    baza.dodajWpis(WPIS);
+
+    (await okno(mock)).przycisk('✕').onclick!();
+
+    expect(baza.wpisy).toHaveLength(0);
+  });
+
+  it('offers no delete button for a club already in the ranking', async () => {
+    const { mock, baza } = setup();
+    const w = baza.dodajWpis(WPIS);
+    baza.oznaczWyslany(w.id, 'zdalne-1');
+
+    const widok = await okno(mock);
+
+    expect(widok.tekst).toContain('w rankingu');
+    expect(widok.szukaj((e) => e.textContent === '✕')).toBeNull();
+  });
+
+  it('bulk-deletes the unsent ones and keeps the published', async () => {
+    const { mock, baza } = setup();
+    const wyslany = baza.dodajWpis(WPIS);
+    baza.oznaczWyslany(wyslany.id, 'zdalne-1');
+    baza.dodajWpis({ ...WPIS, wynik: 'Liga Wrednych Kotow' });
+
+    (await okno(mock)).przycisk('Usun niewyslane').onclick!();
+
+    expect(baza.wpisy).toHaveLength(1);
+    expect(baza.wpisy[0].wyslane).toBe('zdalne-1');
+  });
+
+  it('hides the bulk-delete button when everything is published', async () => {
+    const { mock, baza } = setup();
+    const w = baza.dodajWpis(WPIS);
+    baza.oznaczWyslany(w.id, 'zdalne-1');
+
+    expect((await okno(mock)).tekst).not.toContain('Usun niewyslane');
   });
 });
 
@@ -183,115 +240,186 @@ describe('rkgnick', () => {
     expect(storage.get('rkg:nick')).toBeNull();
   });
 
-  it('clears the nick and revokes consent with "-"', () => {
+  it('clears the nick and switches to anonymous with "-"', () => {
     const { mock } = setup();
     storage.set('rkg:nick', 'Piot');
-    storage.set('rkg:zgoda', true);
     odpal(mock, 'rkgnick -');
     expect(storage.get('rkg:nick')).toBeNull();
-    expect(storage.get('rkg:zgoda')).toBe(false);
+    // Settled, so the first-upload prompt does not come back asking again.
+    expect(storage.get('rkg:anonim')).toBe(true);
   });
 });
 
-describe('zaproponuj — the end-of-run publish offer', () => {
-  it('offers the saved nick, anonymous and no, and discloses what is sent', () => {
+describe('zaproponuj — the end-of-run options', () => {
+  it('prints the three options and the ranking link', () => {
     const { mock, hof } = setup();
     storage.set('rkg:nick', 'Piot');
 
     hof.zaproponuj(WPIS);
 
-    expect(printed(mock).join('\n')).toContain('nazwa klubu, tytuly wladz i nick');
-    expect(ostatniBufor(mock).text).toContain('[wyslij jako Piot]');
-    expect(ostatniBufor(mock).text).toContain('[anonimowo]');
-    expect(ostatniBufor(mock).text).toContain('[nie]');
+    const out = printed(mock).join('\n');
+    expect(out).toContain('Opcje:');
+    expect(out).toContain('wyslij do rankingu (jako Piot)');
+    expect(out).toContain('nie wysylaj');
+    expect(out).toContain('otworz okno lokalnych');
+    expect(out).toContain('Link do rankingu: https://');
+    // Nothing is disclosed or asked before you actually choose to publish.
+    expect(out).not.toContain('Nic wiecej');
+    expect(mock.commandHooks).toHaveLength(0);
   });
 
-  it('falls back to the GMCP character name when no nick is saved', () => {
+  it('labels the send option with the GMCP character name when no nick is saved', () => {
     const { mock, hof } = setup();
     ustawPostac(mock, 'piotrek');
 
     hof.zaproponuj(WPIS);
 
-    expect(ostatniBufor(mock).text).toContain('[wyslij jako Piotrek]');
+    expect(printed(mock).join('\n')).toContain('wyslij do rankingu (jako Piotrek)');
   });
 
-  it('offers only anonymous when neither a nick nor a character name is known', () => {
-    const { mock, hof } = setup();
-
-    hof.zaproponuj(WPIS);
-
-    const linia = ostatniBufor(mock).text;
-    expect(linia).toContain('[wyslij anonimowo]');
-    expect(linia).not.toContain('[wyslij jako');
-    expect(linia).toContain('rkgnick');
-  });
-
-  it('sends signed on click, saving the nick and recording consent', async () => {
+  it('sends straight away once a nick is settled', async () => {
     const { mock, baza, hof } = setup();
     const f = stubFetch({ id: 'zdalne-1', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
-    ustawPostac(mock, 'piotrek');
+    storage.set('rkg:nick', 'Piot');
     baza.dodajWpis(WPIS);
 
     hof.zaproponuj(baza.wpisy[0]);
-    ostatniBufor(mock).klik('[wyslij jako Piotrek]');
+    klikOpcje(mock, 'wyslij do rankingu');
     await vi.waitFor(() => expect(f).toHaveBeenCalled());
 
-    const payload = JSON.parse((f.mock.calls[0] as any)[1].body);
-    expect(payload.nick).toBe('Piotrek');
-    expect(payload.wynik).toBe('Loza Maluskich Korbaczy');
-    expect(storage.get('rkg:nick')).toBe('Piotrek');
-    expect(storage.get('rkg:zgoda')).toBe(true);
+    expect(mock.commandHooks, 'nie powinno pytac o nick').toHaveLength(0);
+    expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piot');
     await vi.waitFor(() => expect(baza.wpisy[0].wyslane).toBe('zdalne-1'));
   });
 
-  it('"anonimowo" sends without a nick and keeps the saved one', async () => {
-    const { mock, baza, hof } = setup();
-    const f = stubFetch({ id: 'zdalne-2', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
-    storage.set('rkg:nick', 'Piot');
-    baza.dodajWpis(WPIS);
-
-    hof.zaproponuj(baza.wpisy[0]);
-    ostatniBufor(mock).klik('[anonimowo]');
-    await vi.waitFor(() => expect(f).toHaveBeenCalled());
-
-    expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBeUndefined();
-    // A per-send choice, not a preference change.
-    expect(storage.get('rkg:nick')).toBe('Piot');
-  });
-
-  it('"nie" sends nothing', () => {
+  it('"nie wysylaj" sends nothing', () => {
     const { mock, hof } = setup();
     const f = stubFetch({});
 
     hof.zaproponuj(WPIS);
-    ostatniBufor(mock).klik('[nie]');
+    klikOpcje(mock, 'nie wysylaj');
 
     expect(f).not.toHaveBeenCalled();
+  });
+
+  it('"otworz okno lokalnych" opens the window on the local tab', async () => {
+    const { mock, hof } = setup();
+
+    hof.zaproponuj(WPIS);
+    klikOpcje(mock, 'otworz okno lokalnych');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+
+    expect(zbudujOkno(mock).tekst).toContain('Lokalne');
   });
 
   it('a second click cannot publish the same club twice', async () => {
     const { mock, baza, hof } = setup();
     const f = stubFetch({ id: 'zdalne-3', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
+    storage.set('rkg:anonim', true);
     baza.dodajWpis(WPIS);
 
     hof.zaproponuj(baza.wpisy[0]);
-    const linia = ostatniBufor(mock);
-    linia.klik('[wyslij anonimowo]');
-    linia.klik('[wyslij anonimowo]'); // in flight — must not fire a second POST
+    klikOpcje(mock, 'wyslij do rankingu');
+    klikOpcje(mock, 'wyslij do rankingu'); // in flight — must not fire a second POST
     await vi.waitFor(() => expect(baza.wpisy[0].wyslane).toBe('zdalne-3'));
-    linia.klik('[wyslij anonimowo]'); // already sent
+    klikOpcje(mock, 'wyslij do rankingu'); // already sent
 
     expect(f).toHaveBeenCalledTimes(1);
     expect(printed(mock).join('\n')).toContain('juz wyslane');
   });
+});
 
-  it('the disclosure is printed only until consent is recorded', () => {
-    const { mock, hof } = setup();
-    storage.set('rkg:zgoda', true);
+describe('the first upload settles the nick', () => {
+  it('discloses, asks, and takes the character name on a bare Enter', async () => {
+    const { mock, baza, hof } = setup();
+    const f = stubFetch({ id: 'zdalne-4', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
+    ustawPostac(mock, 'piotrek');
+    baza.dodajWpis(WPIS);
 
-    hof.zaproponuj(WPIS);
+    hof.zaproponuj(baza.wpisy[0]);
+    klikOpcje(mock, 'wyslij do rankingu');
 
-    expect(printed(mock).join('\n')).not.toContain('Nic wiecej');
+    const out = printed(mock).join('\n');
+    expect(out).toContain('Nic wiecej'); // what leaves the client, before it does
+    expect(out).toContain("Enter = Piotrek");
+    expect(wpisz(mock, ''), 'bare Enter must be swallowed').toBeNull();
+
+    await vi.waitFor(() => expect(f).toHaveBeenCalled());
+    expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piotrek');
+    expect(storage.get('rkg:nick')).toBe('Piotrek');
+    // One-shot: the hook let go of the input again.
+    expect(mock.commandHooks).toHaveLength(0);
+  });
+
+  it('takes a typed nick, and never asks again', async () => {
+    const { mock, baza, hof } = setup();
+    const f = stubFetch({ id: 'zdalne-5', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
+    baza.dodajWpis(WPIS);
+
+    hof.zaproponuj(baza.wpisy[0]);
+    klikOpcje(mock, 'wyslij do rankingu');
+    expect(wpisz(mock, 'Zenek')).toBeNull();
+    await vi.waitFor(() => expect(f).toHaveBeenCalled());
+    expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Zenek');
+
+    const drugi = baza.dodajWpis({ ...WPIS, wynik: 'Liga Wrednych Kotow' });
+    hof.zaproponuj(drugi);
+    klikOpcje(mock, 'wyslij do rankingu');
+    await vi.waitFor(() => expect(f).toHaveBeenCalledTimes(2));
+    expect(mock.commandHooks).toHaveLength(0);
+  });
+
+  it('"-" publishes anonymously and settles that too', async () => {
+    const { mock, baza, hof } = setup();
+    const f = stubFetch({ id: 'zdalne-6', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
+    ustawPostac(mock, 'piotrek');
+    baza.dodajWpis(WPIS);
+
+    hof.zaproponuj(baza.wpisy[0]);
+    klikOpcje(mock, 'wyslij do rankingu');
+    expect(wpisz(mock, '-')).toBeNull();
+
+    await vi.waitFor(() => expect(f).toHaveBeenCalled());
+    expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBeUndefined();
+    expect(storage.get('rkg:anonim')).toBe(true);
+    expect(storage.get('rkg:nick')).toBeNull();
+  });
+
+  it('hands a non-nick back to the game and drops the upload', () => {
+    const { mock, baza, hof } = setup();
+    const f = stubFetch({});
+    baza.dodajWpis(WPIS);
+
+    hof.zaproponuj(baza.wpisy[0]);
+    klikOpcje(mock, 'wyslij do rankingu');
+    // undefined = "keep the original command", i.e. the game still gets it.
+    expect(wpisz(mock, 'polnoc na wschod')).toBeUndefined();
+
+    expect(f).not.toHaveBeenCalled();
+    expect(storage.get('rkg:nick')).toBeNull();
+    expect(mock.commandHooks).toHaveLength(0);
+    expect(printed(mock).join('\n')).toContain('nie wyglada na nick');
+  });
+
+  it('gives the input back if the prompt goes unanswered', async () => {
+    vi.useFakeTimers();
+    try {
+      const { mock, baza, hof } = setup();
+      const f = stubFetch({});
+      baza.dodajWpis(WPIS);
+
+      hof.zaproponuj(baza.wpisy[0]);
+      klikOpcje(mock, 'wyslij do rankingu');
+      expect(mock.commandHooks).toHaveLength(1);
+
+      vi.advanceTimersByTime(61_000);
+
+      expect(mock.commandHooks).toHaveLength(0);
+      expect(f).not.toHaveBeenCalled();
+      expect(printed(mock).join('\n')).toContain('minal czas');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -356,7 +484,7 @@ describe('rkgnuke', () => {
 
     expect(baza.wpisy).toHaveLength(0);
     expect(f).not.toHaveBeenCalled();
-    expect(printed(mock).join('\n')).toContain('sciana bez zmian');
+    expect(printed(mock).join('\n')).toContain('ranking bez zmian');
   });
 
   it('sends DELETE with the admin header and clears the local list', async () => {

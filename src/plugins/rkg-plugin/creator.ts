@@ -67,7 +67,7 @@ interface Ctx {
 export function setupKreator(
   api: PluginApi,
   baza: Baza,
-  // Called once a run has produced a complete club, so the Sala Chwaly can
+  // Called once a run has produced a complete club, so the RKG window can
   // offer to publish it. Optional so the runner stands alone in tests.
   poZakonczeniu?: (w: WpisLokalny) => void,
 ): () => void {
@@ -396,7 +396,8 @@ export function setupKreator(
       };
       const zapisany = baza.dodajWpis(wpis);
       sprzatnij();
-      drukuj(`[rkg] ${wynik}`, kolorNazwy);
+      drukuj('[rkg] Wylosowany nowy klub:', kolorInfo);
+      drukuj(`      ${wynik}`, kolorNazwy);
       if (role.przywodca) drukuj(`      przywodca: ${role.przywodca}`, kolorRoli);
       if (role.zastepca) drukuj(`      zastepca:  ${role.zastepca}`, kolorRoli);
       if (role.czlonek) drukuj(`      czlonek:   ${role.czlonek}`, kolorRoli);
