@@ -3,7 +3,13 @@ import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { rewrite } from './banner';
-import { teamGenitiveForms, teamNominativeForms, teamIndexByBiernik, LISTA_BINDOW } from './team_state';
+import {
+  teamGenitiveForms,
+  teamNominativeForms,
+  teamIndexByBiernik,
+  setShieldedAgainstMe,
+  LISTA_BINDOW,
+} from './team_state';
 
 /**
  * Zaslona (shield / dodge) triggers. Each rewrites a combat-shield line into a
@@ -197,11 +203,14 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
   );
 
   // zaslona przed moimi ciosami — someone is shielded from the player. + morse.
+  // Raises CMUD's `zaslona_przed_ja`: team_lamanie reads it to decide whether a
+  // teammate breaking that shield should hand the target back to us.
   registerTokenGate(
     api,
     'zaslania',
     /^(.*) zrecznie zaslania (.*) przed twoimi ciosami\./,
     (line, matches) => {
+      setShieldedAgainstMe(true);
       rewrite(line, [
         ['      PRZED TOBA              ', c41],
         [`     ${matches[1]}     `, c0],

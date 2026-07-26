@@ -6,8 +6,20 @@ import { registerTokenGate } from '../../lib/registerTokenGate';
 const TAG = 'atakPyk';
 const LEADER_WARN_INTERVAL = 5000;
 
+/**
+ * `pyk+` / `pyk-` — the master switch for automatic attacking. Module-level so
+ * other modules can honour it; mod_team's lamanie auto-attacks read it before
+ * sending anything (see team_lamanie.ts).
+ */
+let pykEnabled = false;
+
+/** True while `pyk+` is active — no automatic attack should fire without it. */
+export function isPykEnabled(): boolean {
+  return pykEnabled;
+}
+
 export function setupAtakPyk(api: PluginApi): () => void {
-  let enabled = false;
+  pykEnabled = false;
   let onCooldown = false;
   let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -30,7 +42,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
   const sendAttack = () => {
     if (onCooldown) return;
     withDelay(211, 3187, () => {
-      if (!enabled) return;
+      if (!pykEnabled) return;
       if (isFightingTeamTarget()) return;
       api.command.send('/z', false);
       onCooldown = true;
@@ -51,7 +63,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
 
   const onLeaderTargetNoAvatar = (id: number) => {
     leaderActiveTargetId = id;
-    if (enabled) {
+    if (pykEnabled) {
       sendAttack();
     } else {
       printSubtleWarning();
@@ -64,7 +76,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
   };
 
   const onObjectsData = () => {
-    if (!leaderActiveTargetId || enabled) return;
+    if (!leaderActiveTargetId || pykEnabled) return;
     printSubtleWarning();
   };
 
@@ -86,14 +98,14 @@ export function setupAtakPyk(api: PluginApi): () => void {
   footer.setVisible(false);
 
   const idPlus = api.aliases.register(/^pyk\+$/i, () => {
-    enabled = true;
+    pykEnabled = true;
     footer.setVisible(true);
     say('--> pyk');
     return true;
   });
 
   const idMinus = api.aliases.register(/^pyk-$/i, () => {
-    enabled = false;
+    pykEnabled = false;
     footer.setVisible(false);
     if (cooldownTimer) {
       clearTimeout(cooldownTimer);
@@ -105,7 +117,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
   });
 
   const handleCelAtaku = (line: InstanceType<typeof api.AnsiAwareBuffer>) => {
-    if (!enabled) return line;
+    if (!pykEnabled) return line;
     sendAttack();
     return line;
   };
@@ -119,6 +131,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
   );
 
   return () => {
+    pykEnabled = false;
     if (cooldownTimer) clearTimeout(cooldownTimer);
     api.triggers.removeByTag(TAG);
     api.aliases.remove(idPlus);

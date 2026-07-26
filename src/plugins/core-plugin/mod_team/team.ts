@@ -8,6 +8,8 @@ import {
 } from './team_state';
 import { startWylap, cancelWylap, printLearned } from './team_wylap';
 import { registerZaslonyTriggers } from './team_zaslony';
+import { setupLamanie, destroyLamanie } from './team_lamanie';
+import { setupBlok, destroyBlok } from './team_blok';
 import { destroyTeamColors, rebuildTeamColorTokens } from './team_colors';
 import { registerCelTriggers } from './team_cel';
 import { setupAtaki, destroyAtaki } from './team_ataki';
@@ -17,8 +19,9 @@ import { setupLider, destroyLider } from './team_lider';
  * mod_team — the team module (ported from CMUD `mod_druzyna`).
  *
  * Owns the live team as declension objects and everything keyed on them: shield
- * (zaslony) and attack banners, cel ataku/obrony, team-name coloring, leadership
- * handover, and the `wylap` declension capture.
+ * (zaslony), shield-breaking (lamanie) and blocking (blok) banners, attack
+ * banners, cel ataku/obrony, team-name coloring, leadership handover, and the
+ * `wylap` declension capture.
  *
  * Output is intentionally quiet: nothing is printed on a team rebuild unless a
  * member cannot be declined, in which case the missing names are reported and
@@ -128,6 +131,8 @@ export function setupTeam(api: PluginApi): void {
   });
 
   registerZaslonyTriggers(api, TAG);
+  setupLamanie(api, TAG);
+  setupBlok(api, TAG);
   registerCelTriggers(api, TAG);
   setupAtaki(api, TAG);
   setupLider(api, TAG);
@@ -147,6 +152,8 @@ export function destroyTeam(api: PluginApi): void {
   }
   destroyAtaki(api);
   destroyLider(api);
+  destroyLamanie(api); // clears the auto-attack cooldown timer + its aliases
+  destroyBlok(api); // clears the countdown timer, footer and mapMove listener
   cancelWylap(api); // drops the wylap parsers + watchdog if a capture is mid-flight
   api.bind.clear();
   api.triggers.removeByTag(TAG);

@@ -29,6 +29,16 @@ export class MockAnsiAwareBuffer {
     this.text += buffer.text;
     return this;
   }
+  prepend(prefix: string, state?: unknown): this {
+    this.text = `${prefix}${this.text}`;
+    this.segments.unshift({ text: prefix, state });
+    return this;
+  }
+  prependBuffer(buffer: MockAnsiAwareBuffer): this {
+    this.text = `${buffer.text}${this.text}`;
+    this.segments.unshift(...buffer.segments);
+    return this;
+  }
   color(_range: [number, number], _color: unknown): this {
     return this;
   }

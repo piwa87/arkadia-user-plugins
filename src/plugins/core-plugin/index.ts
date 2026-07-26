@@ -60,6 +60,7 @@ import {
   setupMiscTriggers,
   setupFooter,
   setupAtakPyk,
+  setupAntyflood,
   setupAtakiTriggers,
   setupCombatAliases,
   setupKillAlias,
@@ -75,6 +76,7 @@ import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 // removeByTag each of these or reloading the plugin duplicates every trigger.
 // Completeness is enforced by test/plugins/core-plugin/destroy.test.ts.
 const TRIGGER_TAGS = [
+  'antyflood',
   'bramy',
   'ciosyKolory',
   'colCialo',
@@ -104,6 +106,7 @@ const TRIGGER_TAGS = [
 let cleanupCombat: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
+let cleanupAntyflood: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
 let cleanupHpBar: (() => void) | null = null;
@@ -128,6 +131,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const zmeczenieState = createZmeczenieState();
 
   cleanupAtakPyk = setupAtakPyk(api);
+  cleanupAntyflood = setupAntyflood(api);
   cleanupAtakiTriggers = setupAtakiTriggers(api, kondycjeState);
   setupBattleAliases(api);
   setupBindAliases(api);
@@ -216,6 +220,8 @@ export async function destroy(): Promise<void> {
   cleanupPalenie = null;
   cleanupAtakPyk?.();
   cleanupAtakPyk = null;
+  cleanupAntyflood?.();
+  cleanupAntyflood = null;
   cleanupWalker?.();
   cleanupWalker = null;
   cleanupZiola?.();

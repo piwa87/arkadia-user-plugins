@@ -3,6 +3,7 @@ import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { requestPermission, notify } from '../../../lib/notifications';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
+import { getAntyfloodLevel } from '../antyflood';
 import { rewrite } from './banner';
 import { teamIndexByBiernik, teamIndexByNarzednik, teamBindLabel, teamNominativeForms } from './team_state';
 
@@ -159,6 +160,21 @@ export function setupAtaki(api: PluginApi, tag: string): void {
     (line) => {
       printStunAlarm();
       return line;
+    },
+    tag,
+  );
+
+  // ---- af_atak: "<teammate-M> atakuje X." — our own team's attack spam ------
+  // Hidden from antyflood level 2 up (CMUD `#IF (@antyflood>=2) {#GAG}`); the
+  // level itself lives in core-plugin/antyflood.ts.
+  registerTokenGate(
+    api,
+    'atakuje',
+    /^(.*) atakuje (.*)\./,
+    (line, m) => {
+      if (getAntyfloodLevel() < 2) return line;
+      if (!teamNominativeForms().has((m[1] ?? '').trim().toLowerCase())) return line;
+      return null;
     },
     tag,
   );

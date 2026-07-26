@@ -50,6 +50,7 @@ export { setupLocationTriggers } from './triggers/location';
 export { setupMiscTriggers } from './triggers/misc';
 export { setupFooter } from './ui/footer';
 export { setupAtakPyk } from './pyk';
+export { setupAntyflood } from './antyflood';
 export { setupAtakiTriggers } from './walka/atak_triggers';
 export { setupCombatAliases } from './walka/walka_aliasy';
 export { setupKillAlias } from './walka/c';

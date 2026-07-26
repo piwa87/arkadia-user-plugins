@@ -170,6 +170,16 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'wylap <imie>', desc: 'decline one name (odmien) and remember it' },
       { cmd: 'wylap lista', desc: 'list remembered declensions' },
       { cmd: 'wylap zapomnij', desc: 'forget remembered declensions' },
+      { cmd: 'lamanieres!', desc: 'reset shield-break state' },
+      { cmd: 'lamanietest!', desc: 'replay fake shield-break lines (no commands sent)' },
+      { cmd: 'bp', desc: 'zablokuj przeciwnika (block enemy escape)' },
+      { cmd: 'bloktest!', desc: 'replay fake block lines (no commands sent)' },
+
+      { section: 'ANTYFLOOD' },
+      { cmd: 'af0', desc: 'hide nothing' },
+      { cmd: 'af1', desc: 'hide shield churn, blocked attacks, guards (default)' },
+      { cmd: 'af2', desc: 'as af1 + hide weapon drawing' },
+      { cmd: 'antyflood+ / antyflood-', desc: 'synonyms for af1 / af0' },
 
       { section: 'OPTIONS' },
       { cmd: 'opa', desc: 'show panic options' },

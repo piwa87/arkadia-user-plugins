@@ -75,6 +75,14 @@ let currentTeam: DruzynaName[] = [];
 let currentLeader: DruzynaName | undefined;
 let missingNames: string[] = [];
 
+/**
+ * CMUD `zaslona_przed_ja` — true while someone is shielding an enemy from the
+ * player's blows. Set by the "PRZED TOBA" zaslona lines (team_zaslony.ts) and by
+ * "Atakujesz X, lecz Y zagradza ci droge."; cleared when the shield is broken or
+ * when the game reports "Nikt nie zaslania ..." (team_lamanie.ts).
+ */
+let shieldedAgainstMe = false;
+
 // Case-form sets are read from trigger callbacks on every matching combat
 // line — memoize them and invalidate whenever currentTeam changes.
 let genitiveForms: Set<string> | null = null;
@@ -159,7 +167,20 @@ export function resetTeamState(): void {
   currentTeam = [];
   currentLeader = undefined;
   missingNames = [];
+  shieldedAgainstMe = false;
   invalidateFormCaches();
+}
+
+// ---- Shielded-against-me flag (CMUD `zaslona_przed_ja`) ----------------------
+
+/** True while an enemy is being shielded from the player's blows. */
+export function isShieldedAgainstMe(): boolean {
+  return shieldedAgainstMe;
+}
+
+/** Set/clear the "someone is shielded from me" flag. */
+export function setShieldedAgainstMe(value: boolean): void {
+  shieldedAgainstMe = value;
 }
 
 // ---- Bind labels -------------------------------------------------------------
@@ -202,4 +223,22 @@ export function teamIndexByBiernik(form: string): number {
 export function teamIndexByNarzednik(form: string): number {
   const f = form.toLowerCase();
   return currentTeam.findIndex((m) => m.N.toLowerCase() === f);
+}
+
+/**
+ * Team slot index of the member whose celownik (C) form equals `form`
+ * (case-insensitive), or -1. CMUD `%ismember(%2, @druzynaC)`.
+ */
+export function teamIndexByCelownik(form: string): number {
+  const f = form.toLowerCase();
+  return currentTeam.findIndex((m) => m.C.toLowerCase() === f);
+}
+
+/**
+ * Team slot index of the member whose dopelniacz (D) form equals `form`
+ * (case-insensitive), or -1. CMUD `%ismember(%2, @druzynaD)`.
+ */
+export function teamIndexByDopelniacz(form: string): number {
+  const f = form.toLowerCase();
+  return currentTeam.findIndex((m) => m.D.toLowerCase() === f);
 }
