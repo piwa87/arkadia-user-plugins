@@ -3,71 +3,253 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sala Chwaly — Rendom Klub Dżenerejtor</title>
+    <title>Rendom Klub Dżenerejtor — ranking</title>
     <style>
+      /*
+        Arcade high-score board for a joke about fake nobility. The clubs are
+        absurd faux-official orders, so the page is styled like a badly printed
+        tournament poster: heavy condensed caps with one hard offset shadow,
+        loud flat colour, no gradients. Dark only — deliberate, not an oversight.
+      */
       :root {
-        --bg: #f7f6f3; --panel: #ffffff; --tekst: #1c1a17; --slaby: #6b6459;
-        --linia: #e6e2da; --akcent: #b45309; --akcent-tlo: #fef3c7; --cień: rgba(0,0,0,.06);
+        --noc: #150d29;
+        --karta: #201545;
+        --karta-hover: #281a55;
+        --neon: #ff2e88;
+        --zloto: #ffc93c;
+        --mieta: #3ddc97;
+        --mgla: #a99fd0;
+        --biel: #f6f2ff;
+        --linia: #33245e;
+
+        --display: Impact, Haettenschweiler, 'Franklin Gothic Bold', 'Arial Narrow', sans-serif;
+        --body: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+        --dane: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #17150f; --panel: #211d15; --tekst: #f0ebe0; --slaby: #a89f8d;
-          --linia: #332c20; --akcent: #f0b429; --akcent-tlo: #3a2f14; --cień: rgba(0,0,0,.3);
-        }
-      }
+
       * { box-sizing: border-box; }
+
       body {
-        margin: 0; background: var(--bg); color: var(--tekst);
-        font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        margin: 0;
+        background: var(--noc);
+        color: var(--biel);
+        font: 16px/1.5 var(--body);
+        /* Faint scanline wash — the only ambient texture on the page. */
+        background-image: repeating-linear-gradient(
+          0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 4px
+        );
       }
-      .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
-      header { text-align: center; margin-bottom: 20px; }
-      h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -.01em; }
-      .podtytul { color: var(--slaby); font-size: .95rem; margin: 0; }
-      #tabs { display: flex; gap: 6px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+
+      .wrap { max-width: 760px; margin: 0 auto; padding: 40px 16px 72px; }
+
+      /* ── Header ─────────────────────────────────────────────────────────── */
+
+      .naglowek { text-align: center; margin-bottom: 34px; }
+
+      .tytul {
+        font-family: var(--display);
+        font-size: clamp(2.3rem, 9.5vw, 4.4rem);
+        line-height: .92;
+        letter-spacing: .01em;
+        text-transform: uppercase;
+        color: var(--zloto);
+        text-shadow: 5px 5px 0 var(--neon);
+        margin: 0;
+      }
+
+      .podtytul {
+        font-family: var(--dane);
+        font-size: clamp(.7rem, 2.6vw, .82rem);
+        letter-spacing: .22em;
+        text-transform: uppercase;
+        color: var(--mgla);
+        margin: 14px 0 0;
+      }
+
+      /* ── Sort picker ────────────────────────────────────────────────────── */
+
+      #tabs { display: flex; gap: 8px; justify-content: center; margin: 0 0 24px; flex-wrap: wrap; }
+
       .tab {
-        border: 1px solid var(--linia); background: var(--panel); color: var(--tekst);
-        padding: 7px 16px; border-radius: 999px; cursor: pointer; font-size: .9rem;
+        font-family: var(--dane);
+        font-size: .78rem;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        border: 2px solid var(--linia);
+        background: transparent;
+        color: var(--mgla);
+        padding: 9px 18px;
+        border-radius: 0;
+        cursor: pointer;
+        transition: background .12s, color .12s, border-color .12s;
       }
-      .tab.akt { background: var(--akcent-tlo); border-color: var(--akcent); color: var(--akcent); font-weight: 600; }
-      ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+      .tab:hover { border-color: var(--neon); color: var(--biel); }
+      .tab.akt {
+        background: var(--neon);
+        border-color: var(--neon);
+        color: var(--noc);
+        font-weight: 700;
+      }
+
+      /* ── The board ──────────────────────────────────────────────────────── */
+
+      .lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+
       .wpis {
-        display: flex; gap: 14px; background: var(--panel); border: 1px solid var(--linia);
-        border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 2px var(--cień);
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 18px;
+        align-items: start;
+        background: var(--karta);
+        border: 2px solid var(--linia);
+        padding: 16px 18px;
+        transition: border-color .12s, background .12s;
       }
-      .glosy { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 40px; }
+      /* Sorts other than the ranking have no positions, so no column for them. */
+      .wpis.bez-miejsca { grid-template-columns: 1fr auto; }
+      .wpis:hover { background: var(--karta-hover); border-color: var(--neon); }
+      /* The leader is marked by the board itself, not by a badge. */
+      .wpis.mistrz { border-color: var(--zloto); }
+
+      .miejsce {
+        font-family: var(--display);
+        font-size: clamp(2.1rem, 7vw, 3rem);
+        line-height: .82;
+        color: var(--mgla);
+        opacity: .4;
+        font-variant-numeric: tabular-nums;
+      }
+      .miejsce.podium { color: var(--zloto); opacity: 1; text-shadow: 3px 3px 0 var(--neon); }
+
+      .tresc { min-width: 0; }
+
+      .nazwa {
+        font-family: var(--display);
+        font-size: clamp(1.15rem, 4.4vw, 1.7rem);
+        line-height: 1.04;
+        letter-spacing: .015em;
+        text-transform: uppercase;
+        color: var(--biel);
+        overflow-wrap: anywhere;
+      }
+
+      /* One title per line: they are three separate offices, not a list of tags. */
+      .role { margin: 12px 0 0; display: flex; flex-direction: column; gap: 5px; }
+      .rola { display: flex; gap: 9px; font-size: .87rem; color: var(--mgla); line-height: 1.35; }
+      .rola .ikona { flex: none; width: 1.2em; text-align: center; }
+      .rola.szef { color: var(--zloto); }
+
+      .meta {
+        margin-top: 12px;
+        font-family: var(--dane);
+        font-size: .72rem;
+        letter-spacing: .06em;
+        color: var(--mgla);
+        opacity: .75;
+      }
+      .meta .licznik { color: var(--mieta); }
+
+      /* ── Votes ──────────────────────────────────────────────────────────── */
+
+      /* One slab, not three loose controls: arrows and score read as a unit. */
+      .glosy {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        border: 2px solid var(--linia);
+        min-width: 58px;
+      }
+
       .strzalka {
-        border: none; background: none; color: var(--slaby); cursor: pointer;
-        font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: var(--mgla);
+        cursor: pointer;
+        font-size: .75rem;
+        line-height: 1;
+        padding: 7px 0;
+        transition: color .12s, background .12s;
       }
-      .strzalka:hover { background: var(--akcent-tlo); }
-      .strzalka.akt { color: var(--akcent); }
-      .wynik { font-weight: 700; font-variant-numeric: tabular-nums; }
-      .tresc { flex: 1; min-width: 0; }
-      .nazwa { font-size: 1.15rem; font-weight: 650; }
-      .rank { color: var(--slaby); font-weight: 700; margin-right: 8px; }
-      .role { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; color: var(--slaby); font-size: .82rem; }
-      .meta { margin-top: 6px; color: var(--slaby); font-size: .8rem; }
-      .pusto { text-align: center; color: var(--slaby); padding: 40px 0; }
+      .strzalka:hover { background: var(--karta-hover); color: var(--biel); }
+      .strzalka.gora.akt { color: var(--mieta); background: rgba(61,220,151,.14); }
+      .strzalka.dol.akt { color: var(--neon); background: rgba(255,46,136,.14); }
+
+      .wynik {
+        font-family: var(--display);
+        font-size: 1.7rem;
+        line-height: 1;
+        padding: 3px 8px 5px;
+        text-align: center;
+        color: var(--biel);
+        border-block: 2px solid var(--linia);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── States ─────────────────────────────────────────────────────────── */
+
+      .pusto {
+        text-align: center;
+        color: var(--mgla);
+        border: 2px dashed var(--linia);
+        padding: 44px 20px;
+      }
+      .pusto strong { display: block; font-family: var(--display); font-size: 1.4rem; text-transform: uppercase; color: var(--biel); margin-bottom: 8px; }
+      .pusto code { font-family: var(--dane); color: var(--zloto); }
+
       #wiecej {
-        display: block; margin: 20px auto 0; padding: 9px 20px; border-radius: 999px;
-        border: 1px solid var(--linia); background: var(--panel); color: var(--tekst); cursor: pointer;
+        display: block;
+        margin: 20px auto 0;
+        padding: 11px 26px;
+        font-family: var(--dane);
+        font-size: .78rem;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        border: 2px solid var(--linia);
+        background: transparent;
+        color: var(--mgla);
+        cursor: pointer;
       }
-      #blad { text-align: center; color: #dc2626; min-height: 1.2em; margin-top: 10px; font-size: .9rem; }
-      footer { text-align: center; color: var(--slaby); font-size: .8rem; margin-top: 30px; }
+      #wiecej:hover { border-color: var(--neon); color: var(--biel); }
+      /* An id selector beats the UA's [hidden] rule, so restate it here or the
+         button stays on screen with nothing left to load. */
+      #wiecej[hidden] { display: none; }
+
+      #blad { text-align: center; color: var(--neon); min-height: 1.3em; margin-top: 14px; font-size: .88rem; }
+
+      .stopka {
+        text-align: center;
+        margin-top: 40px;
+        font-family: var(--dane);
+        font-size: .72rem;
+        letter-spacing: .08em;
+        color: var(--mgla);
+        opacity: .6;
+      }
+      .stopka code { color: var(--zloto); }
+
+      :focus-visible { outline: 2px solid var(--zloto); outline-offset: 2px; }
+
+      @media (max-width: 460px) {
+        .wpis { gap: 12px; padding: 14px; }
+        .miejsce { padding-top: 0; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <header>
-        <h1>Sala Chwaly</h1>
-        <p class="podtytul">Najzabawniejsze nazwy klubow z Rendom Klub Dżenerejtora</p>
+      <header class="naglowek">
+        <h1 class="tytul">Rendom Klub Dżenerejtor</h1>
+        <p class="podtytul">Ranking najbardziej zwalowych klubow</p>
       </header>
       <nav id="tabs"></nav>
-      <ul id="lista"></ul>
+      <ul id="lista" class="lista"></ul>
       <p id="blad"></p>
       <button id="wiecej" hidden>Pokaz wiecej</button>
-      <footer>Generuj w grze aliasem <code>rkg!</code>, potem wyslij z okna wtyczki.</footer>
+      <footer class="stopka">Wylosuj klub w grze aliasem <code>rkg!</code>, potem wyslij go do rankingu.</footer>
     </div>
     <script type="module" src="./app.js"></script>
   </body>

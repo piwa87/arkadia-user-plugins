@@ -1,7 +1,8 @@
 import type { GlosResponse, ListaResponse, Pozycja, Sortowanie } from '../../src/shared/rkg-api';
+import { mozeDopisac, scal } from './lista';
 
 /**
- * RKG wall — the public "Sala Chwaly" of generated club names.
+ * RKG — the public ranking of generated club names.
  *
  * Static page served by the same Worker that exposes the API, so every call is
  * same-origin. Vote identity is one random id kept in localStorage; there are no
@@ -45,6 +46,9 @@ const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as
 
 async function pobierz(dopisz = false): Promise<void> {
   if (state.ladowanie) return;
+  // Without a cursor there is no next page, and asking anyway would re-fetch
+  // page one and append it to itself.
+  if (dopisz && !mozeDopisac(state.cursor, state.ladowanie)) return;
   state.ladowanie = true;
   render();
 
@@ -54,11 +58,11 @@ async function pobierz(dopisz = false): Promise<void> {
     const res = await fetch(`/api/nazwy?${params}`);
     if (!res.ok) throw new Error(String(res.status));
     const data = (await res.json()) as ListaResponse;
-    state.pozycje = dopisz ? [...state.pozycje, ...data.pozycje] : data.pozycje;
+    state.pozycje = dopisz ? scal(state.pozycje, data.pozycje) : data.pozycje;
     state.cursor = data.cursor;
   } catch {
     if (!dopisz) state.pozycje = [];
-    $('#blad').textContent = 'Nie udalo sie pobrac listy. Sprobuj odswiezyc.';
+    $('#blad').textContent = 'Nie udalo sie pobrac listy. Odswiez strone.';
   } finally {
     state.ladowanie = false;
     render();
@@ -82,36 +86,52 @@ async function glosuj(id: string, kierunek: 1 | -1): Promise<void> {
     zapiszMojGlos(id, wartosc);
     render();
   } catch {
-    $('#blad').textContent = 'Glos nie przeszedl. Sprobuj ponownie.';
+    $('#blad').textContent = 'Glos nie doszedl. Kliknij jeszcze raz.';
   }
+}
+
+/** One office per line — they are three distinct titles, not a bag of tags. */
+function rola(ikona: string, tytul: string | undefined, klasa = ''): string {
+  if (!tytul) return '';
+  return `<div class="rola ${klasa}"><span class="ikona" aria-hidden="true">${ikona}</span><span>${esc(tytul)}</span></div>`;
 }
 
 function wiersz(p: Pozycja, i: number): string {
   const moj = mojeGlosy()[p.id] ?? 0;
   const role = p.role
     ? `<div class="role">
-         ${p.role.przywodca ? `<span>👑 ${esc(p.role.przywodca)}</span>` : ''}
-         ${p.role.zastepca ? `<span>🛡️ ${esc(p.role.zastepca)}</span>` : ''}
-         ${p.role.czlonek ? `<span>• ${esc(p.role.czlonek)}</span>` : ''}
+         ${rola('👑', p.role.przywodca, 'szef')}
+         ${rola('🛡️', p.role.zastepca)}
+         ${rola('⚔️', p.role.czlonek)}
        </div>`
     : '';
   const meta = [
-    p.zgloszenia > 1 ? `${p.zgloszenia}× wygenerowany` : null,
-    p.nick ? `od ${esc(p.nick)}` : 'anonim',
+    p.zgloszenia > 1 ? `<span class="licznik">${p.zgloszenia}× wylosowany</span>` : null,
+    p.nick ? `wyslany przez ${esc(p.nick)}` : 'wyslany anonimowo',
   ]
     .filter(Boolean)
     .join(' · ');
 
-  return `<li class="wpis">
-    <div class="glosy">
-      <button class="strzalka ${moj === 1 ? 'akt' : ''}" data-id="${p.id}" data-dir="1" aria-label="w gore">▲</button>
-      <span class="wynik">${p.wynikGlosow}</span>
-      <button class="strzalka ${moj === -1 ? 'akt' : ''}" data-id="${p.id}" data-dir="-1" aria-label="w dol">▼</button>
-    </div>
+  // Position is meaningful only in the ranking; the other sorts have no places.
+  const wRankingu = state.sort === 'top';
+  const miejsce = wRankingu
+    ? `<div class="miejsce ${i < 3 ? 'podium' : ''}">${String(i + 1).padStart(2, '0')}</div>`
+    : '';
+  const klasy = ['wpis', wRankingu ? '' : 'bez-miejsca', wRankingu && i === 0 ? 'mistrz' : '']
+    .filter(Boolean)
+    .join(' ');
+
+  return `<li class="${klasy}">
+    ${miejsce}
     <div class="tresc">
-      <div class="nazwa">${state.sort === 'top' ? `<span class="rank">#${i + 1}</span>` : ''}${esc(p.wynik)}</div>
+      <div class="nazwa">${esc(p.wynik)}</div>
       ${role}
       <div class="meta">${meta}</div>
+    </div>
+    <div class="glosy">
+      <button class="strzalka gora ${moj === 1 ? 'akt' : ''}" data-id="${p.id}" data-dir="1" aria-label="Glosuj za">▲</button>
+      <span class="wynik">${p.wynikGlosow}</span>
+      <button class="strzalka dol ${moj === -1 ? 'akt' : ''}" data-id="${p.id}" data-dir="-1" aria-label="Glosuj przeciw">▼</button>
     </div>
   </li>`;
 }
@@ -127,7 +147,10 @@ function render(): void {
 
   const lista = $('#lista');
   if (state.pozycje.length === 0 && !state.ladowanie) {
-    lista.innerHTML = `<li class="pusto">Jeszcze pusto. Wygeneruj klub w grze i wyslij go!</li>`;
+    lista.innerHTML = `<li class="pusto">
+      <strong>Ranking jest pusty</strong>
+      Wpisz <code>rkg!</code> w grze i wyslij pierwszy klub.
+    </li>`;
   } else {
     lista.innerHTML = state.pozycje.map(wiersz).join('');
   }
