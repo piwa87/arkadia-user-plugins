@@ -1,7 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 
 // Character-agnostic "is a weapon in hands?" state shared between each
-// character's dobywanie (weapon-drawing) aliases and the `c`/`cc` kill aliases.
+// character's dobywanie (weapon-drawing) aliases and the `c` kill aliases.
 //
 // The CMUD scripts tracked this with a `gdzie_bron` variable (0 = sheathed,
 // 1 = drawn) and every `c` attack first ran `#IF (@gdzie_bron=0) {dob}`. Here

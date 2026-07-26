@@ -14,7 +14,7 @@ export function setupHelpAliases(api: PluginApi): void {
 
       { section: 'COMBAT' },
       { cmd: 'c', desc: 'attack target 1 (zabij CEL)' },
-      { cmd: 'c1 / c2 / c3 / c4', desc: 'attack target 1–4' },
+      { cmd: 'c<n>', desc: 'attack enemy <n> from the client\'s list (/z n)' },
       { cmd: 'z [target/1–4]', desc: 'zabij named target or by slot' },
       { cmd: 'z1 / z2 / z3 / z4', desc: 'attack target by slot' },
       { cmd: 'dp', desc: 'attack all 4 targets in reverse priority' },

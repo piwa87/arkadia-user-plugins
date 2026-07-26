@@ -2,19 +2,17 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { ensureWeaponDrawn, type DobywanieState } from '../dobywanie/state';
 
 /**
- * The `c` / `cc` killing aliases — the most-used combat commands. Migrated from
- * the CMUD `c` (solo / leader / follower) and `cc` aliases.
+ * The `c` killing aliases — the most-used combat commands. Migrated from the
+ * CMUD `c` (solo / leader / follower) alias.
  *
  *   c           solo / leader: attack the configured main target (`zabij @CEL`)
  *               follower:      `zabij cel ataku` — the leader-marked target
- *   c <number>  attack the enemy <number> positions after the player in the
- *               room's object list (`ob_<num>`)
- *   c1..c4      attack configured target slot 1..4 (same as z1..z4) — all modes
  *   c <text>    manual kill: `zabij <text>` (e.g. `c kota` → `zabij kota`)
+ *   c<n>        attack enemy <n> from the client's own numbering, via the
+ *               built-in `/z <n>` command (`c1`, `c2`, … `c12`)
  *
- *   cc ...      same target resolution as `c`, but ALWAYS points and orders the
- *               whole team at the target (`wskaz <t> jako cel ataku` +
- *               `rozkaz druzynie zaatakowac <t>`).
+ * Note the split: `c<n>` uses the CLIENT's enemy numbering, while `z1`..`z4`
+ * (walka_aliasy.ts) use the `set`-configured target slots. Keep them apart.
  *
  * Every form first draws the weapon if it isn't in hands (CMUD
  * `#IF (@gdzie_bron=0) {dob}`). As LEADER, `c` also `wskaz`-es the target so the
@@ -22,32 +20,17 @@ import { ensureWeaponDrawn, type DobywanieState } from '../dobywanie/state';
  * `@a_zabij` custom attack prefix are intentionally not migrated.)
  */
 export function setupKillAlias(api: PluginApi, targets: string[], weaponState: DobywanieState): void {
-  // Resolve the enemy `offset` positions after the player in the room object
-  // list to a server object reference ("ob_<num>"), or null if out of range.
-  const locationTarget = (offset: number): string | null => {
-    const objects = api.objects.getObjectsOnLocation();
-    const myNum = api.team.getPlayerNum();
-    const myIdx = myNum != null ? objects.findIndex((o) => o.num === myNum) : -1;
-    if (myIdx < 0) return null;
-    const target = objects[myIdx + offset];
-    return target ? `ob_${target.num}` : null;
-  };
-
-  // zabij <target>, plus optional team follow-ups on the same target.
-  const strike = (target: string, opts: { wskaz?: boolean; rozkaz?: boolean }) => {
+  // zabij <target>, plus an optional team follow-up on the same target.
+  const strike = (target: string, opts: { wskaz?: boolean }) => {
     api.command.send(`zabij ${target}`);
     if (opts.wskaz) api.command.send(`wskaz ${target} jako cel ataku`);
-    if (opts.rozkaz) api.command.send(`rozkaz druzynie zaatakowac ${target}`);
   };
 
-  // Resolve a `c`/`cc` argument to a target, then strike. `bareTarget` is used
-  // for the no-arg form (configured slot 1, or "cel ataku" for a follower).
-  const kill = (arg: string, bareTarget: string, opts: { wskaz?: boolean; rozkaz?: boolean }) => {
-    let target: string | null;
-    if (arg === '') target = bareTarget;
-    else if (/^\d+$/.test(arg)) target = locationTarget(parseInt(arg, 10));
-    else target = arg.toLowerCase();
-    if (target != null) strike(target, opts);
+  // Resolve a `c` argument to a target, then strike. `bareTarget` is used for
+  // the no-arg form (configured slot 1, or "cel ataku" for a follower).
+  const kill = (arg: string, bareTarget: string, opts: { wskaz?: boolean }) => {
+    const target = arg === '' ? bareTarget : arg.toLowerCase();
+    strike(target, opts);
   };
 
   // --- c — role-aware ---------------------------------------------------------
@@ -69,27 +52,11 @@ export function setupKillAlias(api: PluginApi, targets: string[], weaponState: D
     return true;
   });
 
-  // c1 / c2 / c3 / c4 — attack configured target slot 1..4 (as z1..z4 do).
-  for (let i = 0; i < 4; i++) {
-    const n = i + 1;
-    api.aliases.register(new RegExp(`^c${n}$`), () => {
-      ensureWeaponDrawn(api, weaponState);
-      api.command.send(`zabij ${targets[n - 1]}`);
-      return true;
-    });
-  }
-
-  // --- cc — always command the whole team -------------------------------------
-  const ccHandler = (arg: string) => {
+  // c<n> — attack enemy <n> from the client's own numbering (built-in `/z`).
+  // NOT the `set` slots: those live on z1..z4 in walka_aliasy.ts.
+  api.aliases.register(/^c(\d+)$/, (matches) => {
     ensureWeaponDrawn(api, weaponState);
-    kill(arg, targets[0], { wskaz: true, rozkaz: true });
-  };
-  api.aliases.register(/^cc$/, () => {
-    ccHandler('');
-    return true;
-  });
-  api.aliases.register(/^cc\s+(.+)$/, (matches) => {
-    ccHandler(matches?.[1]?.trim() ?? '');
+    api.command.send(`/z ${matches?.[1]}`);
     return true;
   });
 }

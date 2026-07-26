@@ -61,3 +61,66 @@ describe('core-plugin aliases', () => {
     expect(lastContent).toContain('dragon');
   });
 });
+
+// `c<n>` and `z<n>` look alike but target different things on purpose:
+// c<n> goes through the client's built-in `/z` enemy numbering, z<n> through the
+// `set`-configured target slots. Reversing that has been a regression before.
+describe('c / z attack aliases', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal('localStorage', makeLocalStorageMock());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Dispatch like the client: first registered alias whose pattern matches wins.
+  type Aliases = ReturnType<typeof createMockApi>['aliases'];
+  const fire = (aliases: Aliases, input: string) => {
+    const alias = aliases.find((a) => a.pattern.test(input));
+    expect(alias, `no alias matched "${input}"`).toBeDefined();
+    alias!.callback(input.match(alias!.pattern) as RegExpMatchArray);
+  };
+
+  it('c<n> attacks by the client enemy number, for any n', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    for (const n of ['1', '3', '12']) {
+      fire(aliases, `c${n}`);
+      expect(api.command.send).toHaveBeenCalledWith(`/z ${n}`);
+    }
+  });
+
+  it('z<n> attacks the configured set slot, not the client number', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    fire(aliases, 'set orka');
+    // z1..z4 re-enter the `z <n>` alias, which resolves the slot.
+    fire(aliases, 'z2');
+    expect(api.command.send).toHaveBeenCalledWith('z 2');
+    fire(aliases, 'z 2');
+    expect(api.command.send).toHaveBeenCalledWith('zabij 2. orka');
+  });
+
+  it('c with no argument attacks slot 1, c <text> kills by name', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    fire(aliases, 'set orka');
+    fire(aliases, 'c');
+    expect(api.command.send).toHaveBeenCalledWith('zabij orka');
+    fire(aliases, 'c kota');
+    expect(api.command.send).toHaveBeenCalledWith('zabij kota');
+  });
+
+  it('no longer registers the cc aliases', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    expect(aliases.find((a) => a.pattern.test('cc'))).toBeUndefined();
+    expect(aliases.find((a) => a.pattern.test('cc kota'))).toBeUndefined();
+  });
+});

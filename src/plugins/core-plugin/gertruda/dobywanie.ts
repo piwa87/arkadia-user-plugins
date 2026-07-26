@@ -81,7 +81,7 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
     }
   };
 
-  // Let the shared `c`/`cc` kill aliases auto-draw the selected loadout.
+  // Let the shared `c` kill aliases auto-draw the selected loadout.
   state.drawCurrent = () => drawCurrent();
 
   // dob / db — draw the currently selected loadout

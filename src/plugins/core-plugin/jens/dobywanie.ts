@@ -61,7 +61,7 @@ export function setupJensDobywanie(api: PluginApi, state: DobywanieState): void 
     }
   };
 
-  // Let the shared `c`/`cc` kill aliases auto-draw the selected weapon.
+  // Let the shared `c` kill aliases auto-draw the selected weapon.
   state.drawCurrent = () => drawCurrent();
 
   // dob / db — draw currently selected weapon
