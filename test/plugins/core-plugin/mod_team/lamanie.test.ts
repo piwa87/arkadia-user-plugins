@@ -90,9 +90,9 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll rzuca sie na Soroko przebijajac sie przez jego ochrone.';
     const line = runLine(mock, text);
 
-    // The game line survives verbatim; the alarm is a bar underneath it, and it
-    // states the alarm exactly once. Soroko is team slot 2 → bind label "WW".
-    expect(line!.text).toBe(text);
+    // The game line is suppressed; only the bar is printed. Soroko is team slot
+    // 2 → bind label "WW".
+    expect(line).toBeNull();
     expectBar(mock, '---', 'PRZELAMUJA DRUZYNE', 'Glupi troll -> Soroko  [WW]');
     expect(sentCommands(mock)).toContain('play_basso');
     expect(mock.api.bind.set).toHaveBeenCalledWith('WW', undefined, undefined);
@@ -108,7 +108,7 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll wykorzystujac zaskoczenie przebija sie przez ochrone Vindaela.';
     const line = runLine(mock, text);
 
-    expect(line!.text).toBe(text);
+    expect(line).toBeNull();
     expectBar(mock, '---', 'PRZELAMUJA DRUZYNE', 'Glupi troll -> Vindaela  [QQ]'); // slot 1
     expect(sentCommands(mock)).toContain('play_basso');
 
@@ -138,8 +138,8 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll rzuca sie na ciebie przebijajac sie przez twoja ochrone.';
     const line = runLine(mock, text);
 
-    // The game line stays intact; the alarm bar is printed underneath it.
-    expect(line!.text).toBe(text);
+    // The game line is suppressed; only the bar is printed.
+    expect(line).toBeNull();
     expectBar(mock, '---', 'PRZELAMALI CIE', 'Glupi troll');
     expect(sentCommands(mock)).toContain('play_basso');
     expect(mock.api.bind.set).toHaveBeenCalledWith('rz', undefined, undefined);
@@ -154,7 +154,7 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll wykorzystujac zaskoczenie przebija sie przez twoja ochrone.';
     const line = runLine(mock, text);
 
-    expect(line!.text).toBe(text);
+    expect(line).toBeNull();
     expectBar(mock, '---', 'PRZELAMALI CIE', 'Glupi troll');
     expect(mock.api.bind.set).toHaveBeenCalledWith('rz', undefined, undefined);
 
@@ -176,8 +176,8 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Vindael rzuca sie na zielonego trolla przebijajac sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      // The game line stays intact; the bar and the bind come on top of it.
-      expect(line!.text).toBe(text);
+      // The game line is suppressed; only the bar and bind are printed.
+      expect(line).toBeNull();
       expectBar(mock, '+++', 'DRUZYNA PRZELAMALA', 'Vindael -> zielonego trolla');
       expect(sentCommands(mock)).toContain('play_morse');
       expect(mock.api.bind.set).toHaveBeenCalledWith('c zielonego trolla', undefined, undefined);
@@ -282,7 +282,7 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Rzucasz sie na glupiego trolla przebijajac sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      expect(line!.text).toBe(text);
+      expect(line).toBeNull();
       expectBar(mock, '+++', 'przelamales', 'glupiego trolla');
       expect(sentCommands(mock)).toContain('play_morse');
 
@@ -332,7 +332,7 @@ describe('mod_team — lamanie zaslony', () => {
         'Bezskutecznie rzucasz sie na glupiego trolla, probujac przebic sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      expect(line!.text).toBe(text);
+      expect(line).toBeNull();
       expectBar(mock, '---', 'nie przelamales', 'glupiego trolla');
 
       destroyTeam(mock.api);
@@ -348,7 +348,7 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Arlekin tanecznym krokiem z latwoscia mija obrone Vindaela.';
       const line = runLine(mock, text);
 
-      expect(line!.text).toBe(text);
+      expect(line).toBeNull();
       expectBar(mock, '---', 'ARLEKIN OMIJA', 'Arlekin -> Vindaela  [QQ]');
       expect(sentCommands(mock)).toContain('play_basso');
 
@@ -365,7 +365,7 @@ describe('mod_team — lamanie zaslony', () => {
         'Po chwili, bez cienia zawahania zaczyna dryfowac w jego kierunku, na wskros przenikajac ciernisty zywoplot.';
       const line = runLine(mock, text);
 
-      expect(line!.text).toBe(text);
+      expect(line).toBeNull();
       expectBar(mock, '---', 'PRZELAMUJA DRUZYNE', 'Blaviken -> Vindaela  [QQ]');
       expect(sentCommands(mock)).toContain('play_basso');
 
@@ -381,7 +381,7 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Atakujesz glupiego trolla, lecz goblin zagradza ci droge.';
       const line = runLine(mock, text);
 
-      expect(line!.text).toBe(text);
+      expect(line).toBeNull();
       expectBar(mock, '...', 'cel zasloniety', 'goblin -> glupiego trolla');
       expect(isShieldedAgainstMe()).toBe(true);
 
@@ -396,8 +396,8 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Nikt nie zaslania glupiego trolla.';
       const line = runLine(mock, text);
 
-      // The old rewrite reduced this line to bare "czysty", losing the name.
-      expect(line!.text).toBe(text);
+      // The line is suppressed; only the bar with the target name is shown.
+      expect(line).toBeNull();
       expectBar(mock, '...', 'czysty', 'glupiego trolla');
       expect(isShieldedAgainstMe()).toBe(false);
 

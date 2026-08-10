@@ -33,9 +33,9 @@ import {
  *     re-shields them), or on `rz` when the player themselves was broken
  *   - two conditional auto-attacks, both gated on `pyk+` (see AUTO_* below)
  *
- * PRESENTATION: no handler here rewrites its line. The game's own wording always
- * survives verbatim and every event reports through one `bar()` printed under it
- * — see that helper for the shared format.
+ * PRESENTATION: every handler suppresses the game line (returns null) and prints
+ * a `bar()` instead. Unrecognised variants pass through so the web-client's
+ * built-in triggers still fire as a fallback.
  *
  * The triggers are declared as data (`definitions`) so `lamanietest!` can replay
  * sample lines through the very same handlers.
@@ -144,9 +144,9 @@ export function setupLamanie(api: PluginApi, tag: string): void {
    *
    * `mark` is the polarity — `---` bad, `+++` good, `...` a shield-state note.
    * The verb field is padded to VERB_WIDTH so the detail column lines up across
-   * every event. The game line itself is NEVER rewritten: the bar is printed
-   * separately and, because output from a trigger callback is batched with the
-   * rest of the cycle, lands directly under the line that caused it.
+   * every event. The game line is suppressed (the handler returns null) so only
+   * the bar is visible; output from a trigger callback is batched with the rest
+   * of the cycle, so the bar lands right where the game line would have been.
    */
   const bar = (
     mark: Mark,
@@ -170,22 +170,22 @@ export function setupLamanie(api: PluginApi, tag: string): void {
    * carrying the victim's bind label, basso, and the F-bind armed on that team
    * slot so one key press re-shields them.
    */
-  const teamBroken = (line: LineBuffer, attacker: string, victim: string, idx: number, verb: string) => {
+  const teamBroken = (attacker: string, victim: string, idx: number, verb: string) => {
     teamZlamany = victim.toLowerCase();
     const bindLabel = teamBindLabel(idx);
 
     bar('---', verb, `${attacker.trim()} -> ${victim}`, c38, bindLabel);
     send('play_basso');
     if (bindLabel) bind(bindLabel); // CMUD `alias_f=%item(@lista_bindow, ...)`
-    return line;
+    return null;
   };
 
   /** Shared "an enemy broke through MY shield" reaction — the worst of the set. */
-  const meBroken = (line: LineBuffer, attacker: string) => {
+  const meBroken = (attacker: string) => {
     bar('---', 'PRZELAMALI CIE', attacker.trim(), c79);
     send('play_basso');
     bind('rz'); // CMUD `f+ rz` — order the team to shield us again
-    return line;
+    return null;
   };
 
   /**
@@ -205,12 +205,10 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'zagradza',
       pattern: /^Atakujesz (.*), lecz (.*) zagradza ci droge\./,
-      handler: (line, m) => {
-        // CMUD only ever raised `zaslona_przed_ja` from the "PRZED TOBA" zaslona
-        // line; this one reports the same situation and keeps the flag fresh.
+      handler: (_line, m) => {
         setShieldedAgainstMe(true);
         bar('...', 'cel zasloniety', `${(m[2] ?? '').trim()} -> ${(m[1] ?? '').trim()}`, c35);
-        return line;
+        return null;
       },
     },
 
@@ -221,7 +219,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line; // victim not on the team — pass through
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
+        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
       },
     },
 
@@ -229,7 +227,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebijajac',
       pattern: /^(.*) rzuca sie na ciebie przebijajac sie przez twoja ochrone\./,
-      handler: (line, m) => meBroken(line, m[1] ?? ''),
+      handler: (_line, m) => meBroken(m[1] ?? ''),
     },
 
     // lamanie_udane_team: a teammate breaks an enemy's shield.
@@ -262,7 +260,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
             cooldownTimer = null;
           }, 3000); // CMUD `#ALARM pyk +3`
         }
-        return line;
+        return null;
       },
     },
 
@@ -271,9 +269,9 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebic',
       pattern: /^Bezskutecznie rzucasz sie na (.*), probujac przebic sie przez .* ochrone\./,
-      handler: (line, m) => {
+      handler: (_line, m) => {
         bar('---', 'nie przelamales', (m[1] ?? '').trim(), c38);
-        return line;
+        return null;
       },
     },
 
@@ -281,7 +279,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebijajac',
       pattern: /^Rzucasz sie na (.*) przebijajac sie przez .* ochrone\./,
-      handler: (line, m) => {
+      handler: (_line, m) => {
         bar('+++', 'przelamales', (m[1] ?? '').trim(), c34);
         send('play_morse');
 
@@ -294,7 +292,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
             if (active) send('c cel ataku');
           });
         }
-        return line;
+        return null;
       },
     },
 
@@ -318,7 +316,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         // so the label always came out empty — teamSlot tries both forms.
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'ARLEKIN OMIJA');
+        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'ARLEKIN OMIJA');
       },
     },
 
@@ -330,7 +328,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
+        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
       },
     },
 
@@ -338,7 +336,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebija',
       pattern: /^(.*) wykorzystujac zaskoczenie przebija sie przez twoja ochrone\./,
-      handler: (line, m) => meBroken(line, m[1] ?? ''),
+      handler: (_line, m) => meBroken(m[1] ?? ''),
     },
 
     // lamanie_mi_team_zaskok: teammate broken through by surprise.
@@ -348,7 +346,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
+        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
       },
     },
 
@@ -356,10 +354,10 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'zaslania',
       pattern: /^Nikt nie zaslania (.*)\./,
-      handler: (line, m) => {
+      handler: (_line, m) => {
         setShieldedAgainstMe(false);
         bar('...', 'czysty', (m[1] ?? '').trim(), c35);
-        return line;
+        return null;
       },
     },
   ];
