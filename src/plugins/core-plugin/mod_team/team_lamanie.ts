@@ -1,4 +1,4 @@
-import type { PluginApi } from '@arkadia/plugin-types';
+import type { AnsiAwareBuffer, PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
@@ -6,7 +6,7 @@ import { withDelay } from '../../../lib/withDelay';
 import { getAntyfloodLevel } from '../antyflood';
 import { setBind } from '../f';
 import { isPykEnabled } from '../pyk';
-import { rewrite } from './banner';
+import { spread } from './banner';
 import {
   getCurrentTeam,
   isShieldedAgainstMe,
@@ -33,12 +33,22 @@ import {
  *     re-shields them), or on `rz` when the player themselves was broken
  *   - two conditional auto-attacks, both gated on `pyk+` (see AUTO_* below)
  *
+ * PRESENTATION: no handler here rewrites its line. The game's own wording always
+ * survives verbatim and every event reports through one `bar()` printed under it
+ * — see that helper for the shared format.
+ *
  * The triggers are declared as data (`definitions`) so `lamanietest!` can replay
  * sample lines through the very same handlers.
  */
 
-type LineBuffer = Parameters<typeof rewrite>[0];
+type LineBuffer = AnsiAwareBuffer;
 type Handler = (line: LineBuffer, matches: RegExpMatchArray) => LineBuffer | null;
+
+/** Banner polarity: bad for us / good for us / a shield-state note. */
+type Mark = '---' | '+++' | '...';
+
+/** Width of `spread('DRUZYNA PRZELAMALA')`, the longest verb — aligns details. */
+const VERB_WIDTH = 35;
 
 interface LamanieTrigger {
   /** Gate word(s) — see registerTokenGate / TRIGGERS_REFERENCE RULE #1. */
@@ -93,13 +103,13 @@ function resetLamanieState(): void {
 export function setupLamanie(api: PluginApi, tag: string): void {
   active = true;
 
-  // Colors are built once here — never inside a trigger callback.
-  const c38 = getAnsiFormatState(38, api); // %ansi(6,2,blink) / %ansi(38) — alarm
-  const c79 = getAnsiFormatState(79, api); // %ansi(79) — "przelamali cie"
-  const c34 = getAnsiFormatState(34, api); // %ansi(34) — a break in our favour
-  const c35 = getAnsiFormatState(35, api); // %ansi(35) — "czysty"
+  // Colors are built once here — never inside a trigger callback. They form a
+  // severity ladder, so the same color never means two different things:
+  const c79 = getAnsiFormatState(79, api); // white on maroon — YOU were broken
+  const c38 = getAnsiFormatState(38, api); // red on grey — bad for us
+  const c34 = getAnsiFormatState(34, api); // green on grey — good for us
+  const c35 = getAnsiFormatState(35, api); // grey on grey — low-urgency note
   const c4 = getMyColor(4, api); // %ansi(4) — bind label
-  const c6 = getMyColor(6, api); // %ansi(6) — "UWAGA!!!"
   const reset = getMyColor(0, api); // %ansi(0)
   const info = api.colors.fromHex('#888888');
 
@@ -128,55 +138,51 @@ export function setupLamanie(api: PluginApi, tag: string): void {
   };
 
   /**
-   * The bare alarm bar CMUD printed above the detail line (`#SAY {%ansi(6,2,
-   * blink)" PRZELAMUJA DRUZYNE "}`). Printing from a trigger callback is batched
-   * with the rest of the output cycle, so it lands right next to its line.
+   * The one banner shape every event in this module uses:
+   *
+   *     {mark}  {L E T T E R S P A C E D   V E R B}  {mark}   {detail}  [bind]
+   *
+   * `mark` is the polarity — `---` bad, `+++` good, `...` a shield-state note.
+   * The verb field is padded to VERB_WIDTH so the detail column lines up across
+   * every event. The game line itself is NEVER rewritten: the bar is printed
+   * separately and, because output from a trigger callback is batched with the
+   * rest of the cycle, lands directly under the line that caused it.
    */
-  const printBar = (text: string, color: ReturnType<typeof getAnsiFormatState>) => {
+  const bar = (
+    mark: Mark,
+    verb: string,
+    detail: string,
+    color: ReturnType<typeof getAnsiFormatState>,
+    bindLabel = '',
+  ) => {
     const buf = new api.AnsiAwareBuffer();
-    buf.append(text, color);
+    buf.append(`  ${mark}  ${spread(verb).padEnd(VERB_WIDTH)}  ${mark}   ${detail}`, color);
+    if (bindLabel) {
+      buf.append('  [', reset);
+      buf.append(bindLabel, c4);
+      buf.append(']', reset);
+    }
     api.output.print(buf);
   };
 
   /**
-   * Shared "an enemy broke through a teammate's shield" reaction: alarm bar,
-   * detail banner led by the victim's bind label, basso, and the F-bind armed on
-   * that team slot so one key press re-shields them.
+   * Shared "an enemy broke through a teammate's shield" reaction: alarm bar
+   * carrying the victim's bind label, basso, and the F-bind armed on that team
+   * slot so one key press re-shields them.
    */
-  const teamBroken = (
-    line: LineBuffer,
-    attacker: string,
-    victim: string,
-    idx: number,
-    note: string,
-  ) => {
+  const teamBroken = (line: LineBuffer, attacker: string, victim: string, idx: number, verb: string) => {
     teamZlamany = victim.toLowerCase();
     const bindLabel = teamBindLabel(idx);
 
-    printBar('      PRZELAMUJA DRUZYNE      ', c38);
-    rewrite(line, [
-      ['  PRZELAMUJA DRUZYNE  ', c38],
-      ['  ', reset],
-      [attacker, reset],
-      [`  ${note}  `, c6],
-      ['[', reset],
-      [bindLabel, c4],
-      ['] ', reset],
-      [victim, reset],
-    ]);
+    bar('---', verb, `${attacker.trim()} -> ${victim}`, c38, bindLabel);
     send('play_basso');
     if (bindLabel) bind(bindLabel); // CMUD `alias_f=%item(@lista_bindow, ...)`
     return line;
   };
 
-  /** Shared "an enemy broke through MY shield" reaction. */
+  /** Shared "an enemy broke through MY shield" reaction — the worst of the set. */
   const meBroken = (line: LineBuffer, attacker: string) => {
-    printBar('   --- PRZELAMALI CIE ---   ', c79);
-    rewrite(line, [
-      [' --- przelamali cie ', c79],
-      ['  ', reset],
-      [attacker, reset],
-    ]);
+    bar('---', 'PRZELAMALI CIE', attacker.trim(), c79);
     send('play_basso');
     bind('rz'); // CMUD `f+ rz` — order the team to shield us again
     return line;
@@ -199,14 +205,12 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'zagradza',
       pattern: /^Atakujesz (.*), lecz (.*) zagradza ci droge\./,
-      handler: (line) => {
+      handler: (line, m) => {
         // CMUD only ever raised `zaslona_przed_ja` from the "PRZED TOBA" zaslona
         // line; this one reports the same situation and keeps the flag fresh.
         setShieldedAgainstMe(true);
-        const buf = new api.AnsiAwareBuffer();
-        buf.append(' cel zasloniety ', c38);
-        buf.append(' ', reset);
-        return line.prependBuffer(buf);
+        bar('...', 'cel zasloniety', `${(m[2] ?? '').trim()} -> ${(m[1] ?? '').trim()}`, c35);
+        return line;
       },
     },
 
@@ -217,7 +221,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line; // victim not on the team — pass through
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'UWAGA!!! PRZELAMUJE DRUZYNE');
+        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
       },
     },
 
@@ -238,14 +242,9 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         const target = (m[2] ?? '').trim();
         wrogZlamany = target.toLowerCase();
 
-        rewrite(line, [
-          [' +++ druzyna przelamala ', c34],
-          ['  ', reset],
-          [m[1] ?? '', reset],
-          ['  ', reset],
-          [target, reset],
-        ]);
+        bar('+++', 'DRUZYNA PRZELAMALA', `${(m[1] ?? '').trim()} -> ${target}`, c34);
         send('play_morse');
+        bind(`c ${target}`); // one key press to swing at the now-open enemy
 
         // AUTO-ATTACK A: the broken enemy was the one shielding against us, so
         // it is hittable again — CMUD `#IF (@czy_pyk=1 AND @zaslona_przed_ja=1)`.
@@ -273,11 +272,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       tokens: 'przebic',
       pattern: /^Bezskutecznie rzucasz sie na (.*), probujac przebic sie przez .* ochrone\./,
       handler: (line, m) => {
-        rewrite(line, [
-          [' n i e p r z e l a m a l e s ', c38],
-          ['  ', reset],
-          [m[1] ?? '', reset],
-        ]);
+        bar('---', 'nie przelamales', (m[1] ?? '').trim(), c38);
         return line;
       },
     },
@@ -287,11 +282,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       tokens: 'przebijajac',
       pattern: /^Rzucasz sie na (.*) przebijajac sie przez .* ochrone\./,
       handler: (line, m) => {
-        rewrite(line, [
-          [' +++ przelamales ', c34],
-          ['  ', reset],
-          [m[1] ?? '', reset],
-        ]);
+        bar('+++', 'przelamales', (m[1] ?? '').trim(), c34);
         send('play_morse');
 
         // AUTO-ATTACK B: back on the team's target now that the shield is gone.
@@ -327,7 +318,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         // so the label always came out empty — teamSlot tries both forms.
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'UWAGA!!! ARLEKIN OMIJA');
+        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'ARLEKIN OMIJA');
       },
     },
 
@@ -339,7 +330,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'UWAGA!!! PRZELAMUJE DRUZYNE');
+        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
       },
     },
 
@@ -357,17 +348,17 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'UWAGA!!! PRZELAMUJE DRUZYNE');
+        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
       },
     },
 
     // lamanie_czysty: nobody is shielding the target anymore.
     {
       tokens: 'zaslania',
-      pattern: /^Nikt nie zaslania .*\./,
-      handler: (line) => {
+      pattern: /^Nikt nie zaslania (.*)\./,
+      handler: (line, m) => {
         setShieldedAgainstMe(false);
-        rewrite(line, [[' czysty ', c35]]);
+        bar('...', 'czysty', (m[1] ?? '').trim(), c35);
         return line;
       },
     },

@@ -3,3 +3,5 @@ coverage
 node_modules
 plugin-docs
 .DS_Store
+.agents/
+.codex/
