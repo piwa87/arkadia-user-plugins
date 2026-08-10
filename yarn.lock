@@ -2,12 +2,9 @@
 # yarn lockfile v1
 
 
-"@arkadia/plugin-types@../arkadia-web-client-extension/plugin-types":
-  version "1.0.0"
-
 "@arkadia/plugin-types@http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz":
-  version "1.0.0-20260519115811"
-  resolved "http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz#30ea54bfa81b65565925c0cb08dece97416465bc"
+  version "1.0.0-20260729090027"
+  resolved "http://delwing.github.io/arkadia-web-client-extension/arkadia-plugin-types.tgz#b03ed3b19757371a3fb6811916f391cc187b43cd"
 
 "@emnapi/core@1.10.0":
   version "1.10.0"
