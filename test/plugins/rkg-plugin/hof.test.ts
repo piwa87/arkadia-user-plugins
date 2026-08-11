@@ -576,12 +576,13 @@ describe('rkgwyslij', () => {
 });
 
 describe('rkgnuke', () => {
-  it('does nothing without a key', () => {
+  it('explains that the global wipe was replaced by per-club moderation', () => {
     const { mock } = setup();
     const f = stubFetch({});
     odpal(mock, 'rkgnuke');
     expect(f).not.toHaveBeenCalled();
-    expect(printed(mock).join('\n')).toContain('uzycie');
+    expect(printed(mock).join('\n')).toContain('kasowanie calego rankingu jest wylaczone');
+    expect(printed(mock).join('\n')).toContain('moderuj pojedyncze kluby na stronie');
   });
 
   it('"-" flushes only the local list, leaving the wall alone', () => {
@@ -596,28 +597,15 @@ describe('rkgnuke', () => {
     expect(printed(mock).join('\n')).toContain('ranking bez zmian');
   });
 
-  it('sends DELETE with the admin header and clears the local list', async () => {
+  it('never sends an old admin key or clears local clubs', () => {
     const { mock, baza } = setup();
-    const f = stubFetch({ nazwy: 3, glosy: 5, zdarzenia: 9 });
+    const f = stubFetch({});
     baza.dodajWpis(WPIS);
 
     odpal(mock, 'rkgnuke tajne-haslo');
-    await vi.waitFor(() => expect(baza.wpisy).toHaveLength(0));
 
-    const [url, init] = f.mock.calls[0] as any;
-    expect(url).toContain('/api/nazwy');
-    expect(init.method).toBe('DELETE');
-    expect(init.headers['X-RKG-Admin']).toBe('tajne-haslo');
-    expect(printed(mock).join('\n')).toContain('3 nazw');
-  });
-
-  it('keeps the local list when the server refuses', async () => {
-    const { mock, baza } = setup();
-    stubFetch({ blad: 'brak dostepu' }, false);
-    baza.dodajWpis(WPIS);
-
-    odpal(mock, 'rkgnuke zle-haslo');
-    await vi.waitFor(() => expect(printed(mock).join('\n')).toContain('nie wyczyszczono'));
     expect(baza.wpisy).toHaveLength(1);
+    expect(f).not.toHaveBeenCalled();
+    expect(printed(mock).join('\n')).toContain('kasowanie calego rankingu jest wylaczone');
   });
 });

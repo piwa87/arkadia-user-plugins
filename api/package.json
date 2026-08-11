@@ -10,8 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "wrangler d1 migrations apply rkg-wall --remote",
     "db:migrate:local": "wrangler d1 migrations apply rkg-wall --local",
-    "db:init": "wrangler d1 execute rkg-wall --remote --file=schema.sql",
-    "db:reset": "wrangler d1 execute rkg-wall --remote --file=reset.sql"
+    "db:init": "wrangler d1 execute rkg-wall --remote --file=schema.sql"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.21.0",

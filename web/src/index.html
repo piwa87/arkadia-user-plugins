@@ -281,6 +281,22 @@
         opacity: .75;
       }
       .meta .licznik { color: var(--mieta); }
+      .meta .trend { color: var(--zloto); }
+
+      .raport-link {
+        margin-top: 8px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--mgla);
+        font: 600 .66rem/1 var(--dane);
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        opacity: .55;
+        cursor: pointer;
+      }
+      .raport-link:hover { color: var(--neon); opacity: 1; }
+      .raport-link:disabled { cursor: default; color: var(--mieta); }
 
       /* ── Votes ──────────────────────────────────────────────────────────── */
 
@@ -360,6 +376,110 @@
       }
       .stopka code { color: var(--zloto); }
 
+      .stopka-przycisk {
+        border: 0;
+        border-bottom: 1px solid currentColor;
+        padding: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        cursor: pointer;
+      }
+      .stopka-przycisk:hover { color: var(--zloto); }
+
+      /* ── Report ticket + moderation backstage pass ─────────────────────── */
+
+      dialog {
+        width: min(92vw, 510px);
+        border: 3px solid var(--zloto);
+        border-radius: 0;
+        padding: 0;
+        background: var(--karta);
+        color: var(--biel);
+        box-shadow: 8px 8px 0 var(--neon);
+      }
+      dialog::backdrop { background: rgba(9, 5, 22, .82); }
+
+      .dialog-tresc { padding: 22px; }
+      .dialog-etykieta {
+        margin: 0 0 5px;
+        color: var(--neon);
+        font: 800 .66rem/1 var(--dane);
+        letter-spacing: .2em;
+        text-transform: uppercase;
+      }
+      .dialog-tytul {
+        margin: 0;
+        color: var(--zloto);
+        font: 2rem/.95 var(--display);
+        text-transform: uppercase;
+      }
+      .dialog-opis { margin: 10px 0 16px; color: var(--mgla); font-size: .86rem; }
+      .dialog-akcje { display: grid; gap: 8px; }
+      .dialog-akcje button,
+      .admin-form button,
+      .admin-akcje button {
+        border: 2px solid var(--linia);
+        border-radius: 0;
+        padding: 10px 12px;
+        background: transparent;
+        color: var(--biel);
+        font: 700 .72rem/1 var(--dane);
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .dialog-akcje button:hover,
+      .admin-form button:hover,
+      .admin-akcje button:hover { border-color: var(--zloto); color: var(--zloto); }
+      .dialog-zamknij { margin-top: 14px; text-align: right; }
+      .dialog-zamknij button { border: 0; background: none; color: var(--mgla); cursor: pointer; }
+      .dialog-status { min-height: 1.4em; color: var(--mieta); font-size: .78rem; }
+
+      .admin-dialog { width: min(94vw, 720px); border-color: var(--neon); }
+      .admin-dialog .dialog-tresc { padding: 0; }
+      .admin-naglowek {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 16px;
+        padding: 20px 22px;
+        border-bottom: 3px solid var(--neon);
+        background: var(--noc);
+      }
+      .admin-naglowek .dialog-tytul { color: var(--neon); text-shadow: 2px 2px 0 var(--zloto); }
+      .admin-naglowek .dialog-zamknij { margin-top: 0; }
+      .admin-form { display: flex; gap: 8px; padding: 14px 22px; border-bottom: 2px solid var(--linia); }
+      .admin-form input {
+        min-width: 0;
+        flex: 1;
+        border: 2px solid var(--linia);
+        border-radius: 0;
+        padding: 10px 12px;
+        background: var(--noc);
+        color: var(--biel);
+        font: .8rem var(--dane);
+      }
+      .admin-status { margin: 10px 22px; min-height: 1.3em; color: var(--neon); font-size: .78rem; }
+      .admin-lista { max-height: min(58vh, 560px); overflow-y: auto; padding: 0 22px 22px; }
+      .admin-wpis {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        padding: 13px 0;
+        border-top: 2px solid var(--linia);
+      }
+      .admin-wpis.ukryty { opacity: .62; }
+      .admin-wpis strong { display: block; margin-top: 6px; font: 1.15rem/1 var(--display); text-transform: uppercase; }
+      .admin-wpis small { display: block; margin-top: 6px; color: var(--mgla); font: .68rem var(--dane); }
+      .admin-wpis .admin-powody { color: var(--zloto); }
+      .admin-stempel { color: var(--mieta); font: 800 .62rem var(--dane); letter-spacing: .12em; }
+      .admin-wpis.ukryty .admin-stempel { color: var(--neon); }
+      .admin-akcje { display: flex; align-items: center; gap: 6px; }
+      .admin-akcje .usun:hover { border-color: var(--neon); color: var(--neon); }
+      .admin-pusto { color: var(--mgla); text-align: center; }
+
       :focus-visible { outline: 2px solid var(--zloto); outline-offset: 2px; }
 
       @media (max-width: 460px) {
@@ -379,6 +499,10 @@
         .krok-nr { grid-row: 1 / span 2; margin: 2px 0 0; }
         .wpis { gap: 12px; padding: 14px; }
         .miejsce { padding-top: 0; }
+        .admin-form { flex-direction: column; }
+        .admin-wpis { grid-template-columns: 1fr; }
+        .admin-akcje { justify-content: stretch; }
+        .admin-akcje button { flex: 1; }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -441,8 +565,42 @@
       <button id="wiecej" hidden>Pokaz wiecej</button>
       <footer class="stopka">
         Wylosuj klub w grze aliasem <code>rkg!</code>. Do rankingu możesz wysłać jeden klub na 24 godziny.
+        · <button id="moderacja-open" class="stopka-przycisk">Moderacja</button>
       </footer>
     </div>
+
+    <dialog id="raport-dialog" aria-labelledby="raport-tytul">
+      <div class="dialog-tresc">
+        <p class="dialog-etykieta">Raport sedziowski</p>
+        <h2 id="raport-tytul" class="dialog-tytul">Zglos klub</h2>
+        <p class="dialog-opis"><strong id="raport-nazwa"></strong><br />Wybierz jeden powod. Nie wysylamy zadnego opisu.</p>
+        <div class="dialog-akcje">
+          <button data-powod="wulgarne">Wulgarne lub obrazliwe</button>
+          <button data-powod="osoba">Podszywa sie pod prawdziwa osobe</button>
+          <button data-powod="inne">Inny problem z rankingiem</button>
+        </div>
+        <p id="raport-status" class="dialog-status" aria-live="polite"></p>
+        <form method="dialog" class="dialog-zamknij"><button>Zamknij</button></form>
+      </div>
+    </dialog>
+
+    <dialog id="admin-dialog" class="admin-dialog" aria-labelledby="admin-tytul">
+      <div class="dialog-tresc">
+        <header class="admin-naglowek">
+          <div>
+            <p class="dialog-etykieta">Tylko dla obslugi</p>
+            <h2 id="admin-tytul" class="dialog-tytul">Backstage</h2>
+          </div>
+          <form method="dialog" class="dialog-zamknij"><button>Zamknij</button></form>
+        </header>
+        <form id="admin-form" class="admin-form">
+          <input id="admin-klucz" type="password" autocomplete="off" placeholder="Klucz moderatora" aria-label="Klucz moderatora" />
+          <button type="submit">Wejdz</button>
+        </form>
+        <p id="admin-status" class="admin-status" aria-live="polite"></p>
+        <section id="admin-lista" class="admin-lista"><p class="admin-pusto">Podaj klucz, aby zobaczyc kolejke.</p></section>
+      </div>
+    </dialog>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

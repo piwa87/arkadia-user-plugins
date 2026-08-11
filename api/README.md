@@ -53,22 +53,17 @@ migrations automatically. `yarn db:migrate:local` is available for manual
 a local site with 10 mock clubs and a mock voting API at
 `http://localhost:4173`.
 
-## Wiping the wall (beta)
+## Moderation
 
-Two ways, both irreversible:
+The website footer opens the **Moderacja / Backstage** panel. Enter the
+`RKG_ADMIN` Worker secret to see every club, report counts and their fixed
+reasons. Each club can be hidden, restored or permanently deleted. The key is
+kept only in `sessionStorage` for the current browser tab/session.
 
-```bash
-cd api && yarn db:reset            # runs reset.sql against the remote D1
-```
-
-or in the game client: `rkgnuke <klucz>`, where `<klucz>` is the `RKG_ADMIN`
-secret. That calls `DELETE /api/nazwy` and then clears the local list too.
-`rkgnuke -` clears only the local list.
-
-`RKG_ADMIN` is a Worker **secret**, never a `[vars]` entry — it must not be in
-this repo, and the plugin never stores it (you type it each time). With the
-secret unset the DELETE route answers 404, which is where it should be left once
-beta is over.
+`RKG_ADMIN` is a Worker **secret**, never a `[vars]` entry. Set it with
+`wrangler secret put RKG_ADMIN`. There is deliberately no API or plugin command
+that wipes the whole ranking. `reset.sql` remains an operator-only emergency
+file and is not exposed as a package script.
 
 ## Deploy
 
@@ -90,9 +85,11 @@ can be attached in the Cloudflare dashboard.
 | --- | --- | --- | --- |
 | `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (one per device per rolling 24h; dedupes by normalised name; repeat bumps `zgloszenia`) |
 | `POST` | `/api/limit` | `{ glosujacy }` | `StatusLimitu` (read-only daily-slot status and countdown) |
-| `GET` | `/api/nazwy?sort=top\|nowe\|losowe&cursor&limit` | — | `ListaResponse` |
+| `GET` | `/api/nazwy?sort=gorace\|top\|nowe\|losowe&cursor&limit` | — | `ListaResponse`; `gorace` uses net votes from the last 7 days |
 | `POST` | `/api/nazwy/:id/glos` | `GlosRequest` (`wartosc` 1/-1/0) | `GlosResponse` |
-| `DELETE` | `/api/nazwy` | — (header `X-RKG-Admin: <RKG_ADMIN>`) | `CzystkaResponse` — wipes every row; 404 when `RKG_ADMIN` is unset |
+| `POST` | `/api/nazwy/:id/raport` | `RaportRequest` (one fixed reason) | `RaportResponse`; duplicate-safe, max 10 distinct reports/hour/device |
+| `GET` | `/api/admin/nazwy` | header `X-RKG-Admin` | `ListaModeracjiResponse` with hidden state and reason counts |
+| `POST` | `/api/admin/nazwy/:id` | `ModeracjaRequest`, header `X-RKG-Admin` | Hide, restore or delete exactly one club |
 
 Types are the single source of truth in [`src/shared/rkg-api.ts`](../src/shared/rkg-api.ts).
 
@@ -103,6 +100,7 @@ against the exact word lists and grammar the generator uses (`validate.ts`):
 `typ` and `przymiotnik` must be list members; the name must match the strict
 "type + 2–3 capitalised words" shape; its adjective must share a stem with the
 submitted base adjective; roles/nick are pattern-checked. Anything else → 400.
-A one-club-per-rolling-24-hours device quota, a separate hourly vote limit and
-an `ukryte` takedown flag round it out. The submission check and slot claim are
-one atomic SQLite statement, so simultaneous requests cannot share a free slot.
+A one-club-per-rolling-24-hours device quota, a separate hourly vote limit,
+fixed-reason reports, a ten-report hourly cap and protected per-club moderation
+round it out. Submission and report reservations are atomic D1 batches, so
+simultaneous requests cannot share a slot or create duplicate reports.

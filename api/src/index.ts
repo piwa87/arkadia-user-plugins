@@ -1,15 +1,20 @@
 import type {
+  AkcjaModeracji,
   BladResponse,
-  CzystkaResponse,
   GlosResponse,
+  ListaModeracjiResponse,
   ListaResponse,
+  ModeracjaResponse,
   Pozycja,
+  PozycjaModeracji,
+  RaportResponse,
   Sortowanie,
   StatusLimitu,
   ZgloszenieResponse,
 } from '../../src/shared/rkg-api';
-import { walidujGlos, walidujGlosujacego, walidujZgloszenie } from './validate';
+import { walidujGlos, walidujGlosujacego, walidujRaport, walidujZgloszenie } from './validate';
 import { formatujCzekanie, sprawdzLimit, zuzyjLimit } from './quota';
+import { zapiszRaport } from './reports';
 import { DZIEN, zapiszZgloszenie } from './submissions';
 
 /**
@@ -28,9 +33,8 @@ export interface Env {
   RKG_CORS?: string;
   RKG_LIMIT_GLOSOW?: string;
   /**
-   * Admin key for `DELETE /api/nazwy` (the beta wipe). A Worker SECRET, never a
-   * var — set it with `wrangler secret put RKG_ADMIN`. Unset means the route is
-   * disabled outright, which is the correct state once beta ends.
+   * Admin key for per-club moderation. A Worker SECRET, never a var — set it
+   * with `wrangler secret put RKG_ADMIN`. Unset disables admin routes outright.
    */
   RKG_ADMIN?: string;
 }
@@ -49,7 +53,7 @@ function naglowkiCors(req: Request, env: Env): Record<string, string> {
   const h: Record<string, string> = { Vary: 'Origin' };
   if (origin && dozwolone.includes(origin)) {
     h['Access-Control-Allow-Origin'] = origin;
-    h['Access-Control-Allow-Methods'] = 'GET,POST,DELETE,OPTIONS';
+    h['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS';
     h['Access-Control-Allow-Headers'] = 'Content-Type,X-RKG-Admin';
     h['Access-Control-Max-Age'] = '86400';
   }
@@ -91,6 +95,7 @@ function doPozycji(r: Record<string, unknown>): Pozycja {
     wynik: r.wynik as string,
     role,
     wynikGlosow: (r.wynik_glosow as number) ?? 0,
+    wynikOkresu: r.wynik_okresu == null ? undefined : (r.wynik_okresu as number),
     zgloszenia: (r.zgloszenia as number) ?? 1,
     nick: (r.nick as string) ?? undefined,
     kiedy: (r.kiedy as number) ?? 0,
@@ -132,22 +137,33 @@ async function postStatusLimitu(req: Request, env: Env, cors: Record<string, str
 }
 
 async function getLista(url: URL, env: Env, cors: Record<string, string>) {
-  const sort = (url.searchParams.get('sort') ?? 'top') as Sortowanie;
+  const requested = url.searchParams.get('sort') ?? 'gorace';
+  const sort: Sortowanie = ['gorace', 'top', 'nowe', 'losowe'].includes(requested)
+    ? requested as Sortowanie
+    : 'gorace';
   const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 25, 1), 50);
   const offset = Math.max(Number(url.searchParams.get('cursor')) || 0, 0);
 
-  const orderBy =
-    sort === 'nowe'
+  let query: D1PreparedStatement;
+  if (sort === 'gorace') {
+    query = env.DB.prepare(
+      `SELECT n.*,
+         COALESCE((SELECT SUM(g.wartosc) FROM glosy g
+                   WHERE g.nazwa_id = n.id AND g.kiedy > ?), 0) AS wynik_okresu
+       FROM nazwy n WHERE n.ukryte = 0
+       ORDER BY wynik_okresu DESC, n.kiedy DESC LIMIT ? OFFSET ?`,
+    ).bind(Date.now() - 7 * DZIEN, limit + 1, offset);
+  } else {
+    const orderBy = sort === 'nowe'
       ? 'kiedy DESC'
       : sort === 'losowe'
         ? 'RANDOM()'
         : 'wynik_glosow DESC, kiedy DESC';
-
-  const { results } = await env.DB.prepare(
-    `SELECT * FROM nazwy WHERE ukryte = 0 ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
-  )
-    .bind(limit + 1, offset)
-    .all<Record<string, unknown>>();
+    query = env.DB.prepare(
+      `SELECT * FROM nazwy WHERE ukryte = 0 ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
+    ).bind(limit + 1, offset);
+  }
+  const { results } = await query.all<Record<string, unknown>>();
 
   const rows = results ?? [];
   const jestWiecej = sort !== 'losowe' && rows.length > limit;
@@ -201,32 +217,95 @@ async function postGlos(id: string, req: Request, env: Env, cors: Record<string,
   return json(res, 200, cors);
 }
 
-/**
- * `DELETE /api/nazwy` — wipe the wall, keep the schema. Beta escape hatch for
- * the one person running this; there is no undo and no soft-delete.
- *
- * Auth is a single shared key in the `X-RKG-Admin` header, compared against the
- * `RKG_ADMIN` secret. No secret configured → 404, so the route is invisible
- * (and unusable) on a deployment that has not opted in.
- */
-async function deleteWszystko(req: Request, env: Env, cors: Record<string, string>) {
+async function postRaport(id: string, req: Request, env: Env, cors: Record<string, string>) {
+  const body = await req.json().catch(() => null);
+  const v = walidujRaport(body);
+  if (!v.ok) return blad(v.blad, 400, cors);
+  const wynik = await zapiszRaport(env.DB, id, v.dane.glosujacy, v.dane.powod);
+  if (wynik.status === 'nie_ma') return blad('nie ma takiej nazwy', 404, cors);
+  if (wynik.status === 'limit') {
+    const body: BladResponse = {
+      blad: 'za duzo zgloszen, sprobuj pozniej',
+      ponownieZaMs: wynik.ponownieZaMs,
+    };
+    return json(body, 429, cors);
+  }
+  const response: RaportResponse = {
+    id,
+    przyjete: true,
+    duplikat: wynik.status === 'duplikat',
+  };
+  return json(response, wynik.status === 'duplikat' ? 200 : 201, cors);
+}
+
+function autoryzujAdmin(req: Request, env: Env, cors: Record<string, string>): Response | null {
   const klucz = env.RKG_ADMIN;
   if (!klucz) return blad('nie znaleziono', 404, cors);
   if (!bezpiecznyRowny(req.headers.get('X-RKG-Admin') ?? '', klucz)) {
     return blad('brak dostepu', 403, cors);
   }
+  return null;
+}
 
-  // Children first — glosy/zdarzenia are meaningless without their names.
-  const glosy = await env.DB.prepare('DELETE FROM glosy').run();
-  const zdarzenia = await env.DB.prepare('DELETE FROM zdarzenia').run();
-  const nazwy = await env.DB.prepare('DELETE FROM nazwy').run();
-
-  const res: CzystkaResponse = {
-    nazwy: nazwy.meta.changes ?? 0,
-    glosy: glosy.meta.changes ?? 0,
-    zdarzenia: zdarzenia.meta.changes ?? 0,
+async function getModeracja(req: Request, env: Env, cors: Record<string, string>) {
+  const denied = autoryzujAdmin(req, env, cors);
+  if (denied) return denied;
+  const { results } = await env.DB.prepare(
+    `SELECT n.*, COUNT(r.nazwa_id) AS raporty,
+       SUM(CASE WHEN r.powod = 'wulgarne' THEN 1 ELSE 0 END) AS raporty_wulgarne,
+       SUM(CASE WHEN r.powod = 'osoba' THEN 1 ELSE 0 END) AS raporty_osoba,
+       SUM(CASE WHEN r.powod = 'inne' THEN 1 ELSE 0 END) AS raporty_inne
+     FROM nazwy n LEFT JOIN raporty r ON r.nazwa_id = n.id
+     GROUP BY n.id
+     ORDER BY n.ukryte DESC, raporty DESC, n.kiedy DESC
+     LIMIT 200`,
+  ).all<Record<string, unknown>>();
+  const response: ListaModeracjiResponse = {
+    pozycje: (results ?? []).map((row): PozycjaModeracji => ({
+      ...doPozycji(row),
+      ukryte: Boolean(row.ukryte),
+      raporty: (row.raporty as number) ?? 0,
+      raportyPowody: {
+        wulgarne: (row.raporty_wulgarne as number) ?? 0,
+        osoba: (row.raporty_osoba as number) ?? 0,
+        inne: (row.raporty_inne as number) ?? 0,
+      },
+    })),
   };
-  return json(res, 200, cors);
+  return json(response, 200, cors);
+}
+
+async function postModeracja(
+  id: string,
+  req: Request,
+  env: Env,
+  cors: Record<string, string>,
+) {
+  const denied = autoryzujAdmin(req, env, cors);
+  if (denied) return denied;
+  const body = await req.json().catch(() => null) as { akcja?: unknown } | null;
+  const action = body?.akcja;
+  if (action !== 'ukryj' && action !== 'przywroc' && action !== 'usun') {
+    return blad('zla akcja', 400, cors);
+  }
+  const akcja: AkcjaModeracji = action;
+  let changed = 0;
+  if (akcja === 'usun') {
+    const [, , name] = await env.DB.batch([
+      env.DB.prepare('DELETE FROM glosy WHERE nazwa_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM raporty WHERE nazwa_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM nazwy WHERE id = ?').bind(id),
+    ]);
+    changed = name.meta.changes ?? 0;
+  } else {
+    const result = await env.DB.prepare('UPDATE nazwy SET ukryte = ? WHERE id = ?')
+      .bind(akcja === 'ukryj' ? 1 : 0, id)
+      .run();
+    changed = result.meta.changes ?? 0;
+  }
+  if (changed === 0) return blad('nie ma takiej nazwy', 404, cors);
+  const response: ModeracjaResponse = { id, akcja };
+  return json(response, 200, cors);
 }
 
 /** Length-independent, early-exit-free comparison — no timing oracle on the key. */
@@ -251,13 +330,21 @@ export default {
       if (url.pathname === '/api/nazwy') {
         if (req.method === 'GET') return await getLista(url, env, cors);
         if (req.method === 'POST') return await postZgloszenie(req, env, cors);
-        if (req.method === 'DELETE') return await deleteWszystko(req, env, cors);
       }
       if (url.pathname === '/api/limit' && req.method === 'POST') {
         return await postStatusLimitu(req, env, cors);
       }
       const m = url.pathname.match(/^\/api\/nazwy\/([A-Za-z0-9-]{8,64})\/glos$/);
       if (m && req.method === 'POST') return await postGlos(m[1], req, env, cors);
+      const report = url.pathname.match(/^\/api\/nazwy\/([A-Za-z0-9-]{8,64})\/raport$/);
+      if (report && req.method === 'POST') return await postRaport(report[1], req, env, cors);
+      if (url.pathname === '/api/admin/nazwy' && req.method === 'GET') {
+        return await getModeracja(req, env, cors);
+      }
+      const moderation = url.pathname.match(/^\/api\/admin\/nazwy\/([A-Za-z0-9-]{8,64})$/);
+      if (moderation && req.method === 'POST') {
+        return await postModeracja(moderation[1], req, env, cors);
+      }
 
       return blad('nie znaleziono', 404, cors);
     } catch (e) {

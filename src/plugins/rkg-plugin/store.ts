@@ -26,7 +26,7 @@ export interface Baza {
   usun(id: string): boolean;
   /** Drop every club that was never published. Returns how many went. */
   usunNiewyslane(): number;
-  /** Drop every captured club. Used by `rkgnuke`; there is no undo. */
+  /** Drop every locally captured club. Used by `rkgnuke -`; there is no undo. */
   wyczysc(): number;
 }
 

@@ -17,6 +17,8 @@ const pozycje = JSON.parse(
   await fs.readFile(path.join(DIR, 'dev', 'mock-clubs.json'), 'utf8'),
 );
 const glosy = new Map();
+const raporty = new Map();
+const ADMIN = 'demo';
 
 await fs.mkdir(OUT, { recursive: true });
 const build = await esbuild.context({
@@ -53,7 +55,13 @@ async function plik(res, file, type) {
 }
 
 function posortowane(sort) {
-  const wynik = pozycje.map((p) => ({ ...p, role: p.role ? { ...p.role } : undefined }));
+  const wynik = pozycje
+    .filter((p) => !p.ukryte)
+    .map((p) => ({
+      ...p,
+      role: p.role ? { ...p.role } : undefined,
+      wynikOkresu: sort === 'gorace' ? Math.max(0, Math.ceil(p.wynikGlosow / 2)) : undefined,
+    }));
   if (sort === 'nowe') return wynik.sort((a, b) => b.kiedy - a.kiedy);
   if (sort === 'losowe') {
     for (let i = wynik.length - 1; i > 0; i--) {
@@ -89,7 +97,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (req.method === 'GET' && url.pathname === '/api/nazwy') {
-    const sort = url.searchParams.get('sort') ?? 'top';
+    const sort = url.searchParams.get('sort') ?? 'gorace';
     return json(res, 200, { pozycje: posortowane(sort) });
   }
 
@@ -106,6 +114,48 @@ const server = http.createServer(async (req, res) => {
     if (body.wartosc === 0) glosy.delete(key);
     else glosy.set(key, body.wartosc);
     return json(res, 200, { id: klub.id, wynikGlosow: klub.wynikGlosow });
+  }
+
+  const report = url.pathname.match(/^\/api\/nazwy\/([^/]+)\/raport$/);
+  if (req.method === 'POST' && report) {
+    const klub = pozycje.find((p) => p.id === report[1] && !p.ukryte);
+    const body = await bodyJson(req);
+    if (!klub || !body || !['wulgarne', 'osoba', 'inne'].includes(body.powod)) {
+      return json(res, 400, { blad: 'zly raport testowy' });
+    }
+    const key = `${report[1]}:${body.glosujacy ?? 'local'}`;
+    const duplikat = raporty.has(key);
+    raporty.set(key, body.powod);
+    return json(res, duplikat ? 200 : 201, { id: klub.id, przyjete: true, duplikat });
+  }
+
+  if (url.pathname === '/api/admin/nazwy' && req.method === 'GET') {
+    if (req.headers['x-rkg-admin'] !== ADMIN) return json(res, 403, { blad: 'brak dostepu' });
+    return json(res, 200, {
+      pozycje: pozycje.map((p) => ({
+        ...p,
+        ukryte: Boolean(p.ukryte),
+        raporty: [...raporty.keys()].filter((key) => key.startsWith(`${p.id}:`)).length,
+        raportyPowody: {
+          wulgarne: [...raporty.entries()].filter(([key, reason]) => key.startsWith(`${p.id}:`) && reason === 'wulgarne').length,
+          osoba: [...raporty.entries()].filter(([key, reason]) => key.startsWith(`${p.id}:`) && reason === 'osoba').length,
+          inne: [...raporty.entries()].filter(([key, reason]) => key.startsWith(`${p.id}:`) && reason === 'inne').length,
+        },
+      })),
+    });
+  }
+
+  const moderation = url.pathname.match(/^\/api\/admin\/nazwy\/([^/]+)$/);
+  if (req.method === 'POST' && moderation) {
+    if (req.headers['x-rkg-admin'] !== ADMIN) return json(res, 403, { blad: 'brak dostepu' });
+    const body = await bodyJson(req);
+    const index = pozycje.findIndex((p) => p.id === moderation[1]);
+    if (index < 0) return json(res, 404, { blad: 'nie ma takiej nazwy' });
+    if (body?.akcja === 'usun') pozycje.splice(index, 1);
+    else if (body?.akcja === 'ukryj') pozycje[index].ukryte = true;
+    else if (body?.akcja === 'przywroc') pozycje[index].ukryte = false;
+    else return json(res, 400, { blad: 'zla akcja' });
+    return json(res, 200, { id: moderation[1], akcja: body.akcja });
   }
 
   json(res, 404, { blad: 'nie znaleziono' });

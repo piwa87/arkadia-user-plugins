@@ -1,6 +1,5 @@
 -- RKG wall — D1 (SQLite) schema.
 -- Apply with:  yarn db:init   (wrangler d1 execute rkg-wall --remote --file=schema.sql)
--- Wipe rows with: yarn db:reset (see reset.sql)
 
 CREATE TABLE IF NOT EXISTS nazwy (
   id            TEXT PRIMARY KEY,
@@ -43,3 +42,13 @@ CREATE TABLE IF NOT EXISTS zdarzenia (
 
 CREATE INDEX IF NOT EXISTS zdarzenia_idx ON zdarzenia (glosujacy, rodzaj, kiedy);
 CREATE UNIQUE INDEX IF NOT EXISTS zdarzenia_id ON zdarzenia (id) WHERE id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS raporty (
+  nazwa_id  TEXT NOT NULL,
+  glosujacy TEXT NOT NULL,
+  powod     TEXT NOT NULL,
+  kiedy     INTEGER NOT NULL,
+  PRIMARY KEY (nazwa_id, glosujacy)
+);
+
+CREATE INDEX IF NOT EXISTS raporty_nazwa ON raporty (nazwa_id, kiedy DESC);

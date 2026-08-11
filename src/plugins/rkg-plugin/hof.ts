@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import type { CzystkaResponse, WpisLokalny } from '../../shared/rkg-api';
+import type { WpisLokalny } from '../../shared/rkg-api';
 import { WZORZEC_NICKA } from '../../shared/rkg-grammar';
 import { createHofView, type HofView } from './hof-view';
 import { createPublisher, formatWait } from './publisher';
@@ -164,37 +164,16 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
     return true;
   });
 
-  // Beta administration path retained for compatibility; it is deliberately
-  // isolated here so it can be replaced by per-entry moderation independently.
   api.aliases.register(/^rkgnuke(?:\s+(.+))?$/i, (matches) => {
     const key = matches?.[1]?.trim();
-    if (!key) {
-      info('uzycie: rkgnuke <klucz> — kasuje CALY ranking i lokalna liste, bez cofniecia');
-      info('       rkgnuke - — kasuje tylko lokalna liste (rkg:wpisy), sciany nie rusza');
-      return true;
-    }
     if (key === '-') {
       const count = baza.wyczysc();
       info(`lokalna lista wyczyszczona (${count}) — ranking bez zmian`);
       view?.refresh();
       return true;
     }
-    void (async () => {
-      const response = await wall.request<CzystkaResponse>('/api/nazwy', {
-        method: 'DELETE',
-        headers: { 'X-RKG-Admin': key },
-      });
-      if (!response.ok) {
-        info(`nie wyczyszczono (${response.blad})`);
-        return;
-      }
-      const local = baza.wyczysc();
-      view?.resetTop();
-      info(
-        `ranking wyczyszczony: ${response.dane.nazwy} nazw, ${response.dane.glosy} glosow` +
-          ` (lokalnie: ${local})`,
-      );
-    })();
+    info('kasowanie calego rankingu jest wylaczone — moderuj pojedyncze kluby na stronie');
+    info('rkgnuke - nadal czysci tylko lokalna liste');
     return true;
   });
 

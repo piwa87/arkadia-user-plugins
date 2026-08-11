@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { walidujGlos, walidujZgloszenie } from '../../api/src/validate';
+import { walidujGlos, walidujRaport, walidujZgloszenie } from '../../api/src/validate';
 import type { ZgloszenieRequest } from '../../src/shared/rkg-api';
 
 const G = 'ddevice-1234-5678-abcd'; // valid glosujacy id
@@ -91,5 +91,18 @@ describe('walidujGlos', () => {
     expect(walidujGlos({ glosujacy: G, wartosc: 5 }).ok).toBe(false);
     expect(walidujGlos({ glosujacy: 'x', wartosc: 1 }).ok).toBe(false);
     expect(walidujGlos(null).ok).toBe(false);
+  });
+});
+
+describe('walidujRaport', () => {
+  it('accepts only the three fixed reasons', () => {
+    for (const powod of ['wulgarne', 'osoba', 'inne']) {
+      expect(walidujRaport({ glosujacy: G, powod }).ok).toBe(true);
+    }
+  });
+
+  it('rejects free text and a bad installation id', () => {
+    expect(walidujRaport({ glosujacy: G, powod: 'bo tak' }).ok).toBe(false);
+    expect(walidujRaport({ glosujacy: 'x', powod: 'inne' }).ok).toBe(false);
   });
 });

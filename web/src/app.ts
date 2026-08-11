@@ -1,4 +1,14 @@
-import type { GlosResponse, ListaResponse, Pozycja, Sortowanie } from '../../src/shared/rkg-api';
+import type {
+  AkcjaModeracji,
+  GlosResponse,
+  ListaModeracjiResponse,
+  ListaResponse,
+  Pozycja,
+  PozycjaModeracji,
+  PowodRaportu,
+  RaportResponse,
+  Sortowanie,
+} from '../../src/shared/rkg-api';
 import { mozeDopisac, scal } from './lista';
 
 /**
@@ -10,6 +20,8 @@ import { mozeDopisac, scal } from './lista';
  */
 
 const KLUCZ_GLOSUJACY = 'rkg:glosujacy';
+const KLUCZ_RAPORTY = 'rkg:raporty';
+const KLUCZ_ADMIN = 'rkg:admin';
 
 function glosujacy(): string {
   let id = localStorage.getItem(KLUCZ_GLOSUJACY);
@@ -37,10 +49,12 @@ function zapiszMojGlos(id: string, wartosc: number): void {
 }
 
 const state: { sort: Sortowanie; cursor?: string; pozycje: Pozycja[]; ladowanie: boolean } = {
-  sort: 'top',
+  sort: 'gorace',
   pozycje: [],
   ladowanie: false,
 };
+let raportId: string | null = null;
+let adminEntries: PozycjaModeracji[] = [];
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
 
@@ -90,6 +104,116 @@ async function glosuj(id: string, kierunek: 1 | -1): Promise<void> {
   }
 }
 
+function mojeRaporty(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(KLUCZ_RAPORTY) ?? '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function zapamietajRaport(id: string): void {
+  const ids = mojeRaporty();
+  ids.add(id);
+  localStorage.setItem(KLUCZ_RAPORTY, JSON.stringify([...ids].slice(-200)));
+}
+
+function otworzRaport(id: string): void {
+  raportId = id;
+  const club = state.pozycje.find((entry) => entry.id === id);
+  $('#raport-nazwa').textContent = club?.wynik ?? '';
+  $('#raport-status').textContent = '';
+  ($('#raport-dialog') as HTMLDialogElement).showModal();
+}
+
+async function zglos(powod: PowodRaportu): Promise<void> {
+  if (!raportId) return;
+  const id = raportId;
+  const status = $('#raport-status');
+  status.textContent = 'Wysylam zgloszenie…';
+  try {
+    const response = await fetch(`/api/nazwy/${id}/raport`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ glosujacy: glosujacy(), powod }),
+    });
+    if (!response.ok) throw new Error(String(response.status));
+    const result = await response.json() as RaportResponse;
+    zapamietajRaport(id);
+    status.textContent = result.duplikat ? 'Ten klub byl juz przez Ciebie zgloszony.' : 'Zgloszenie przyjete.';
+    render();
+  } catch {
+    status.textContent = 'Zgloszenie nie doszlo. Sprobuj pozniej.';
+  }
+}
+
+function adminKey(): string {
+  return sessionStorage.getItem(KLUCZ_ADMIN) ?? '';
+}
+
+function adminRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(path, {
+    ...init,
+    headers: { ...init.headers, 'X-RKG-Admin': adminKey() },
+  });
+}
+
+async function pobierzModeracje(): Promise<void> {
+  const status = $('#admin-status');
+  status.textContent = 'Sprawdzam przepustke…';
+  try {
+    const response = await adminRequest('/api/admin/nazwy');
+    if (!response.ok) throw new Error(String(response.status));
+    const data = await response.json() as ListaModeracjiResponse;
+    adminEntries = data.pozycje;
+    ($('#admin-klucz') as HTMLInputElement).value = '';
+    status.textContent = '';
+    renderModeracja();
+  } catch {
+    adminEntries = [];
+    status.textContent = 'Klucz nie pasuje albo moderacja jest wylaczona.';
+    renderModeracja();
+  }
+}
+
+function renderModeracja(): void {
+  const list = $('#admin-lista');
+  if (adminEntries.length === 0) {
+    list.innerHTML = '<p class="admin-pusto">Brak pozycji do pokazania.</p>';
+    return;
+  }
+  list.innerHTML = adminEntries.map((entry) => `
+    <article class="admin-wpis ${entry.ukryte ? 'ukryty' : ''}">
+      <div>
+        <span class="admin-stempel">${entry.ukryte ? 'UKRYTY' : `${entry.raporty} RAPORTY`}</span>
+        <strong>${esc(entry.wynik)}</strong>
+        <small>${entry.wynikGlosow} glosow · ${entry.zgloszenia}× wylosowany</small>
+        ${entry.raporty > 0 ? `<small class="admin-powody">wulgarne ${entry.raportyPowody.wulgarne} · osoba ${entry.raportyPowody.osoba} · inne ${entry.raportyPowody.inne}</small>` : ''}
+      </div>
+      <div class="admin-akcje">
+        <button data-admin-id="${entry.id}" data-admin-action="${entry.ukryte ? 'przywroc' : 'ukryj'}">${entry.ukryte ? 'Przywroc' : 'Ukryj'}</button>
+        <button class="usun" data-admin-id="${entry.id}" data-admin-action="usun">Usun</button>
+      </div>
+    </article>`).join('');
+}
+
+async function moderuj(id: string, akcja: AkcjaModeracji): Promise<void> {
+  if (akcja === 'usun' && !globalThis.confirm('Usunac ten jeden klub bez mozliwosci cofniecia?')) return;
+  const status = $('#admin-status');
+  status.textContent = 'Zapisuje zmiane…';
+  try {
+    const response = await adminRequest(`/api/admin/nazwy/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ akcja }),
+    });
+    if (!response.ok) throw new Error(String(response.status));
+    await Promise.all([pobierzModeracje(), pobierz(false)]);
+  } catch {
+    status.textContent = 'Nie udalo sie wykonac tej akcji.';
+  }
+}
+
 /** One office per line — they are three distinct titles, not a bag of tags. */
 function rola(ikona: string, tytul: string | undefined, klasa = ''): string {
   if (!tytul) return '';
@@ -107,13 +231,14 @@ function wiersz(p: Pozycja, i: number): string {
     : '';
   const meta = [
     p.zgloszenia > 1 ? `<span class="licznik">${p.zgloszenia}× wylosowany</span>` : null,
+    p.wynikOkresu != null ? `<span class="trend">${p.wynikOkresu >= 0 ? '+' : ''}${p.wynikOkresu} / 7 dni</span>` : null,
     p.nick ? `wyslany przez ${esc(p.nick)}` : 'wyslany anonimowo',
   ]
     .filter(Boolean)
     .join(' · ');
 
   // Position is meaningful only in the ranking; the other sorts have no places.
-  const wRankingu = state.sort === 'top';
+  const wRankingu = state.sort === 'top' || state.sort === 'gorace';
   const miejsce = wRankingu
     ? `<div class="miejsce ${i < 3 ? 'podium' : ''}">${String(i + 1).padStart(2, '0')}</div>`
     : '';
@@ -127,6 +252,9 @@ function wiersz(p: Pozycja, i: number): string {
       <div class="nazwa">${esc(p.wynik)}</div>
       ${role}
       <div class="meta">${meta}</div>
+      <button class="raport-link" data-report="${p.id}" ${mojeRaporty().has(p.id) ? 'disabled' : ''}>
+        ${mojeRaporty().has(p.id) ? 'zgloszono' : 'zglos'}
+      </button>
     </div>
     <div class="glosy">
       <button class="strzalka gora ${moj === 1 ? 'akt' : ''}" data-id="${p.id}" data-dir="1" aria-label="Glosuj za">▲</button>
@@ -137,7 +265,7 @@ function wiersz(p: Pozycja, i: number): string {
 }
 
 function render(): void {
-  const tabsHtml = (['top', 'nowe', 'losowe'] as Sortowanie[])
+  const tabsHtml = (['gorace', 'top', 'nowe', 'losowe'] as Sortowanie[])
     .map(
       (s) =>
         `<button class="tab ${state.sort === s ? 'akt' : ''}" data-sort="${s}">${etykieta(s)}</button>`,
@@ -162,7 +290,13 @@ function render(): void {
 }
 
 function etykieta(s: Sortowanie): string {
-  return s === 'top' ? 'Najlepsze' : s === 'nowe' ? 'Najnowsze' : 'Losowe';
+  return s === 'gorace'
+    ? 'Na czasie'
+    : s === 'top'
+      ? 'Wszech czasow'
+      : s === 'nowe'
+        ? 'Najnowsze'
+        : 'Losowe';
 }
 
 function esc(s: string): string {
@@ -187,8 +321,25 @@ document.addEventListener('click', (e) => {
   if (strzalka?.dataset.id) {
     glosuj(strzalka.dataset.id, Number(strzalka.dataset.dir) as 1 | -1);
   }
+  const report = el.closest<HTMLElement>('[data-report]')?.dataset.report;
+  if (report) return otworzRaport(report);
+  const reason = el.closest<HTMLElement>('[data-powod]')?.dataset.powod as PowodRaportu | undefined;
+  if (reason) return void zglos(reason);
+  const adminId = el.closest<HTMLElement>('[data-admin-id]')?.dataset.adminId;
+  const action = el.closest<HTMLElement>('[data-admin-action]')?.dataset.adminAction as AkcjaModeracji | undefined;
+  if (adminId && action) return void moderuj(adminId, action);
 });
 
 $('#wiecej').addEventListener('click', () => pobierz(true));
+$('#moderacja-open').addEventListener('click', () => {
+  ($('#admin-dialog') as HTMLDialogElement).showModal();
+  if (adminKey()) void pobierzModeracje();
+});
+$('#admin-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const value = ($('#admin-klucz') as HTMLInputElement).value;
+  sessionStorage.setItem(KLUCZ_ADMIN, value);
+  void pobierzModeracje();
+});
 
 pobierz(false);

@@ -1,5 +1,5 @@
-import type { Liczba, Przypadek, Role } from '../../src/shared/rkg-api';
-import { LICZBY, PRZYPADKI } from '../../src/shared/rkg-api';
+import type { Liczba, PowodRaportu, Przypadek, Role } from '../../src/shared/rkg-api';
+import { LICZBY, POWODY_RAPORTU, PRZYPADKI } from '../../src/shared/rkg-api';
 import {
   WZORZEC_NICKA,
   WZORZEC_RZECZOWNIKA,
@@ -143,4 +143,17 @@ export function walidujGlos(
   const w = b.wartosc;
   if (w !== 1 && w !== -1 && w !== 0) return { ok: false, blad: 'zla wartosc' };
   return { ok: true, dane: { glosujacy, wartosc: w } };
+}
+
+export function walidujRaport(
+  body: unknown,
+): WynikWalidacji<{ glosujacy: string; powod: PowodRaportu }> {
+  if (!body || typeof body !== 'object') return { ok: false, blad: 'brak danych' };
+  const b = body as Record<string, unknown>;
+  const id = walidujGlosujacego(b);
+  if (!id.ok) return id;
+  if (!isStr(b.powod) || !(POWODY_RAPORTU as readonly string[]).includes(b.powod)) {
+    return { ok: false, blad: 'zly powod' };
+  }
+  return { ok: true, dane: { glosujacy: id.dane.glosujacy, powod: b.powod as PowodRaportu } };
 }

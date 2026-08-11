@@ -34,4 +34,15 @@ describe('RKG ranking page', () => {
     expect(new Set(mockClubs.map((club) => club.id)).size).toBe(10);
     expect(mockClubs.every((club) => club.wynik && Number.isFinite(club.wynikGlosow))).toBe(true);
   });
+
+  it('ships fixed-reason reporting and a protected backstage moderation panel', () => {
+    expect(html).toContain('id="raport-dialog"');
+    expect(html).toContain('data-powod="wulgarne"');
+    expect(html).toContain('data-powod="osoba"');
+    expect(html).toContain('data-powod="inne"');
+    expect(html).not.toContain('<textarea');
+    expect(html).toContain('id="admin-dialog"');
+    expect(html).toContain('type="password"');
+    expect(html).toContain('Backstage');
+  });
 });

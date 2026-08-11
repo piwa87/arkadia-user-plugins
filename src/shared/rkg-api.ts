@@ -76,6 +76,8 @@ export interface Pozycja {
   role?: Role;
   /** Sum of votes. */
   wynikGlosow: number;
+  /** Net votes from the last seven days; present for the "gorace" board. */
+  wynikOkresu?: number;
   /** How many people independently generated this same name. */
   zgloszenia: number;
   /** Optional display nick; absent means anonymous. */
@@ -83,7 +85,10 @@ export interface Pozycja {
   kiedy: number;
 }
 
-export type Sortowanie = 'top' | 'nowe' | 'losowe';
+export type Sortowanie = 'gorace' | 'top' | 'nowe' | 'losowe';
+
+export const POWODY_RAPORTU = ['wulgarne', 'osoba', 'inne'] as const;
+export type PowodRaportu = (typeof POWODY_RAPORTU)[number];
 
 // ── Requests ────────────────────────────────────────────────────────────────
 
@@ -131,6 +136,8 @@ export interface BladResponse {
   limit?: StatusLimitu;
   /** Safe identifier that can be matched to a server-side error log. */
   requestId?: string;
+  /** Generic structured retry hint for report/vote throttles. */
+  ponownieZaMs?: number;
 }
 
 export interface StatusLimitu {
@@ -143,9 +150,35 @@ export interface StatusLimituRequest {
   glosujacy: string;
 }
 
-/** What `DELETE /api/nazwy` wiped. Beta-only admin route, see `api/README.md`. */
-export interface CzystkaResponse {
-  nazwy: number;
-  glosy: number;
-  zdarzenia: number;
+export interface RaportRequest {
+  glosujacy: string;
+  powod: PowodRaportu;
+}
+
+export interface RaportResponse {
+  id: string;
+  przyjete: true;
+  /** True when this installation had already reported the club. */
+  duplikat: boolean;
+}
+
+export interface PozycjaModeracji extends Pozycja {
+  ukryte: boolean;
+  raporty: number;
+  raportyPowody: Record<PowodRaportu, number>;
+}
+
+export interface ListaModeracjiResponse {
+  pozycje: PozycjaModeracji[];
+}
+
+export type AkcjaModeracji = 'ukryj' | 'przywroc' | 'usun';
+
+export interface ModeracjaRequest {
+  akcja: AkcjaModeracji;
+}
+
+export interface ModeracjaResponse {
+  id: string;
+  akcja: AkcjaModeracji;
 }

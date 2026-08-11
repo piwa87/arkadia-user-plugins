@@ -20,7 +20,7 @@ export function setupAliasy(api: PluginApi, baza: Baza, styles: RkgStyles): void
     ['rkgstatus', 'sprawdz, kiedy dzienny slot wysylki bedzie gotowy'],
     ['rkgwyslij [x]', 'wyslij ostatni klub (limit 1 na 24h; x = nick, - = anonimowo)'],
     ['rkgnick <x>', 'ustaw publiczny nick (rkgnick - = anonimowo)'],
-    ['rkgnuke <klucz>', 'BETA: skasuj caly ranking (rkgnuke - = tylko lokalne)'],
+    ['rkgnuke -', 'wyczysc tylko lokalna liste; ranking moderuje sie na stronie'],
     ['rkg / rkghelp', 'ta pomoc'],
   ];
 
