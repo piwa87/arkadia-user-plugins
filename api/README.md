@@ -55,7 +55,7 @@ a local site with 10 mock clubs and a mock voting API at
 
 ## Moderation
 
-The website footer opens the **Moderacja / Backstage** panel. Enter the
+The website footer opens the **Moderejszyn / Backstage** panel. Enter the
 `RKG_ADMIN` Worker secret to see every club, report counts and their fixed
 reasons. Each club can be hidden, restored or permanently deleted. The key is
 kept only in `sessionStorage` for the current browser tab/session.

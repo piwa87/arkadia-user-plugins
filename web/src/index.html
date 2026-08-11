@@ -374,12 +374,15 @@
         color: var(--mgla);
         opacity: .6;
       }
+      .stopka p { margin: 0; }
+      .stopka p + p { margin-top: 5px; }
       .stopka code { color: var(--zloto); }
 
       .stopka-przycisk {
-        border: 0;
-        border-bottom: 1px solid currentColor;
-        padding: 0;
+        display: block;
+        margin: 14px auto 0;
+        border: 1px solid currentColor;
+        padding: 5px 9px;
         background: none;
         color: inherit;
         font: inherit;
@@ -514,7 +517,7 @@
     <div class="wrap">
       <header class="naglowek">
         <h1 class="tytul">Rendom Klub Dżenerejtor</h1>
-        <p class="podtytul">Ranking najbardziej zwalowych klubow</p>
+        <p class="podtytul">Ranking najbardziej zwałowych klubów</p>
       </header>
       <aside class="limit-dzienny" aria-labelledby="limit-tytul">
         <div class="limit-liczba" aria-hidden="true">1</div>
@@ -564,8 +567,9 @@
       <p id="blad"></p>
       <button id="wiecej" hidden>Pokaz wiecej</button>
       <footer class="stopka">
-        Wylosuj klub w grze aliasem <code>rkg!</code>. Do rankingu możesz wysłać jeden klub na 24 godziny.
-        · <button id="moderacja-open" class="stopka-przycisk">Moderacja</button>
+        <p>Wylosuj klub w grze aliasem <code>rkg!</code>.</p>
+        <p>Do rankingu możesz wysłać jeden klub na 24 godziny.</p>
+        <button id="moderacja-open" class="stopka-przycisk">Moderejszyn</button>
       </footer>
     </div>
 

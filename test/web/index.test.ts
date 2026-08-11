@@ -17,6 +17,14 @@ describe('RKG ranking page', () => {
     expect(html).toContain('Każde wysłanie zużywa jedyny dostępny slot.');
   });
 
+  it('uses correct Polish copy and keeps each footer action on its own line', () => {
+    expect(html).toContain('Ranking najbardziej zwałowych klubów');
+    expect(html).toContain('<p>Wylosuj klub w grze aliasem <code>rkg!</code>.</p>');
+    expect(html).toContain('<p>Do rankingu możesz wysłać jeden klub na 24 godziny.</p>');
+    expect(html).toContain('class="stopka-przycisk">Moderejszyn</button>');
+    expect(html).not.toContain('godziny.\n        ·');
+  });
+
   it('explains the complete setup and publishing flow before the ranking', () => {
     const instrukcja = html.indexOf('class="jak-dziala"');
     const tabs = html.indexOf('id="tabs"');
