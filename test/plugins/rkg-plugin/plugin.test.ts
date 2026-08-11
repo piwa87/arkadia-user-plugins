@@ -37,6 +37,19 @@ function odpal(mock: Mock, wejscie: string): boolean {
 }
 
 describe('rkg-plugin init', () => {
+  it('builds only the four semantic RKG colors', async () => {
+    const mock = createMockApi();
+
+    await init(mock.api);
+
+    expect(mock.api.colors.fromHex).toHaveBeenCalledTimes(4);
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#a6a6a6');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#c0c0c0');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#85a5cb');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#0e451c');
+    await destroy();
+  });
+
   it('registers no triggers at all — everything is armed on demand', async () => {
     const mock = createMockApi();
     await init(mock.api);

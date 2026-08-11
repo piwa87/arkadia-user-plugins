@@ -41,6 +41,21 @@ yarn build
 
 That keeps deploys out of the main feedback loop.
 
+## RKG Ranking Website
+
+The ranking has a standalone local preview with 10 mock clubs and working vote
+buttons. It does not need Cloudflare, Wrangler or a local D1 database:
+
+```bash
+cd web
+yarn install
+yarn dev
+```
+
+Open `http://localhost:4173`. Changes to `app.ts` rebuild automatically; refresh
+the browser to see changes to either `app.ts` or `index.html`. Set
+`RKG_WEB_PORT` to use another port.
+
 ## Plugin Entries
 
 Every file matching `src/plugins/**/*-plugin.ts` is treated as a deployable plugin entry and compiled to `dist/`.

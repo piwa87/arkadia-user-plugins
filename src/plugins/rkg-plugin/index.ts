@@ -3,6 +3,7 @@ import { setupAliasy } from './aliases';
 import { utworzBaze } from './store';
 import { setupHof } from './hof';
 import { setupKreator, TAG_KREATOR, TAG_MENU } from './creator';
+import { createRkgStyles } from './styles';
 
 /**
  * RKG — port of the CMud `mod_rkg` class: generate absurd club names and
@@ -24,15 +25,16 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   apiRef = api;
 
   const baza = utworzBaze();
-  setupAliasy(api, baza);
+  const styles = createRkgStyles(api);
+  setupAliasy(api, baza, styles);
   // Hof first: the dialogue runner hands each finished club straight to it.
-  const hof = setupHof(api, baza);
+  const hof = setupHof(api, baza, styles);
   zatrzymajHof = hof.zatrzymaj;
-  zatrzymajKreator = setupKreator(api, baza, (w) => hof.zaproponuj(w));
+  zatrzymajKreator = setupKreator(api, baza, styles, (w) => hof.zaproponuj(w));
 
   const info: PluginInfo = {
     name: 'Rendom Klub Dżenerejtor',
-    version: '0.1.0',
+    version: '0.2.0',
     author: 'Piot',
     description: 'Generator nazw klubow (podglad — nie zaklada klubu)',
   };

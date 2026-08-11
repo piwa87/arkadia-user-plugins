@@ -72,7 +72,7 @@
         display: grid;
         grid-template-columns: auto 1fr;
         align-items: stretch;
-        margin: 0 7px 34px 0;
+        margin: 0 7px 29px 0;
         border: 3px solid var(--zloto);
         background: var(--zloto);
         color: var(--noc);
@@ -82,11 +82,11 @@
       .limit-liczba {
         display: grid;
         place-items: center;
-        min-width: clamp(92px, 20vw, 140px);
-        padding: 16px 22px 12px;
+        min-width: clamp(78px, 17vw, 119px);
+        padding: 14px 19px 10px;
         border-right: 3px solid var(--noc);
         font-family: var(--display);
-        font-size: clamp(5.2rem, 17vw, 8.4rem);
+        font-size: clamp(4.4rem, 14.5vw, 7.15rem);
         line-height: .72;
         color: var(--noc);
         text-shadow: 3px 3px 0 var(--neon);
@@ -94,12 +94,12 @@
 
       .limit-tresc {
         align-self: center;
-        padding: 17px 22px 18px;
+        padding: 14px 19px 15px;
       }
 
       .limit-etykieta {
-        margin: 0 0 5px;
-        font: 700 .7rem/1 var(--dane);
+        margin: 0 0 4px;
+        font: 700 .64rem/1 var(--dane);
         letter-spacing: .2em;
         text-transform: uppercase;
       }
@@ -107,7 +107,7 @@
       .limit-tytul {
         margin: 0;
         font-family: var(--display);
-        font-size: clamp(1.75rem, 5.5vw, 2.65rem);
+        font-size: clamp(1.5rem, 4.7vw, 2.25rem);
         line-height: .95;
         letter-spacing: .01em;
         text-transform: uppercase;
@@ -115,11 +115,89 @@
 
       .limit-opis {
         max-width: 52ch;
-        margin: 9px 0 0;
-        font-size: .92rem;
+        margin: 7px 0 0;
+        font-size: .82rem;
         font-weight: 650;
         line-height: 1.35;
       }
+
+      /* ── Quick start ───────────────────────────────────── */
+
+      .jak-dziala { margin: 0 0 30px; }
+
+      .jak-naglowek {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+
+      .jak-tytul {
+        flex: none;
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(1.65rem, 5vw, 2.2rem);
+        line-height: 1;
+        text-transform: uppercase;
+        color: var(--biel);
+      }
+
+      .jak-opis {
+        margin: 0;
+        color: var(--mgla);
+        font-size: .88rem;
+      }
+
+      .kroki {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border: 2px solid var(--linia);
+        background: var(--karta);
+      }
+
+      .krok {
+        min-width: 0;
+        padding: 14px 15px 16px;
+        border-right: 2px solid var(--linia);
+      }
+      .krok:last-child { border-right: 0; }
+
+      .krok-nr {
+        display: block;
+        margin-bottom: 7px;
+        font-family: var(--display);
+        font-size: 1.65rem;
+        line-height: .8;
+        color: var(--neon);
+      }
+
+      .krok h3 {
+        margin: 0 0 5px;
+        font-size: .9rem;
+        line-height: 1.2;
+        color: var(--biel);
+      }
+
+      .krok p {
+        margin: 0;
+        font-size: .78rem;
+        line-height: 1.4;
+        color: var(--mgla);
+      }
+
+      .krok code { font: 700 .92em var(--dane); color: var(--zloto); }
+
+      .plugin-link {
+        color: var(--zloto);
+        font-family: var(--dane);
+        font-weight: 700;
+        text-underline-offset: 3px;
+        overflow-wrap: anywhere;
+      }
+      .plugin-link:hover { color: var(--biel); }
 
       /* ── Sort picker ────────────────────────────────────────────────────── */
 
@@ -287,12 +365,18 @@
       @media (max-width: 460px) {
         .wrap { padding-top: 28px; }
         .naglowek { margin-bottom: 26px; }
-        .limit-dzienny { grid-template-columns: 74px 1fr; margin-bottom: 30px; }
-        .limit-liczba { min-width: 0; padding-inline: 10px; font-size: 4.7rem; }
-        .limit-tresc { padding: 14px 14px 15px; }
-        .limit-etykieta { font-size: .6rem; }
-        .limit-tytul { font-size: 1.45rem; }
-        .limit-opis { font-size: .8rem; }
+        .limit-dzienny { grid-template-columns: 63px 1fr; margin-bottom: 26px; }
+        .limit-liczba { min-width: 0; padding-inline: 8px; font-size: 4rem; }
+        .limit-tresc { padding: 12px; }
+        .limit-etykieta { font-size: .56rem; }
+        .limit-tytul { font-size: 1.25rem; }
+        .limit-opis { font-size: .78rem; }
+        .jak-naglowek { display: block; }
+        .jak-opis { margin-top: 6px; }
+        .kroki { grid-template-columns: 1fr; }
+        .krok { display: grid; grid-template-columns: 38px 1fr; border-right: 0; border-bottom: 2px solid var(--linia); }
+        .krok:last-child { border-bottom: 0; }
+        .krok-nr { grid-row: 1 / span 2; margin: 2px 0 0; }
         .wpis { gap: 12px; padding: 14px; }
         .miejsce { padding-top: 0; }
       }
@@ -319,6 +403,38 @@
           </p>
         </div>
       </aside>
+      <section class="jak-dziala" aria-labelledby="jak-tytul">
+        <div class="jak-naglowek">
+          <h2 id="jak-tytul" class="jak-tytul">Jak to działa?</h2>
+          <p class="jak-opis">RKG losuje gotowy klub w Arkadii, ale go nie zakłada.</p>
+        </div>
+        <ol class="kroki">
+          <li class="krok">
+            <span class="krok-nr" aria-hidden="true">01</span>
+            <div>
+              <h3>Dodaj wtyczkę</h3>
+              <p>
+                Zaimportuj w kliencie
+                <a class="plugin-link" href="https://piwa87.github.io/arkadia-user-plugins/rkg-plugin.js" target="_blank" rel="noopener">skrypt RKG</a>.
+              </p>
+            </div>
+          </li>
+          <li class="krok">
+            <span class="krok-nr" aria-hidden="true">02</span>
+            <div>
+              <h3>Wpisz <code>rkg!</code></h3>
+              <p>Wtyczka przejdzie przez tworzenie klubu i anuluje je na ostatnim kroku.</p>
+            </div>
+          </li>
+          <li class="krok">
+            <span class="krok-nr" aria-hidden="true">03</span>
+            <div>
+              <h3>Wybierz akcję</h3>
+              <p>Po losowaniu zdecyduj, czy wysłać klub do rankingu.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
       <nav id="tabs"></nav>
       <ul id="lista" class="lista"></ul>
       <p id="blad"></p>

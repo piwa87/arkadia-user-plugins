@@ -1,9 +1,9 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import type { Liczba, Przypadek, Role, WpisLokalny } from '../../shared/rkg-api';
 import { LICZBY, PRZYPADKI } from '../../shared/rkg-api';
-import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 import { withDelay } from '../../lib/withDelay';
 import type { Baza } from './store';
+import type { RkgStyles } from './styles';
 import { RKG_PRZYMIOTNIKI } from './data/adjectives';
 import { RKG_TYPY } from './data/types';
 import { RZECZOWNIKI_SEED } from './data/seed';
@@ -67,14 +67,11 @@ interface Ctx {
 export function setupKreator(
   api: PluginApi,
   baza: Baza,
+  styles: RkgStyles,
   // Called once a run has produced a complete club, so the RKG window can
   // offer to publish it. Optional so the runner stands alone in tests.
   poZakonczeniu?: (w: WpisLokalny) => void,
 ): () => void {
-  const kolorInfo = getAnsiFormatState(3, api);
-  const kolorNazwy = getAnsiFormatState(110, api);
-  const kolorRoli = getAnsiFormatState(11, api);
-
   let ctx: Ctx | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
 
@@ -84,7 +81,7 @@ export function setupKreator(
     api.output.print(buf);
   };
   const send = (tekst: string) => api.command.send(tekst, false);
-  const post = (i: number, id: string) => drukuj(`[rkg] ${i} ${id}`, kolorInfo);
+  const post = (i: number, id: string) => drukuj(`[rkg] ${i} ${id}`, styles.info);
 
   const czyscWatchdog = () => {
     if (watchdog !== null) {
@@ -104,7 +101,7 @@ export function setupKreator(
     if (!ctx) return;
     if (wyslijAbort) send('**');
     sprzatnij();
-    drukuj(`[rkg] przerwano: ${powod}`, kolorInfo);
+    drukuj(`[rkg] przerwano: ${powod}`, styles.info);
   };
 
   const ustawWatchdog = (gdzie: string) => {
@@ -396,11 +393,11 @@ export function setupKreator(
       };
       const zapisany = baza.dodajWpis(wpis);
       sprzatnij();
-      drukuj('[rkg] Wylosowany nowy klub:', kolorInfo);
-      drukuj(`      ${wynik}`, kolorNazwy);
-      if (role.przywodca) drukuj(`      przywodca: ${role.przywodca}`, kolorRoli);
-      if (role.zastepca) drukuj(`      zastepca:  ${role.zastepca}`, kolorRoli);
-      if (role.czlonek) drukuj(`      czlonek:   ${role.czlonek}`, kolorRoli);
+      drukuj('[rkg] Wylosowany nowy klub:', styles.info);
+      drukuj(`      ${wynik}`, styles.clubName);
+      if (role.przywodca) drukuj(`      przywodca: ${role.przywodca}`, styles.role);
+      if (role.zastepca) drukuj(`      zastepca:  ${role.zastepca}`, styles.role);
+      if (role.czlonek) drukuj(`      czlonek:   ${role.czlonek}`, styles.role);
       // The offer must not be able to take the run down with it.
       try {
         poZakonczeniu?.(zapisany);
@@ -416,11 +413,11 @@ export function setupKreator(
 
   api.aliases.register(/^rkg!$/i, () => {
     if (ctx) {
-      drukuj('[rkg] juz trwa — rkg- aby przerwac', kolorInfo);
+      drukuj('[rkg] juz trwa — rkg- aby przerwac', styles.info);
       return true;
     }
     ctx = { role: {}, pendingRola: null, pendingNazwa: false };
-    drukuj('[rkg] start (podglad — klub NIE zostanie zalozony)', kolorInfo);
+    drukuj('[rkg] start (podglad — klub NIE zostanie zalozony)', styles.info);
     send('utworz klub');
     krokCharakter();
     return true;
@@ -428,7 +425,7 @@ export function setupKreator(
 
   api.aliases.register(/^rkg-$/i, () => {
     if (!ctx) {
-      drukuj('[rkg] nic nie trwa', kolorInfo);
+      drukuj('[rkg] nic nie trwa', styles.info);
       return true;
     }
     przerwij('recznie', true);

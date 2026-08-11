@@ -1,21 +1,15 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
-import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 import type { Baza } from './store';
+import type { RkgStyles } from './styles';
 
-export function setupAliasy(api: PluginApi, baza: Baza): void {
-  // Colors are built once here, never inside a callback.
-  const kolorNazwy = getAnsiFormatState(110, api);
-  const kolorRoli = getAnsiFormatState(11, api);
-  const kolorInfo = getAnsiFormatState(3, api);
-  const kolorCmd = getAnsiFormatState(14, api);
-
+export function setupAliasy(api: PluginApi, baza: Baza, styles: RkgStyles): void {
   const drukuj = (tekst: string, kolor: FormatStateSnapshot) => {
     const buf = new api.AnsiAwareBuffer(tekst);
     buf.color([0, tekst.length], kolor);
     api.output.print(buf);
   };
 
-  const info = (tekst: string) => drukuj(tekst, kolorInfo);
+  const info = (tekst: string) => drukuj(tekst, styles.info);
 
   // ── rkg / rkghelp — short help ────────────────────────────────────────────
   const POMOC: [string, string][] = [
@@ -30,13 +24,13 @@ export function setupAliasy(api: PluginApi, baza: Baza): void {
   ];
 
   api.aliases.register(/^rkg(?:help)?$/i, () => {
-    drukuj('Rendom Klub Dżenerejtor — losowe nazwy klubow (PODGLAD, nie zaklada klubu)', kolorNazwy);
+    drukuj('Rendom Klub Dżenerejtor — losowe nazwy klubow (PODGLAD, nie zaklada klubu)', styles.clubName);
     for (const [cmd, opis] of POMOC) {
       const buf = new api.AnsiAwareBuffer('  ');
-      buf.append(cmd, kolorCmd);
+      buf.append(cmd, styles.action);
       // Explicit color on the plain part — append after a colored append would
       // otherwise inherit the previous color.
-      buf.append(`  ${opis}`, kolorInfo);
+      buf.append(`  ${opis}`, styles.info);
       api.output.print(buf);
     }
     return true;
@@ -49,10 +43,10 @@ export function setupAliasy(api: PluginApi, baza: Baza): void {
       return true;
     }
     for (const w of baza.wpisy) {
-      drukuj(w.wynik, kolorNazwy);
-      if (w.role?.przywodca) drukuj(`      przywodca: ${w.role.przywodca}`, kolorRoli);
-      if (w.role?.zastepca) drukuj(`      zastepca:  ${w.role.zastepca}`, kolorRoli);
-      if (w.role?.czlonek) drukuj(`      czlonek:   ${w.role.czlonek}`, kolorRoli);
+      drukuj(w.wynik, styles.clubName);
+      if (w.role?.przywodca) drukuj(`      przywodca: ${w.role.przywodca}`, styles.role);
+      if (w.role?.zastepca) drukuj(`      zastepca:  ${w.role.zastepca}`, styles.role);
+      if (w.role?.czlonek) drukuj(`      czlonek:   ${w.role.czlonek}`, styles.role);
     }
     info(`[rkg] razem: ${baza.wpisy.length}`);
     return true;

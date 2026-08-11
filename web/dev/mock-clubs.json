@@ -1,0 +1,130 @@
+[
+  {
+    "id": "mock-01",
+    "wynik": "Loza Maluskich Korbaczy",
+    "role": {
+      "przywodca": "Starszy Lozy Maluskich Korbaczy",
+      "zastepca": "Zaufany w Lozy Maluskich Korbaczy",
+      "czlonek": "Uczestnik Lozy Maluskich Korbaczy"
+    },
+    "wynikGlosow": 21,
+    "zgloszenia": 4,
+    "nick": "Piot",
+    "kiedy": 1786406400000
+  },
+  {
+    "id": "mock-02",
+    "wynik": "Liga Pokretnych Zmor",
+    "role": {
+      "przywodca": "Przewodzacy Lidze Pokretnych Zmor",
+      "zastepca": "Drugi w Lidze Pokretnych Zmor",
+      "czlonek": "Nalezacy do Ligi Pokretnych Zmor"
+    },
+    "wynikGlosow": 17,
+    "zgloszenia": 2,
+    "nick": "Zenon",
+    "kiedy": 1786320000000
+  },
+  {
+    "id": "mock-03",
+    "wynik": "Bractwo Kobiecego Slonecznika",
+    "role": {
+      "przywodca": "Przywodca Bractwa Kobiecego Slonecznika",
+      "zastepca": "Zaufany Bractwa Kobiecego Slonecznika",
+      "czlonek": "Brat Kobiecego Slonecznika"
+    },
+    "wynikGlosow": 13,
+    "zgloszenia": 1,
+    "nick": "Mizantrop",
+    "kiedy": 1786233600000
+  },
+  {
+    "id": "mock-04",
+    "wynik": "Kompania Krzywych Busoli",
+    "role": {
+      "przywodca": "Kapitan Kompanii Krzywych Busoli",
+      "zastepca": "Pierwszy Kompanii Krzywych Busoli",
+      "czlonek": "Towarzysz Krzywych Busoli"
+    },
+    "wynikGlosow": 9,
+    "zgloszenia": 3,
+    "nick": "Kartograf",
+    "kiedy": 1786147200000
+  },
+  {
+    "id": "mock-05",
+    "wynik": "Banda Mokrych Rekawic",
+    "role": {
+      "przywodca": "Szef Bandy Mokrych Rekawic",
+      "zastepca": "Prawa Reka Bandy Mokrych Rekawic",
+      "czlonek": "Czlonek Bandy Mokrych Rekawic"
+    },
+    "wynikGlosow": 7,
+    "zgloszenia": 1,
+    "kiedy": 1786060800000
+  },
+  {
+    "id": "mock-06",
+    "wynik": "Zakon Zaspanych Latarnikow",
+    "role": {
+      "przywodca": "Mistrz Zakonu Zaspanych Latarnikow",
+      "zastepca": "Namiestnik Zakonu Zaspanych Latarnikow",
+      "czlonek": "Akolita Zaspanych Latarnikow"
+    },
+    "wynikGlosow": 5,
+    "zgloszenia": 2,
+    "nick": "Polnocnik",
+    "kiedy": 1785974400000
+  },
+  {
+    "id": "mock-07",
+    "wynik": "Gildia Lewych Skarpet",
+    "role": {
+      "przywodca": "Mistrz Gildii Lewych Skarpet",
+      "zastepca": "Zastepca Mistrza Lewych Skarpet",
+      "czlonek": "Czeladnik Lewych Skarpet"
+    },
+    "wynikGlosow": 3,
+    "zgloszenia": 1,
+    "nick": "Bezbut",
+    "kiedy": 1785888000000
+  },
+  {
+    "id": "mock-08",
+    "wynik": "Loza Cichych Talerzy",
+    "role": {
+      "przywodca": "Starszy Lozy Cichych Talerzy",
+      "zastepca": "Zaufany w Lozy Cichych Talerzy",
+      "czlonek": "Uczestnik Lozy Cichych Talerzy"
+    },
+    "wynikGlosow": 1,
+    "zgloszenia": 1,
+    "kiedy": 1785801600000
+  },
+  {
+    "id": "mock-09",
+    "wynik": "Klub Nerwowych Zielarzy",
+    "role": {
+      "przywodca": "Przewodniczacy Klubu Nerwowych Zielarzy",
+      "zastepca": "Sekretarz Nerwowych Zielarzy",
+      "czlonek": "Uczestnik Klubu Nerwowych Zielarzy"
+    },
+    "wynikGlosow": -1,
+    "zgloszenia": 2,
+    "nick": "Macierzanka",
+    "kiedy": 1785715200000
+  },
+  {
+    "id": "mock-10",
+    "wynik": "Stowarzyszenie Ostatnich Ogorkow",
+    "role": {
+      "przywodca": "Prezes Ostatnich Ogorkow",
+      "zastepca": "Wiceprezes Ostatnich Ogorkow",
+      "czlonek": "Czlonek Ostatnich Ogorkow"
+    },
+    "wynikGlosow": -4,
+    "zgloszenia": 1,
+    "nick": "Spizarnia",
+    "kiedy": 1785628800000
+  }
+]

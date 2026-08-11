@@ -133,6 +133,7 @@ function zbudujOkno(mock: Mock): FakeEl {
 beforeEach(() => {
   vi.stubGlobal('localStorage', makeLocalStorageMock());
   vi.stubGlobal('document', { createElement: (t: string) => new FakeEl(t) });
+  vi.stubGlobal('confirm', vi.fn(() => true));
 });
 
 afterEach(() => {
@@ -278,7 +279,7 @@ describe('zaproponuj — the end-of-run options', () => {
     expect(printed(mock).join('\n')).toContain('wyslij do rankingu (jako Piotrek)');
   });
 
-  it('sends straight away once a nick is settled', async () => {
+  it('asks for final confirmation, then sends once a nick is settled', async () => {
     const { mock, baza, hof } = setup();
     const f = stubFetch({ id: 'zdalne-1', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
     storage.set('rkg:nick', 'Piot');
@@ -288,6 +289,7 @@ describe('zaproponuj — the end-of-run options', () => {
     klikOpcje(mock, 'wyslij do rankingu');
     await vi.waitFor(() => expect(f).toHaveBeenCalled());
 
+    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('jedyny slot na 24 godziny'));
     expect(mock.commandHooks, 'nie powinno pytac o nick').toHaveLength(0);
     expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piot');
     await vi.waitFor(() => expect(baza.wpisy[0].wyslane).toBe('zdalne-1'));
@@ -301,6 +303,25 @@ describe('zaproponuj — the end-of-run options', () => {
     klikOpcje(mock, 'nie wysylaj');
 
     expect(f).not.toHaveBeenCalled();
+  });
+
+  it('keeps the daily slot when final confirmation is cancelled', () => {
+    const { mock, baza, hof } = setup();
+    const f = stubFetch({});
+    vi.stubGlobal('confirm', vi.fn(() => false));
+    storage.set('rkg:nick', 'Piot');
+    // The corrected, versioned disclosure must not be suppressed by the old flag.
+    storage.set('rkg:zgoda', true);
+    baza.dodajWpis(WPIS);
+
+    hof.zaproponuj(baza.wpisy[0]);
+    klikOpcje(mock, 'wyslij do rankingu');
+
+    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining(WPIS.wynik));
+    expect(f).not.toHaveBeenCalled();
+    expect(baza.wpisy[0].wyslane).toBeUndefined();
+    expect(printed(mock).join('\n')).toContain('slot pozostaje dostepny');
+    expect(printed(mock).join('\n')).toContain('losowy identyfikator tej instalacji');
   });
 
   it('"otworz okno lokalnych" opens the window on the local tab', async () => {
@@ -341,7 +362,10 @@ describe('the first upload settles the nick', () => {
     klikOpcje(mock, 'wyslij do rankingu');
 
     const out = printed(mock).join('\n');
-    expect(out).toContain('Nic wiecej'); // what leaves the client, before it does
+    expect(out).toContain('skladniki nazwy');
+    expect(out).toContain('losowy identyfikator tej instalacji');
+    expect(out).toContain('nie jest kontem');
+    expect(out).not.toContain('Nic wiecej');
     expect(out).toContain("Enter = Piotrek");
     expect(wpisz(mock, ''), 'bare Enter must be swallowed').toBeNull();
 
@@ -434,6 +458,7 @@ describe('rkgwyslij', () => {
     odpal(mock, 'rkgwyslij');
     await vi.waitFor(() => expect(f).toHaveBeenCalled());
 
+    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('jedyny slot na 24 godziny'));
     expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piot');
   });
 

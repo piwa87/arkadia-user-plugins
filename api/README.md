@@ -45,8 +45,9 @@ is the origin of the page the plugin runs in, not wherever the plugin `.js` is
 hosted. Club submissions are deliberately fixed at one per device per rolling
 24 hours. `RKG_LIMIT_GLOSOW` controls the separate per-device hourly vote cap.
 
-There is no local setup: one remote database, one deployment. Everything is
-exercised against the deployed Worker.
+There is no local D1 setup: production uses one remote database and one Worker
+deployment. For visual frontend work, `cd web && yarn dev` starts a local site
+with 10 mock clubs and a mock voting API at `http://localhost:4173`.
 
 ## Wiping the wall (beta)
 
