@@ -66,6 +66,61 @@
         margin: 14px 0 0;
       }
 
+      /* ── Daily entry ticket ──────────────────────────── */
+
+      .limit-dzienny {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: stretch;
+        margin: 0 7px 34px 0;
+        border: 3px solid var(--zloto);
+        background: var(--zloto);
+        color: var(--noc);
+        box-shadow: 7px 7px 0 var(--neon);
+      }
+
+      .limit-liczba {
+        display: grid;
+        place-items: center;
+        min-width: clamp(92px, 20vw, 140px);
+        padding: 16px 22px 12px;
+        border-right: 3px solid var(--noc);
+        font-family: var(--display);
+        font-size: clamp(5.2rem, 17vw, 8.4rem);
+        line-height: .72;
+        color: var(--noc);
+        text-shadow: 3px 3px 0 var(--neon);
+      }
+
+      .limit-tresc {
+        align-self: center;
+        padding: 17px 22px 18px;
+      }
+
+      .limit-etykieta {
+        margin: 0 0 5px;
+        font: 700 .7rem/1 var(--dane);
+        letter-spacing: .2em;
+        text-transform: uppercase;
+      }
+
+      .limit-tytul {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(1.75rem, 5.5vw, 2.65rem);
+        line-height: .95;
+        letter-spacing: .01em;
+        text-transform: uppercase;
+      }
+
+      .limit-opis {
+        max-width: 52ch;
+        margin: 9px 0 0;
+        font-size: .92rem;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+
       /* ── Sort picker ────────────────────────────────────────────────────── */
 
       #tabs { display: flex; gap: 8px; justify-content: center; margin: 0 0 24px; flex-wrap: wrap; }
@@ -230,6 +285,14 @@
       :focus-visible { outline: 2px solid var(--zloto); outline-offset: 2px; }
 
       @media (max-width: 460px) {
+        .wrap { padding-top: 28px; }
+        .naglowek { margin-bottom: 26px; }
+        .limit-dzienny { grid-template-columns: 74px 1fr; margin-bottom: 30px; }
+        .limit-liczba { min-width: 0; padding-inline: 10px; font-size: 4.7rem; }
+        .limit-tresc { padding: 14px 14px 15px; }
+        .limit-etykieta { font-size: .6rem; }
+        .limit-tytul { font-size: 1.45rem; }
+        .limit-opis { font-size: .8rem; }
         .wpis { gap: 12px; padding: 14px; }
         .miejsce { padding-top: 0; }
       }
@@ -245,11 +308,24 @@
         <h1 class="tytul">Rendom Klub Dżenerejtor</h1>
         <p class="podtytul">Ranking najbardziej zwalowych klubow</p>
       </header>
+      <aside class="limit-dzienny" aria-labelledby="limit-tytul">
+        <div class="limit-liczba" aria-hidden="true">1</div>
+        <div class="limit-tresc">
+          <p class="limit-etykieta">Twój dzienny wybór</p>
+          <h2 id="limit-tytul" class="limit-tytul">Jeden klub. Raz na 24 godziny.</h2>
+          <p class="limit-opis">
+            Każde wysłanie zużywa jedyny dostępny slot. Następny otworzy się po 24 godzinach,
+            więc zachowaj go dla klubu, który naprawdę zasługuje na ranking.
+          </p>
+        </div>
+      </aside>
       <nav id="tabs"></nav>
       <ul id="lista" class="lista"></ul>
       <p id="blad"></p>
       <button id="wiecej" hidden>Pokaz wiecej</button>
-      <footer class="stopka">Wylosuj klub w grze aliasem <code>rkg!</code>, potem wyslij go do rankingu.</footer>
+      <footer class="stopka">
+        Wylosuj klub w grze aliasem <code>rkg!</code>. Do rankingu możesz wysłać jeden klub na 24 godziny.
+      </footer>
     </div>
     <script type="module" src="./app.js"></script>
   </body>

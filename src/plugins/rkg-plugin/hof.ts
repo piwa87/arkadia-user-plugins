@@ -264,6 +264,7 @@ export function setupHof(api: PluginApi, baza: Baza): Hof {
   function zaproponuj(w: WpisLokalny): void {
     try {
       const nick = domyslnyNick();
+      info('Do rankingu mozesz wyslac tylko jeden klub na 24 godziny — wybierz dobrze.');
       info('Opcje:');
       opcja(
         nick ? `wyslij do rankingu (jako ${nick})` : 'wyslij do rankingu',
@@ -369,7 +370,10 @@ export function setupHof(api: PluginApi, baza: Baza): Hof {
 
       const btn = el('button', 'rkg-btn', w.wyslane ? '✓ w rankingu' : 'Wyslij') as HTMLButtonElement;
       btn.disabled = !!w.wyslane;
-      if (!w.wyslane) btn.onclick = () => poWyslij(w);
+      if (!w.wyslane) {
+        btn.title = 'Wykorzystuje jeden slot na 24 godziny';
+        btn.onclick = () => poWyslij(w);
+      }
       wiersz.append(btn);
 
       // Published clubs have no delete button: dropping one locally would only

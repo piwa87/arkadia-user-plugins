@@ -42,8 +42,8 @@ npx wrangler secret put RKG_ADMIN
 
 Set `RKG_CORS` in `wrangler.toml` to the Arkadia web client's real origin — that
 is the origin of the page the plugin runs in, not wherever the plugin `.js` is
-hosted. Tune `RKG_LIMIT_ZGLOSZEN` / `RKG_LIMIT_GLOSOW` (per-device hourly caps)
-if needed.
+hosted. Club submissions are deliberately fixed at one per device per rolling
+24 hours. `RKG_LIMIT_GLOSOW` controls the separate per-device hourly vote cap.
 
 There is no local setup: one remote database, one deployment. Everything is
 exercised against the deployed Worker.
@@ -79,7 +79,7 @@ can be attached in the Cloudflare dashboard.
 
 | Method | Path | Body | Result |
 | --- | --- | --- | --- |
-| `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (dedupes by normalised name; repeat bumps `zgloszenia`) |
+| `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (one per device per rolling 24h; dedupes by normalised name; repeat bumps `zgloszenia`) |
 | `GET` | `/api/nazwy?sort=top\|nowe\|losowe&cursor&limit` | — | `ListaResponse` |
 | `POST` | `/api/nazwy/:id/glos` | `GlosRequest` (`wartosc` 1/-1/0) | `GlosResponse` |
 | `DELETE` | `/api/nazwy` | — (header `X-RKG-Admin: <RKG_ADMIN>`) | `CzystkaResponse` — wipes every row; 404 when `RKG_ADMIN` is unset |
@@ -93,4 +93,6 @@ against the exact word lists and grammar the generator uses (`validate.ts`):
 `typ` and `przymiotnik` must be list members; the name must match the strict
 "type + 2–3 capitalised words" shape; its adjective must share a stem with the
 submitted base adjective; roles/nick are pattern-checked. Anything else → 400.
-Per-device hourly rate limits and an `ukryte` takedown flag round it out.
+A one-club-per-rolling-24-hours device quota, a separate hourly vote limit and
+an `ukryte` takedown flag round it out. The submission check and slot claim are
+one atomic SQLite statement, so simultaneous requests cannot share a free slot.

@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS glosy (
   PRIMARY KEY (nazwa_id, glosujacy)
 );
 
--- Lightweight per-device rate-limit log (submissions + votes).
+-- Lightweight per-device sliding-window quota log. Submissions use a strict
+-- one-per-24-hours window; votes have their own higher hourly allowance.
 CREATE TABLE IF NOT EXISTS zdarzenia (
   glosujacy TEXT NOT NULL,
   rodzaj    TEXT NOT NULL,                     -- 'zgloszenie' | 'glos'

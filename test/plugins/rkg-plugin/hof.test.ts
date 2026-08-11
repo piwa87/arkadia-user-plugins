@@ -118,8 +118,8 @@ const WPIS: WpisLokalny = {
 };
 
 /** Mock fetch; returns the JSON each call resolves with. */
-function stubFetch(dane: unknown, ok = true) {
-  const f = vi.fn(async () => ({ ok, status: ok ? 200 : 500, json: async () => dane }));
+function stubFetch(dane: unknown, ok = true, status = ok ? 200 : 500) {
+  const f = vi.fn(async () => ({ ok, status, json: async () => dane }));
   vi.stubGlobal('fetch', f);
   return f;
 }
@@ -258,6 +258,7 @@ describe('zaproponuj — the end-of-run options', () => {
     hof.zaproponuj(WPIS);
 
     const out = printed(mock).join('\n');
+    expect(out).toContain('jeden klub na 24 godziny');
     expect(out).toContain('Opcje:');
     expect(out).toContain('wyslij do rankingu (jako Piot)');
     expect(out).toContain('nie wysylaj');
@@ -463,6 +464,22 @@ describe('rkgwyslij', () => {
     odpal(mock, 'rkgwyslij !!');
     expect(f).not.toHaveBeenCalled();
     expect(printed(mock).join('\n')).toContain('2-16 znakow');
+  });
+
+  it('shows the daily-quota response and keeps the club unsent', async () => {
+    const { mock, baza } = setup();
+    stubFetch(
+      { blad: 'limit: jeden klub na 24 godziny; kolejny mozesz wyslac za 8 godz.' },
+      false,
+      429,
+    );
+    storage.set('rkg:anonim', true);
+    baza.dodajWpis(WPIS);
+
+    odpal(mock, 'rkgwyslij');
+
+    await vi.waitFor(() => expect(printed(mock).join('\n')).toContain('kolejny mozesz wyslac'));
+    expect(baza.wpisy[0].wyslane).toBeUndefined();
   });
 });
 

@@ -23,5 +23,4 @@ database_id = "a4ddd84a-d649-4c63-b3a6-603841e20af8"
 # client hosted on GitHub Pages — its origin is the host only (no path). Note
 # this is the CLIENT's origin, not wherever the plugin .js is hosted from.
 RKG_CORS = "https://delwing.github.io"
-RKG_LIMIT_ZGLOSZEN = "30"
 RKG_LIMIT_GLOSOW = "300"
