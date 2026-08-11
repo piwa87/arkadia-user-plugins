@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { zuzyjLimit } from '../../api/src/quota';
+import { sprawdzLimit, zuzyjLimit } from '../../api/src/quota';
 
 interface Zdarzenie {
   glosujacy: string;
@@ -46,14 +46,19 @@ function fakeDb() {
               throw new Error(`nieobslugiwane SQL: ${sql}`);
             },
             async first<T>() {
-              if (!sql.includes('SELECT MIN(kiedy)')) throw new Error(`nieobslugiwane SQL: ${sql}`);
+              if (!sql.includes('MIN(kiedy) AS najstarsze')) {
+                throw new Error(`nieobslugiwane SQL: ${sql}`);
+              }
               const [glosujacy, rodzaj, od] = args as [string, string, number];
               const czasy = zdarzenia
                 .filter(
                   (z) => z.glosujacy === glosujacy && z.rodzaj === rodzaj && z.kiedy > od,
                 )
                 .map((z) => z.kiedy);
-              return { najstarsze: czasy.length ? Math.min(...czasy) : null } as T;
+              return {
+                ile: czasy.length,
+                najstarsze: czasy.length ? Math.min(...czasy) : null,
+              } as T;
             },
           };
         },
@@ -68,6 +73,19 @@ const START = 2_000_000_000_000;
 afterEach(() => vi.restoreAllMocks());
 
 describe('daily RKG submission quota', () => {
+  it('reports availability without consuming the slot', async () => {
+    const db = fakeDb();
+
+    expect(await sprawdzLimit(db as never, 'device-1', 'zgloszenie', 1, DZIEN, START))
+      .toEqual({ dozwolony: true, ponowZaMs: 0 });
+    expect(db.zdarzenia).toHaveLength(0);
+
+    await zuzyjLimit(db as never, 'device-1', 'zgloszenie', 1, DZIEN, START);
+    expect(await sprawdzLimit(db as never, 'device-1', 'zgloszenie', 1, DZIEN, START + 1))
+      .toEqual({ dozwolony: false, ponowZaMs: DZIEN - 1 });
+    expect(db.zdarzenia).toHaveLength(1);
+  });
+
   it('allows only one club in a rolling 24-hour window', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(1);
     const db = fakeDb();

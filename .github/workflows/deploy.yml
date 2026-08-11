@@ -38,6 +38,15 @@ jobs:
       - name: Run typecheck
         run: yarn typecheck
 
+      - name: Install Worker dependencies
+        run: yarn --cwd api install --frozen-lockfile
+
+      - name: Test Worker with local D1
+        run: yarn --cwd api test
+
+      - name: Typecheck Worker
+        run: yarn --cwd api typecheck
+
       - name: Build plugins
         run: yarn build
 

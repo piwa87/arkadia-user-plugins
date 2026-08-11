@@ -118,10 +118,24 @@ const WPIS: WpisLokalny = {
 };
 
 /** Mock fetch; returns the JSON each call resolves with. */
-function stubFetch(dane: unknown, ok = true, status = ok ? 200 : 500) {
-  const f = vi.fn(async () => ({ ok, status, json: async () => dane }));
-  vi.stubGlobal('fetch', f);
-  return f;
+function stubFetch(
+  dane: unknown,
+  ok = true,
+  status = ok ? 200 : 500,
+  limit = { dostepny: true, ponownieZaMs: 0 },
+) {
+  const request = vi.fn(async (_url?: string, _init?: RequestInit) => ({
+    ok,
+    status,
+    json: async () => dane,
+  }));
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).endsWith('/api/limit')) {
+      return { ok: true, status: 200, json: async () => limit };
+    }
+    return request(url, init);
+  }));
+  return request;
 }
 
 /** Render the popup body the way the client would, via its createContent. */
@@ -134,6 +148,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', makeLocalStorageMock());
   vi.stubGlobal('document', { createElement: (t: string) => new FakeEl(t) });
   vi.stubGlobal('confirm', vi.fn(() => true));
+  stubFetch({});
 });
 
 afterEach(() => {
@@ -170,6 +185,41 @@ describe('setupHof registration', () => {
     expect(okno.tekst).toContain('Loza Maluskich Korbaczy');
     expect(okno.przycisk('Wyslij')).toBeTruthy();
     cleanup();
+  });
+
+  it('shows the authoritative daily-slot countdown in the local window', async () => {
+    const { mock, cleanup } = setup();
+    stubFetch({}, true, 200, { dostepny: false, ponownieZaMs: 2 * 3_600_000 });
+
+    odpal(mock, 'rkghof');
+    await vi.waitFor(() => {
+      expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled();
+      expect(zbudujOkno(mock).tekst).toContain('SLOT ZAJETY — kolejny za 2 godz.');
+    });
+    cleanup();
+  });
+});
+
+describe('rkgstatus', () => {
+  it('reports a ready daily slot', async () => {
+    const { mock } = setup();
+
+    expect(odpal(mock, 'rkgstatus')).toBe(true);
+
+    await vi.waitFor(() => {
+      expect(printed(mock).join('\n')).toContain('dzienny slot jest gotowy');
+    });
+  });
+
+  it('reports the server countdown', async () => {
+    const { mock } = setup();
+    stubFetch({}, true, 200, { dostepny: false, ponownieZaMs: 90 * 60_000 });
+
+    odpal(mock, 'rkgstatus');
+
+    await vi.waitFor(() => {
+      expect(printed(mock).join('\n')).toContain('1 godz. 30 min');
+    });
   });
 });
 
@@ -289,7 +339,7 @@ describe('zaproponuj — the end-of-run options', () => {
     klikOpcje(mock, 'wyslij do rankingu');
     await vi.waitFor(() => expect(f).toHaveBeenCalled());
 
-    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('jedyny slot na 24 godziny'));
+    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('uruchomi nowy okres 24 godzin'));
     expect(mock.commandHooks, 'nie powinno pytac o nick').toHaveLength(0);
     expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piot');
     await vi.waitFor(() => expect(baza.wpisy[0].wyslane).toBe('zdalne-1'));
@@ -305,7 +355,7 @@ describe('zaproponuj — the end-of-run options', () => {
     expect(f).not.toHaveBeenCalled();
   });
 
-  it('keeps the daily slot when final confirmation is cancelled', () => {
+  it('keeps the daily slot when final confirmation is cancelled', async () => {
     const { mock, baza, hof } = setup();
     const f = stubFetch({});
     vi.stubGlobal('confirm', vi.fn(() => false));
@@ -317,6 +367,7 @@ describe('zaproponuj — the end-of-run options', () => {
     hof.zaproponuj(baza.wpisy[0]);
     klikOpcje(mock, 'wyslij do rankingu');
 
+    await vi.waitFor(() => expect(globalThis.confirm).toHaveBeenCalled());
     expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining(WPIS.wynik));
     expect(f).not.toHaveBeenCalled();
     expect(baza.wpisy[0].wyslane).toBeUndefined();
@@ -449,6 +500,22 @@ describe('the first upload settles the nick', () => {
 });
 
 describe('rkgwyslij', () => {
+  it('does not ask for confirmation or upload when the server says the slot is occupied', async () => {
+    const { mock, baza } = setup();
+    const f = stubFetch({}, true, 200, { dostepny: false, ponownieZaMs: 8 * 3_600_000 });
+    storage.set('rkg:anonim', true);
+    baza.dodajWpis(WPIS);
+
+    odpal(mock, 'rkgwyslij');
+
+    await vi.waitFor(() => {
+      expect(printed(mock).join('\n')).toContain('dzienny slot bedzie dostepny za 8 godz.');
+    });
+    expect(globalThis.confirm).not.toHaveBeenCalled();
+    expect(f).not.toHaveBeenCalled();
+    expect(baza.wpisy[0].wyslane).toBeUndefined();
+  });
+
   it('sends the newest unsent club with the saved nick', async () => {
     const { mock, baza } = setup();
     const f = stubFetch({ id: 'zdalne-4', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
@@ -458,7 +525,7 @@ describe('rkgwyslij', () => {
     odpal(mock, 'rkgwyslij');
     await vi.waitFor(() => expect(f).toHaveBeenCalled());
 
-    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('jedyny slot na 24 godziny'));
+    expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('uruchomi nowy okres 24 godzin'));
     expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piot');
   });
 

@@ -16,6 +16,29 @@ export interface WynikLimitu {
   ponowZaMs: number;
 }
 
+/** Read a sliding-window quota without consuming a slot. */
+export async function sprawdzLimit(
+  db: QuotaDb,
+  glosujacy: string,
+  rodzaj: string,
+  limit: number,
+  oknoMs: number,
+  teraz = Date.now(),
+): Promise<WynikLimitu> {
+  const od = teraz - oknoMs;
+  const row = await db.prepare(
+    `SELECT COUNT(*) AS ile, MIN(kiedy) AS najstarsze FROM zdarzenia
+     WHERE glosujacy = ? AND rodzaj = ? AND kiedy > ?`,
+  )
+    .bind(glosujacy, rodzaj, od)
+    .first<{ ile: number; najstarsze: number | null }>();
+  if ((row?.ile ?? 0) < limit) return { dozwolony: true, ponowZaMs: 0 };
+  return {
+    dozwolony: false,
+    ponowZaMs: Math.max(1_000, (row?.najstarsze ?? teraz) + oknoMs - teraz),
+  };
+}
+
 /**
  * Atomically consume one slot in a sliding-window quota.
  *
@@ -55,14 +78,7 @@ export async function zuzyjLimit(
     return { dozwolony: true, ponowZaMs: 0 };
   }
 
-  const row = await db.prepare(
-    `SELECT MIN(kiedy) AS najstarsze FROM zdarzenia
-     WHERE glosujacy = ? AND rodzaj = ? AND kiedy > ?`,
-  )
-    .bind(glosujacy, rodzaj, od)
-    .first<{ najstarsze: number | null }>();
-  const ponowZaMs = Math.max(1_000, (row?.najstarsze ?? teraz) + oknoMs - teraz);
-  return { dozwolony: false, ponowZaMs };
+  return sprawdzLimit(db, glosujacy, rodzaj, limit, oknoMs, teraz);
 }
 
 export function formatujCzekanie(ms: number): string {
@@ -72,17 +88,4 @@ export function formatujCzekanie(ms: number): string {
   if (godziny === 0) return `${reszta} min`;
   if (reszta === 0) return `${godziny} godz.`;
   return `${godziny} godz. ${reszta} min`;
-}
-
-export async function zwolnijLimit(
-  db: QuotaDb,
-  glosujacy: string,
-  rodzaj: string,
-  kiedy: number,
-): Promise<void> {
-  await db
-    .prepare('DELETE FROM zdarzenia WHERE glosujacy = ? AND rodzaj = ? AND kiedy = ?')
-    .bind(glosujacy, rodzaj, kiedy)
-    .run()
-    .catch(() => undefined);
 }

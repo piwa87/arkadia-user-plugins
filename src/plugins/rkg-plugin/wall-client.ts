@@ -1,11 +1,14 @@
 import { storage } from '../../lib/storage';
+import type { BladResponse, StatusLimitu } from '../../shared/rkg-api';
 
 export const WALL = 'https://rkg.piwa87.workers.dev';
 
 const KL_GLOSUJACY = 'rkg:glosujacy';
 const TIMEOUT_MS = 8000;
 
-export type WallResponse<T> = { ok: true; dane: T } | { ok: false; blad: string };
+export type WallResponse<T> =
+  | { ok: true; dane: T }
+  | { ok: false; blad: string; limit?: StatusLimitu; requestId?: string };
 
 export interface WallClient {
   voterId(): string;
@@ -32,8 +35,15 @@ export function createWallClient(): WallClient {
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     try {
       const res = await fetch(WALL + path, { ...init, signal: ctrl.signal });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) return { ok: false, blad: (data && data.blad) || `HTTP ${res.status}` };
+      const data = await res.json().catch(() => null) as Partial<BladResponse> | null;
+      if (!res.ok) {
+        return {
+          ok: false,
+          blad: data?.blad || `HTTP ${res.status}`,
+          limit: data?.limit,
+          requestId: data?.requestId,
+        };
+      }
       return { ok: true, dane: data as T };
     } catch {
       return { ok: false, blad: 'wall niedostepny' };

@@ -1,13 +1,16 @@
 import type {
+  BladResponse,
   CzystkaResponse,
   GlosResponse,
   ListaResponse,
   Pozycja,
   Sortowanie,
+  StatusLimitu,
   ZgloszenieResponse,
 } from '../../src/shared/rkg-api';
-import { walidujGlos, walidujZgloszenie } from './validate';
-import { formatujCzekanie, zwolnijLimit, zuzyjLimit } from './quota';
+import { walidujGlos, walidujGlosujacego, walidujZgloszenie } from './validate';
+import { formatujCzekanie, sprawdzLimit, zuzyjLimit } from './quota';
+import { DZIEN, zapiszZgloszenie } from './submissions';
 
 /**
  * RKG wall — Cloudflare Worker.
@@ -33,7 +36,6 @@ export interface Env {
 }
 
 const GODZINA = 3_600_000;
-const DZIEN = 86_400_000;
 const DOMYSLNY_LIMIT_GLOSOW = 300;
 
 // ── CORS ──────────────────────────────────────────────────────────────────
@@ -64,15 +66,16 @@ function json(data: unknown, status: number, cors: Record<string, string>): Resp
 const blad = (msg: string, status: number, cors: Record<string, string>) =>
   json({ blad: msg }, status, cors);
 
+const statusLimitu = (dozwolony: boolean, ponowZaMs: number): StatusLimitu => ({
+  dostepny: dozwolony,
+  ponownieZaMs: ponowZaMs,
+});
+
 // Submissions use a rolling 24-hour window; votes keep their hourly window.
 
 // ── Rate limiting (per-device, sliding windows) ────────────────────────────
 
 // ── Routes ─────────────────────────────────────────────────────────────────
-
-function nowyId(): string {
-  return crypto.randomUUID();
-}
 
 function doPozycji(r: Record<string, unknown>): Pozycja {
   const role =
@@ -100,66 +103,32 @@ async function postZgloszenie(req: Request, env: Env, cors: Record<string, strin
   if (!v.ok) return blad(v.blad, 400, cors);
   const d = v.dane;
 
-  const teraz = Date.now();
-  const limit = await zuzyjLimit(env.DB, d.glosujacy, 'zgloszenie', 1, DZIEN, teraz);
-  if (!limit.dozwolony) {
-    return blad(
-      `limit: jeden klub na 24 godziny; kolejny mozesz wyslac za ${formatujCzekanie(limit.ponowZaMs)}`,
-      429,
-      cors,
-    );
+  const wynik = await zapiszZgloszenie(env.DB, d);
+  if (!wynik.zapisany) {
+    const limit = statusLimitu(wynik.limit.dozwolony, wynik.limit.ponowZaMs);
+    const body: BladResponse = {
+      blad: `limit: jeden klub na 24 godziny; kolejny mozesz wyslac za ${formatujCzekanie(limit.ponownieZaMs)}`,
+      limit,
+    };
+    return json(body, 429, cors);
   }
 
-  try {
-    const istnieje = await env.DB.prepare('SELECT id, zgloszenia FROM nazwy WHERE klucz = ?')
-      .bind(d.klucz)
-      .first<{ id: string; zgloszenia: number }>();
+  const res: ZgloszenieResponse = {
+    id: wynik.id,
+    wynik: d.wynik,
+    zgloszenia: wynik.zgloszenia,
+    duplikat: wynik.duplikat,
+    limit: statusLimitu(false, DZIEN),
+  };
+  return json(res, wynik.duplikat ? 200 : 201, cors);
+}
 
-    if (istnieje) {
-      const zgloszenia = istnieje.zgloszenia + 1;
-      await env.DB.prepare('UPDATE nazwy SET zgloszenia = ? WHERE id = ?')
-        .bind(zgloszenia, istnieje.id)
-        .run();
-      const res: ZgloszenieResponse = {
-        id: istnieje.id,
-        wynik: d.wynik,
-        zgloszenia,
-        duplikat: true,
-      };
-      return json(res, 200, cors);
-    }
-
-    const id = nowyId();
-    await env.DB.prepare(
-      `INSERT INTO nazwy
-         (id, klucz, wynik, typ, przymiotnik, rzeczownik, liczba, przypadek,
-          rola_przywodca, rola_zastepca, rola_czlonek, nick, kiedy)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    )
-      .bind(
-        id,
-        d.klucz,
-        d.wynik,
-        d.typ,
-        d.przymiotnik,
-        d.rzeczownik,
-        d.liczba,
-        d.przypadek,
-        d.role?.przywodca ?? null,
-        d.role?.zastepca ?? null,
-        d.role?.czlonek ?? null,
-        d.nick ?? null,
-        teraz,
-      )
-      .run();
-
-    const res: ZgloszenieResponse = { id, wynik: d.wynik, zgloszenia: 1, duplikat: false };
-    return json(res, 201, cors);
-  } catch (e) {
-    // A failed database write must not burn the user's only daily slot.
-    await zwolnijLimit(env.DB, d.glosujacy, 'zgloszenie', teraz);
-    throw e;
-  }
+async function postStatusLimitu(req: Request, env: Env, cors: Record<string, string>) {
+  const body = await req.json().catch(() => null);
+  const v = walidujGlosujacego(body);
+  if (!v.ok) return blad(v.blad, 400, cors);
+  const limit = await sprawdzLimit(env.DB, v.dane.glosujacy, 'zgloszenie', 1, DZIEN);
+  return json(statusLimitu(limit.dozwolony, limit.ponowZaMs), 200, cors);
 }
 
 async function getLista(url: URL, env: Env, cors: Record<string, string>) {
@@ -284,12 +253,18 @@ export default {
         if (req.method === 'POST') return await postZgloszenie(req, env, cors);
         if (req.method === 'DELETE') return await deleteWszystko(req, env, cors);
       }
+      if (url.pathname === '/api/limit' && req.method === 'POST') {
+        return await postStatusLimitu(req, env, cors);
+      }
       const m = url.pathname.match(/^\/api\/nazwy\/([A-Za-z0-9-]{8,64})\/glos$/);
       if (m && req.method === 'POST') return await postGlos(m[1], req, env, cors);
 
       return blad('nie znaleziono', 404, cors);
     } catch (e) {
-      return blad(`blad serwera: ${String(e)}`, 500, cors);
+      const requestId = req.headers.get('cf-ray') ?? crypto.randomUUID();
+      console.error(`[rkg:${requestId}]`, e);
+      const body: BladResponse = { blad: 'blad serwera', requestId };
+      return json(body, 500, cors);
     }
   },
 };

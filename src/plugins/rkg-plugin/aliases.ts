@@ -17,6 +17,7 @@ export function setupAliasy(api: PluginApi, baza: Baza, styles: RkgStyles): void
     ['rkg-', 'przerwij trwajacy run'],
     ['rkgshow!', 'pokaz zebrane kluby wraz z tytulami wladz'],
     ['rkghof', 'okno RKG: lokalne kluby + ranking online'],
+    ['rkgstatus', 'sprawdz, kiedy dzienny slot wysylki bedzie gotowy'],
     ['rkgwyslij [x]', 'wyslij ostatni klub (limit 1 na 24h; x = nick, - = anonimowo)'],
     ['rkgnick <x>', 'ustaw publiczny nick (rkgnick - = anonimowo)'],
     ['rkgnuke <klucz>', 'BETA: skasuj caly ranking (rkgnuke - = tylko lokalne)'],

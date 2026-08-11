@@ -11,14 +11,16 @@ so the Worker sends CORS headers for the origins listed in `RKG_CORS`.
 api/
   src/index.ts      the Worker (routes, dedupe, voting, rate-limit, CORS, static)
   src/validate.ts   request validation — reuses the plugin's word lists + grammar
-  schema.sql        D1 tables
+  migrations/       versioned D1 schema changes (production + local tests)
+  schema.sql        final schema for manual, fresh database setup only
   wrangler.toml     config (fill in database_id + RKG_CORS)
 ../web/dist         built static site the Worker serves (build with: cd web && yarn build)
 ```
 
-Validation is unit-tested from the repo root: `test/api/validate.test.ts` (runs
-under the normal `yarn test`). The Worker itself needs Cloudflare's runtime, so
-it is typechecked/run with wrangler, not the root toolchain.
+Validation and quota helpers are unit-tested from the repo root. `yarn test`
+inside `api/` runs the Worker against a real local D1 through Cloudflare's
+Workers Vitest integration, including concurrent uploads and transaction
+rollback. No production data is touched.
 
 ## One-time setup
 
@@ -30,8 +32,8 @@ npx wrangler login
 # 1. create the database, then paste the printed database_id into wrangler.toml
 npx wrangler d1 create rkg-wall
 
-# 2. create the tables
-yarn db:init
+# 2. create/update the tables from versioned migrations
+yarn db:migrate
 
 # 3. build the site so the Worker has assets to serve
 cd ../web && yarn install && yarn build && cd ../api
@@ -45,9 +47,11 @@ is the origin of the page the plugin runs in, not wherever the plugin `.js` is
 hosted. Club submissions are deliberately fixed at one per device per rolling
 24 hours. `RKG_LIMIT_GLOSOW` controls the separate per-device hourly vote cap.
 
-There is no local D1 setup: production uses one remote database and one Worker
-deployment. For visual frontend work, `cd web && yarn dev` starts a local site
-with 10 mock clubs and a mock voting API at `http://localhost:4173`.
+For backend work, `yarn test` runs a disposable local D1 and applies all
+migrations automatically. `yarn db:migrate:local` is available for manual
+`wrangler dev` sessions. For visual frontend work, `cd web && yarn dev` starts
+a local site with 10 mock clubs and a mock voting API at
+`http://localhost:4173`.
 
 ## Wiping the wall (beta)
 
@@ -69,8 +73,12 @@ beta is over.
 ## Deploy
 
 ```bash
-cd web && yarn build && cd ../api && npx wrangler deploy
+cd api && yarn test && yarn typecheck && yarn db:migrate
+cd ../web && yarn build && cd ../api && yarn deploy
 ```
+
+Apply remote migrations before deploying code that depends on them. D1 records
+which migrations have already run, so later deploys only apply new files.
 
 The Worker prints its URL (e.g. `https://rkg-wall.<you>.workers.dev`). Put that in
 `WALL` in `src/plugins/rkg-plugin/hof.ts` and rebuild the plugin. A custom domain
@@ -81,6 +89,7 @@ can be attached in the Cloudflare dashboard.
 | Method | Path | Body | Result |
 | --- | --- | --- | --- |
 | `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (one per device per rolling 24h; dedupes by normalised name; repeat bumps `zgloszenia`) |
+| `POST` | `/api/limit` | `{ glosujacy }` | `StatusLimitu` (read-only daily-slot status and countdown) |
 | `GET` | `/api/nazwy?sort=top\|nowe\|losowe&cursor&limit` | — | `ListaResponse` |
 | `POST` | `/api/nazwy/:id/glos` | `GlosRequest` (`wartosc` 1/-1/0) | `GlosResponse` |
 | `DELETE` | `/api/nazwy` | — (header `X-RKG-Admin: <RKG_ADMIN>`) | `CzystkaResponse` — wipes every row; 404 when `RKG_ADMIN` is unset |

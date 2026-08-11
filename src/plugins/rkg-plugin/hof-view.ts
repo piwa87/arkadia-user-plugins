@@ -1,5 +1,12 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import type { GlosResponse, ListaResponse, Pozycja, WpisLokalny } from '../../shared/rkg-api';
+import type {
+  GlosResponse,
+  ListaResponse,
+  Pozycja,
+  StatusLimitu,
+  WpisLokalny,
+} from '../../shared/rkg-api';
+import { formatWait } from './publisher';
 import type { Baza } from './store';
 import type { WallClient } from './wall-client';
 
@@ -18,15 +25,20 @@ interface ViewOptions {
   wall: WallClient;
   info(text: string): void;
   onSend(wpis: WpisLokalny): void;
+  limitStatus(): StatusLimitu | null;
+  refreshLimit(): Promise<StatusLimitu | null>;
 }
 
 /** The RKG browse popup: local captures, public ranking and votes. */
 export function createHofView(options: ViewOptions): HofView {
-  const { api, baza, wall, info, onSend } = options;
+  const { api, baza, wall, info, onSend, limitStatus, refreshLimit } = options;
   let popup: Awaited<ReturnType<PluginApi['ui']['registerPersistentPopup']>> | null = null;
   let tab: Tab = 'lokalne';
   let topEntries: Pozycja[] | null = null;
   let topError = '';
+  const countdown = setInterval(() => {
+    if (popup?.isOpen) refresh();
+  }, 60_000);
 
   const el = (tag: string, className = '', text?: string): HTMLElement => {
     const node = document.createElement(tag);
@@ -64,6 +76,17 @@ export function createHofView(options: ViewOptions): HofView {
   function localView(): HTMLElement {
     const column = el('div', 'rkg-kolumna');
     const list = el('div', 'rkg-lista');
+    const limit = limitStatus();
+    const badge = el(
+      'div',
+      `rkg-limit ${limit?.dostepny ? 'gotowy' : limit ? 'czeka' : 'sprawdza'}`,
+      limit?.dostepny
+        ? 'SLOT GOTOWY — mozesz wyslac jeden klub'
+        : limit
+          ? `SLOT ZAJETY — kolejny za ${formatWait(limit.ponownieZaMs)}`
+          : 'SLOT DZIENNY — sprawdzam…',
+    );
+    column.append(badge);
 
     if (baza.wpisy.length === 0) {
       list.append(el('p', 'rkg-pusto', 'Brak zebranych klubow. Uzyj rkg! w grze.'));
@@ -178,6 +201,7 @@ export function createHofView(options: ViewOptions): HofView {
 
   async function open(nextTab?: Tab): Promise<void> {
     if (nextTab) tab = nextTab;
+    void refreshLimit();
     if (!popup) {
       popup = await api.ui.registerPersistentPopup({
         id: 'rkg-hof',
@@ -198,6 +222,7 @@ export function createHofView(options: ViewOptions): HofView {
       refresh();
     },
     stop: () => {
+      clearInterval(countdown);
       popup?.close();
       popup = null;
     },
@@ -214,6 +239,10 @@ const STYLE = `
 .rkg-tab { border: 1px solid #8884; background: transparent; color: inherit; padding: 5px 14px; border-radius: 999px; cursor: pointer; }
 .rkg-tab.akt { background: #f0b42933; border-color: #f0b429; font-weight: 600; }
 .rkg-kolumna { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.rkg-limit { flex: 0 0 auto; margin-bottom: 9px; padding: 7px 10px; border: 1px solid #8884; border-radius: 8px; font-size: .76rem; font-weight: 750; letter-spacing: .04em; }
+.rkg-limit.gotowy { color: #9bdc91; border-color: #62b36b88; background: #62b36b18; }
+.rkg-limit.czeka { color: #f0c76a; border-color: #f0b42988; background: #f0b42916; }
+.rkg-limit.sprawdza { opacity: .65; }
 /* min-height:0 is what actually lets a flex child scroll instead of stretching. */
 .rkg-lista { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
 .rkg-stopka { flex: 0 0 auto; display: flex; justify-content: flex-end; padding-top: 10px; margin-top: 10px; border-top: 1px solid #8883; }

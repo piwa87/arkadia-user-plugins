@@ -2,7 +2,7 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import type { CzystkaResponse, WpisLokalny } from '../../shared/rkg-api';
 import { WZORZEC_NICKA } from '../../shared/rkg-grammar';
 import { createHofView, type HofView } from './hof-view';
-import { createPublisher } from './publisher';
+import { createPublisher, formatWait } from './publisher';
 import type { Baza } from './store';
 import { createRkgStyles } from './styles';
 import { createWallClient, WALL } from './wall-client';
@@ -39,6 +39,8 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
     wall,
     info,
     onSend: publisher.start,
+    limitStatus: publisher.limitStatus,
+    refreshLimit: publisher.refreshLimit,
   });
 
   function action(
@@ -100,6 +102,19 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
   api.ui.addPopupMenuEntry('RKG', () => void view?.open());
   api.aliases.register(/^rkghof$/i, () => {
     void view?.open();
+    return true;
+  });
+
+  api.aliases.register(/^rkgstatus$/i, () => {
+    void publisher.refreshLimit().then((limit) => {
+      if (!limit) {
+        info('nie udalo sie sprawdzic dziennego slotu');
+      } else if (limit.dostepny) {
+        info('dzienny slot jest gotowy — mozesz wyslac jeden klub');
+      } else {
+        info(`dzienny slot bedzie dostepny za ${formatWait(limit.ponownieZaMs)}`);
+      }
+    });
     return true;
   });
 

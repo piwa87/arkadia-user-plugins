@@ -104,6 +104,8 @@ export interface ZgloszenieResponse {
   zgloszenia: number;
   /** True when this name was already on the wall and we bumped its count. */
   duplikat: boolean;
+  /** The newly consumed daily slot. Optional for compatibility with old Workers. */
+  limit?: StatusLimitu;
 }
 
 export interface ListaResponse {
@@ -125,6 +127,20 @@ export interface GlosResponse {
 
 export interface BladResponse {
   blad: string;
+  /** Present on quota errors so clients do not have to parse Polish prose. */
+  limit?: StatusLimitu;
+  /** Safe identifier that can be matched to a server-side error log. */
+  requestId?: string;
+}
+
+export interface StatusLimitu {
+  dostepny: boolean;
+  /** Milliseconds until a slot is available; zero means it is ready now. */
+  ponownieZaMs: number;
+}
+
+export interface StatusLimituRequest {
+  glosujacy: string;
 }
 
 /** What `DELETE /api/nazwy` wiped. Beta-only admin route, see `api/README.md`. */

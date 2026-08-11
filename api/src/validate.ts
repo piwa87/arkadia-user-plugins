@@ -45,6 +45,14 @@ export type WynikWalidacji<T> = { ok: true; dane: T } | { ok: false; blad: strin
 
 const isStr = (x: unknown): x is string => typeof x === 'string';
 
+export function walidujGlosujacego(body: unknown): WynikWalidacji<{ glosujacy: string }> {
+  if (!body || typeof body !== 'object') return { ok: false, blad: 'brak danych' };
+  const b = body as Record<string, unknown>;
+  const glosujacy = isStr(b.glosujacy) ? b.glosujacy.trim() : '';
+  if (!GLOSUJACY_RE.test(glosujacy)) return { ok: false, blad: 'zly identyfikator' };
+  return { ok: true, dane: { glosujacy } };
+}
+
 export function walidujZgloszenie(body: unknown): WynikWalidacji<CzysteZgloszenie> {
   if (!body || typeof body !== 'object') return { ok: false, blad: 'brak danych' };
   const b = body as Record<string, unknown>;
@@ -103,8 +111,9 @@ export function walidujZgloszenie(body: unknown): WynikWalidacji<CzysteZgloszeni
     nick = b.nick.trim();
   }
 
-  const glosujacy = isStr(b.glosujacy) ? b.glosujacy.trim() : '';
-  if (!GLOSUJACY_RE.test(glosujacy)) return { ok: false, blad: 'zly identyfikator' };
+  const id = walidujGlosujacego(b);
+  if (!id.ok) return id;
+  const { glosujacy } = id.dane;
 
   return {
     ok: true,
@@ -128,8 +137,9 @@ export function walidujGlos(
 ): WynikWalidacji<{ glosujacy: string; wartosc: 1 | -1 | 0 }> {
   if (!body || typeof body !== 'object') return { ok: false, blad: 'brak danych' };
   const b = body as Record<string, unknown>;
-  const glosujacy = isStr(b.glosujacy) ? b.glosujacy.trim() : '';
-  if (!GLOSUJACY_RE.test(glosujacy)) return { ok: false, blad: 'zly identyfikator' };
+  const id = walidujGlosujacego(b);
+  if (!id.ok) return id;
+  const { glosujacy } = id.dane;
   const w = b.wartosc;
   if (w !== 1 && w !== -1 && w !== 0) return { ok: false, blad: 'zla wartosc' };
   return { ok: true, dane: { glosujacy, wartosc: w } };

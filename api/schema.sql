@@ -35,9 +35,11 @@ CREATE TABLE IF NOT EXISTS glosy (
 -- Lightweight per-device sliding-window quota log. Submissions use a strict
 -- one-per-24-hours window; votes have their own higher hourly allowance.
 CREATE TABLE IF NOT EXISTS zdarzenia (
+  id        TEXT,                              -- unique reservation id (new rows)
   glosujacy TEXT NOT NULL,
   rodzaj    TEXT NOT NULL,                     -- 'zgloszenie' | 'glos'
   kiedy     INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS zdarzenia_idx ON zdarzenia (glosujacy, rodzaj, kiedy);
+CREATE UNIQUE INDEX IF NOT EXISTS zdarzenia_id ON zdarzenia (id) WHERE id IS NOT NULL;

@@ -1,5 +1,10 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import type { WpisLokalny, ZgloszenieRequest, ZgloszenieResponse } from '../../shared/rkg-api';
+import type {
+  StatusLimitu,
+  WpisLokalny,
+  ZgloszenieRequest,
+  ZgloszenieResponse,
+} from '../../shared/rkg-api';
 import { WZORZEC_NICKA } from '../../shared/rkg-grammar';
 import { getCharName } from '../../lib/getCharName';
 import { storage } from '../../lib/storage';
@@ -11,7 +16,9 @@ const KL_NICK = 'rkg:nick';
 const KL_ANONIM = 'rkg:anonim';
 // Versioned so people who saw the old, incomplete disclosure see the correction.
 const KL_UJAWNIENIE = 'rkg:ujawnienie:v2';
+const KL_PONOWNIE_OD = 'rkg:limit:ponownieOd';
 const PYTANIE_MS = 60_000;
+const DZIEN = 86_400_000;
 
 export interface Publisher {
   start(wpis: WpisLokalny, nick?: string | null): void;
@@ -19,6 +26,8 @@ export interface Publisher {
   savedNick(): string | null;
   rememberNick(nick: string): void;
   rememberAnonymous(): void;
+  limitStatus(): StatusLimitu | null;
+  refreshLimit(): Promise<StatusLimitu | null>;
   stop(): void;
 }
 
@@ -35,6 +44,9 @@ interface PublisherOptions {
 export function createPublisher(options: PublisherOptions): Publisher {
   const { api, baza, styles, wall, info, onChanged } = options;
   const inFlight = new Set<string>();
+  const preparing = new Set<string>();
+  let knownLimit: StatusLimitu | null = null;
+  let checkingLimit: Promise<StatusLimitu | null> | null = null;
   let questionHook: string | null = null;
   let questionTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -63,6 +75,45 @@ export function createPublisher(options: PublisherOptions): Publisher {
     storage.set(KL_ANONIM, true);
   }
 
+  function rememberLimit(limit: StatusLimitu): void {
+    knownLimit = limit;
+    if (limit.dostepny) storage.remove(KL_PONOWNIE_OD);
+    else storage.set(KL_PONOWNIE_OD, Date.now() + limit.ponownieZaMs);
+    onChanged();
+  }
+
+  function limitStatus(): StatusLimitu | null {
+    const retryAt = storage.get<number>(KL_PONOWNIE_OD);
+    if (retryAt != null) {
+      const remaining = retryAt - Date.now();
+      if (remaining > 0) return { dostepny: false, ponownieZaMs: remaining };
+      storage.remove(KL_PONOWNIE_OD);
+      knownLimit = { dostepny: true, ponownieZaMs: 0 };
+    }
+    return knownLimit;
+  }
+
+  async function refreshLimit(): Promise<StatusLimitu | null> {
+    if (checkingLimit) return checkingLimit;
+    checkingLimit = (async () => {
+      const response = await wall.request<StatusLimitu>('/api/limit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glosujacy: wall.voterId() }),
+      });
+      if (!response.ok) return null;
+      const limit = response.dane;
+      if (typeof limit.dostepny !== 'boolean' || !Number.isFinite(limit.ponownieZaMs)) return null;
+      rememberLimit(limit);
+      return limit;
+    })();
+    try {
+      return await checkingLimit;
+    } finally {
+      checkingLimit = null;
+    }
+  }
+
   /** Printed once per disclosure version, before anything can leave the client. */
   function disclose(): void {
     if (storage.get<boolean>(KL_UJAWNIENIE)) return;
@@ -75,24 +126,35 @@ export function createPublisher(options: PublisherOptions): Publisher {
     api.output.print(buf);
   }
 
-  function confirmUpload(wpis: WpisLokalny, nick: string | null): void {
+  async function confirmUpload(wpis: WpisLokalny, nick: string | null): Promise<void> {
     if (wpis.wyslane) {
       info(`juz wyslane: ${wpis.wynik}`);
       return;
     }
-    if (inFlight.has(wpis.id)) return;
+    if (inFlight.has(wpis.id) || preparing.has(wpis.id)) return;
+    preparing.add(wpis.id);
 
-    const accepted =
-      typeof globalThis.confirm === 'function' &&
-      globalThis.confirm(
-        `Wyslac "${wpis.wynik}" do rankingu?\n\n` +
-          'To wykorzysta jedyny slot na 24 godziny.',
-      );
-    if (!accepted) {
-      info('nie wyslano — dzienny slot pozostaje dostepny');
-      return;
+    try {
+      const limit = await refreshLimit();
+      if (limit && !limit.dostepny) {
+        info(`dzienny slot bedzie dostepny za ${formatWait(limit.ponownieZaMs)}`);
+        return;
+      }
+
+      const accepted =
+        typeof globalThis.confirm === 'function' &&
+        globalThis.confirm(
+          `Wyslac "${wpis.wynik}" do rankingu?\n\n` +
+            'Slot jest gotowy. Wyslanie uruchomi nowy okres 24 godzin.',
+        );
+      if (!accepted) {
+        info('nie wyslano — dzienny slot pozostaje dostepny');
+        return;
+      }
+      await send(wpis, nick);
+    } finally {
+      preparing.delete(wpis.id);
     }
-    void send(wpis, nick);
   }
 
   async function send(wpis: WpisLokalny, nick: string | null): Promise<void> {
@@ -116,10 +178,12 @@ export function createPublisher(options: PublisherOptions): Publisher {
         body: JSON.stringify(payload),
       });
       if (response.ok) {
+        rememberLimit(response.dane.limit ?? { dostepny: false, ponownieZaMs: DZIEN });
         baza.oznaczWyslany(wpis.id, response.dane.id);
         const as = nick ? ` jako ${nick}` : ' anonimowo';
         info(response.dane.duplikat ? `juz bylo: ${wpis.wynik}` : `wyslano${as}: ${wpis.wynik}`);
       } else {
+        if (response.limit) rememberLimit(response.limit);
         info(`nie wyslano (${response.blad})`);
       }
     } finally {
@@ -139,17 +203,17 @@ export function createPublisher(options: PublisherOptions): Publisher {
     // An explicit nick (including null = anonymous) has already resolved the
     // signature choice, but it still goes through the final confirmation.
     if (nick !== undefined) {
-      confirmUpload(wpis, nick);
+      void confirmUpload(wpis, nick);
       return;
     }
 
     const stored = savedNick();
     if (stored) {
-      confirmUpload(wpis, stored);
+      void confirmUpload(wpis, stored);
       return;
     }
     if (storage.get<boolean>(KL_ANONIM)) {
-      confirmUpload(wpis, null);
+      void confirmUpload(wpis, null);
       return;
     }
 
@@ -162,7 +226,7 @@ export function createPublisher(options: PublisherOptions): Publisher {
     askForNick(character, (resolved, anonymous) => {
       if (resolved) rememberNick(resolved);
       if (anonymous) rememberAnonymous();
-      confirmUpload(wpis, resolved);
+      void confirmUpload(wpis, resolved);
     });
   }
 
@@ -216,6 +280,17 @@ export function createPublisher(options: PublisherOptions): Publisher {
     savedNick,
     rememberNick,
     rememberAnonymous,
+    limitStatus,
+    refreshLimit,
     stop: cancelQuestion,
   };
+}
+
+export function formatWait(ms: number): string {
+  const minutes = Math.max(1, Math.ceil(ms / 60_000));
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${rest} min`;
+  if (rest === 0) return `${hours} godz.`;
+  return `${hours} godz. ${rest} min`;
 }
