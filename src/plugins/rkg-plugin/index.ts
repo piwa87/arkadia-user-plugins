@@ -34,7 +34,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   const info: PluginInfo = {
     name: 'Rendom Klub Dżenerejtor',
-    version: '0.4.0',
+    version: '0.5.0',
     author: 'Piot',
     description: 'Generator nazw klubow (podglad — nie zaklada klubu)',
   };

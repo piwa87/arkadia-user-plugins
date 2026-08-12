@@ -24,6 +24,10 @@
     "RKG_LIMIT_GLOSOW": "300"
   },
 
+  "secrets": {
+    "required": ["RKG_ADMIN", "RKG_LIMIT_SECRET"]
+  },
+
   "observability": {
     "enabled": true,
     "logs": {

@@ -36,12 +36,15 @@ CREATE TABLE IF NOT EXISTS glosy (
 CREATE TABLE IF NOT EXISTS zdarzenia (
   id        TEXT,                              -- unique reservation id (new rows)
   glosujacy TEXT NOT NULL,
+  siec      TEXT,                              -- secret HMAC; never a raw IP address
   rodzaj    TEXT NOT NULL,                     -- 'zgloszenie' | 'glos'
   kiedy     INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS zdarzenia_idx ON zdarzenia (glosujacy, rodzaj, kiedy);
 CREATE UNIQUE INDEX IF NOT EXISTS zdarzenia_id ON zdarzenia (id) WHERE id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS zdarzenia_siec_idx
+  ON zdarzenia (siec, rodzaj, kiedy) WHERE siec IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS raporty (
   nazwa_id  TEXT NOT NULL,
@@ -52,3 +55,15 @@ CREATE TABLE IF NOT EXISTS raporty (
 );
 
 CREATE INDEX IF NOT EXISTS raporty_nazwa ON raporty (nazwa_id, kiedy DESC);
+
+CREATE TABLE IF NOT EXISTS historia_moderacji (
+  id       TEXT PRIMARY KEY,
+  nazwa_id TEXT NOT NULL,
+  wynik    TEXT NOT NULL,
+  akcja    TEXT NOT NULL,
+  raporty  INTEGER NOT NULL DEFAULT 0,
+  kiedy    INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS historia_moderacji_kiedy
+  ON historia_moderacji (kiedy DESC);

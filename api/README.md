@@ -47,12 +47,17 @@ cd ../web && yarn install && yarn build && cd ../api
 
 # 4. private password for the per-club moderation panel
 npx wrangler secret put RKG_ADMIN
+
+# 5. private, random HMAC key for the network-backed daily limit (32+ bytes)
+openssl rand -hex 32 | yarn wrangler secret put RKG_LIMIT_SECRET
 ```
 
 Set `RKG_CORS` in `wrangler.jsonc` to the Arkadia web client's real origin — that
 is the origin of the page the plugin runs in, not wherever the plugin `.js` is
-hosted. Club submissions are deliberately fixed at one per device per rolling
-24 hours. `RKG_LIMIT_GLOSOW` controls the separate per-device hourly vote cap.
+hosted. Club submissions are deliberately fixed at one per installation and
+one network identity per rolling 24 hours. The network identity is a secret
+HMAC of Cloudflare's client address; the raw address is never persisted or
+logged. `RKG_LIMIT_GLOSOW` controls the separate per-device hourly vote cap.
 
 For backend work, `yarn test` runs a disposable local D1 and applies all
 migrations automatically. `yarn db:migrate:local` is available for manual
@@ -96,8 +101,8 @@ custom domain can be attached in the Cloudflare dashboard.
 | Method | Path | Body | Result |
 | --- | --- | --- | --- |
 | `GET` | `/api/health` | — | Worker + D1 readiness (`{ status: "ok", database: "ok" }`) |
-| `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (one per device per rolling 24h; dedupes by normalised name; repeat bumps `zgloszenia`) |
-| `POST` | `/api/limit` | `{ glosujacy }` | `StatusLimitu` (read-only daily-slot status and countdown) |
+| `POST` | `/api/nazwy` | `ZgloszenieRequest` | `ZgloszenieResponse` (one per installation and network per rolling 24h; dedupes by normalised name; repeat bumps `zgloszenia`) |
+| `POST` | `/api/limit` | `{ glosujacy }` | `StatusLimitu` (read-only combined installation/network slot and countdown) |
 | `GET` | `/api/nazwy?sort=gorace\|top\|nowe\|losowe&cursor&limit` | — | `ListaResponse`; `gorace` uses net votes from the last 7 days |
 | `POST` | `/api/nazwy/:id/glos` | `GlosRequest` (`wartosc` 1/-1/0) | `GlosResponse` |
 | `POST` | `/api/nazwy/:id/raport` | `RaportRequest` (one fixed reason) | `RaportResponse`; duplicate-safe, max 10 distinct reports/hour/device |
@@ -113,7 +118,8 @@ against the exact word lists and grammar the generator uses (`validate.ts`):
 `typ` and `przymiotnik` must be list members; the name must match the strict
 "type + 2–3 capitalised words" shape; its adjective must share a stem with the
 submitted base adjective; roles/nick are pattern-checked. Anything else → 400.
-A one-club-per-rolling-24-hours device quota, a separate hourly vote limit,
-fixed-reason reports, a ten-report hourly cap and protected per-club moderation
-round it out. Submission, report, vote and moderation writes are atomic D1
-batches, so simultaneous requests cannot share a slot or leave partial state.
+A one-club-per-rolling-24-hours installation-and-network quota, a separate
+hourly vote limit, fixed-reason reports, a ten-report hourly cap and protected
+per-club moderation round it out. Submission, report, vote and moderation
+writes are atomic D1 batches, so simultaneous requests cannot share a slot or
+leave partial state.

@@ -1,10 +1,30 @@
 import type { CzysteZgloszenie } from './validate';
 import { DZIEN_MS } from './limits';
-import { posprzatajStareZdarzenia, sprawdzLimit, type WynikLimitu } from './quota';
+import { posprzatajStareZdarzenia, type WynikLimitu } from './quota';
 
 export type WynikZapisu =
   | { zapisany: false; limit: WynikLimitu }
   | { zapisany: true; id: string; zgloszenia: number; duplikat: boolean };
+
+/** Read the strict daily slot shared by the installation and its network. */
+export async function sprawdzLimitZgloszenia(
+  db: D1Database,
+  glosujacy: string,
+  siec: string,
+  teraz = Date.now(),
+): Promise<WynikLimitu> {
+  const row = await db.prepare(
+    `SELECT MAX(kiedy) AS ostatnie FROM zdarzenia
+     WHERE rodzaj = 'zgloszenie' AND kiedy > ? AND (glosujacy = ? OR siec = ?)`,
+  )
+    .bind(teraz - DZIEN_MS, glosujacy, siec)
+    .first<{ ostatnie: number | null }>();
+  if (row?.ostatnie == null) return { dozwolony: true, ponowZaMs: 0 };
+  return {
+    dozwolony: false,
+    ponowZaMs: Math.max(1_000, row.ostatnie + DZIEN_MS - teraz),
+  };
+}
 
 /**
  * Atomically claim the daily slot and insert/update the generated club.
@@ -16,6 +36,7 @@ export type WynikZapisu =
 export async function zapiszZgloszenie(
   db: D1Database,
   dane: CzysteZgloszenie,
+  siec: string,
   teraz = Date.now(),
 ): Promise<WynikZapisu> {
   const reservationId = crypto.randomUUID();
@@ -23,13 +44,13 @@ export async function zapiszZgloszenie(
   const od = teraz - DZIEN_MS;
 
   const claim = db.prepare(
-    `INSERT INTO zdarzenia (id, glosujacy, rodzaj, kiedy)
-     SELECT ?, ?, 'zgloszenie', ?
-     WHERE (
-       SELECT COUNT(*) FROM zdarzenia
-       WHERE glosujacy = ? AND rodzaj = 'zgloszenie' AND kiedy > ?
-     ) < 1`,
-  ).bind(reservationId, dane.glosujacy, teraz, dane.glosujacy, od);
+    `INSERT INTO zdarzenia (id, glosujacy, siec, rodzaj, kiedy)
+     SELECT ?, ?, ?, 'zgloszenie', ?
+     WHERE NOT EXISTS (
+       SELECT 1 FROM zdarzenia
+       WHERE rodzaj = 'zgloszenie' AND kiedy > ? AND (glosujacy = ? OR siec = ?)
+     )`,
+  ).bind(reservationId, dane.glosujacy, siec, teraz, od, dane.glosujacy, siec);
 
   const save = db.prepare(
     `INSERT INTO nazwy
@@ -61,7 +82,7 @@ export async function zapiszZgloszenie(
     save,
   ]);
   if ((claimResult.meta.changes ?? 0) === 0) {
-    const limit = await sprawdzLimit(db, dane.glosujacy, 'zgloszenie', 1, DZIEN_MS, teraz);
+    const limit = await sprawdzLimitZgloszenia(db, dane.glosujacy, siec, teraz);
     return { zapisany: false, limit };
   }
 

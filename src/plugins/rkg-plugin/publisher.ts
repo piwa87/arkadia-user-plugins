@@ -15,7 +15,7 @@ import type { WallClient } from './wall-client';
 const KL_NICK = 'rkg:nick';
 const KL_ANONIM = 'rkg:anonim';
 // Versioned so people who saw the old, incomplete disclosure see the correction.
-const KL_UJAWNIENIE = 'rkg:ujawnienie:v2';
+const KL_UJAWNIENIE = 'rkg:ujawnienie:v3';
 const KL_PONOWNIE_OD = 'rkg:limit:ponownieOd';
 const PYTANIE_MS = 60_000;
 const DZIEN = 86_400_000;
@@ -120,7 +120,10 @@ export function createPublisher(options: PublisherOptions): Publisher {
     storage.set(KL_UJAWNIENIE, true);
     const text =
       '[rkg] Do rankingu ida: nazwa klubu, skladniki nazwy, tytuly wladz, wybrany nick ' +
-      'oraz losowy identyfikator tej instalacji. Identyfikator sluzy do limitu i glosow; nie jest kontem.';
+      'oraz losowy identyfikator tej instalacji. Serwer dodatkowo tworzy krotkotrwaly, ' +
+      'nieodwracalny skrot adresu sieciowego. Oba identyfikatory sluza do limitu, ' +
+      'a identyfikator instalacji takze do glosow. Surowy adres nie jest zapisywany; ' +
+      'identyfikatory nie sa kontem.';
     const buf = new api.AnsiAwareBuffer(text);
     buf.color([0, text.length], styles.info);
     api.output.print(buf);

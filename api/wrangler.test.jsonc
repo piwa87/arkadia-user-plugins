@@ -17,6 +17,7 @@
   "vars": {
     "RKG_CORS": "https://delwing.github.io",
     "RKG_LIMIT_GLOSOW": "300",
-    "RKG_ADMIN": "test-admin-key"
+    "RKG_ADMIN": "test-admin-key",
+    "RKG_LIMIT_SECRET": "test-only-network-secret-with-32-bytes"
   }
 }

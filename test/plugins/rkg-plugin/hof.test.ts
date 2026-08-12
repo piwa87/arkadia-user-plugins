@@ -362,6 +362,7 @@ describe('zaproponuj — the end-of-run options', () => {
     storage.set('rkg:nick', 'Piot');
     // The corrected, versioned disclosure must not be suppressed by the old flag.
     storage.set('rkg:zgoda', true);
+    storage.set('rkg:ujawnienie:v2', true);
     baza.dodajWpis(WPIS);
 
     hof.zaproponuj(baza.wpisy[0]);
@@ -373,6 +374,7 @@ describe('zaproponuj — the end-of-run options', () => {
     expect(baza.wpisy[0].wyslane).toBeUndefined();
     expect(printed(mock).join('\n')).toContain('slot pozostaje dostepny');
     expect(printed(mock).join('\n')).toContain('losowy identyfikator tej instalacji');
+    expect(printed(mock).join('\n')).toContain('skrot adresu sieciowego');
   });
 
   it('"otworz okno lokalnych" opens the window on the local tab', async () => {
@@ -415,7 +417,8 @@ describe('the first upload settles the nick', () => {
     const out = printed(mock).join('\n');
     expect(out).toContain('skladniki nazwy');
     expect(out).toContain('losowy identyfikator tej instalacji');
-    expect(out).toContain('nie jest kontem');
+    expect(out).toContain('skrot adresu sieciowego');
+    expect(out).toContain('Surowy adres nie jest zapisywany');
     expect(out).not.toContain('Nic wiecej');
     expect(out).toContain("Enter = Piotrek");
     expect(wpisz(mock, ''), 'bare Enter must be swallowed').toBeNull();

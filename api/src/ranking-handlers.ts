@@ -9,10 +9,11 @@ import type { Env } from './env';
 import type { CorsHeaders } from './http';
 import { errorResponse, json, limitStatus } from './http';
 import { DZIEN_MS, DOMYSLNY_LIMIT_GLOSOW } from './limits';
+import { networkIdentity } from './network-identity';
 import { logEvent } from './observability';
 import { formatujCzekanie, sprawdzLimit } from './quota';
 import { toRankingEntry } from './rows';
-import { zapiszZgloszenie } from './submissions';
+import { sprawdzLimitZgloszenia, zapiszZgloszenie } from './submissions';
 import { walidujGlos, walidujGlosujacego, walidujZgloszenie } from './validate';
 import { zapiszGlos } from './votes';
 
@@ -21,7 +22,8 @@ export async function postSubmission(req: Request, env: Env, cors: CorsHeaders):
   const validated = walidujZgloszenie(body);
   if (!validated.ok) return errorResponse(validated.blad, 400, cors);
 
-  const saved = await zapiszZgloszenie(env.DB, validated.dane);
+  const siec = await networkIdentity(req, env.RKG_LIMIT_SECRET);
+  const saved = await zapiszZgloszenie(env.DB, validated.dane, siec);
   if (!saved.zapisany) {
     const limit = limitStatus(saved.limit.dozwolony, saved.limit.ponowZaMs);
     const response: BladResponse = {
@@ -51,7 +53,8 @@ export async function postLimitStatus(req: Request, env: Env, cors: CorsHeaders)
   const body = await req.json().catch(() => null);
   const validated = walidujGlosujacego(body);
   if (!validated.ok) return errorResponse(validated.blad, 400, cors);
-  const limit = await sprawdzLimit(env.DB, validated.dane.glosujacy, 'zgloszenie', 1, DZIEN_MS);
+  const siec = await networkIdentity(req, env.RKG_LIMIT_SECRET);
+  const limit = await sprawdzLimitZgloszenia(env.DB, validated.dane.glosujacy, siec);
   return json(limitStatus(limit.dozwolony, limit.ponowZaMs), 200, cors);
 }
 
