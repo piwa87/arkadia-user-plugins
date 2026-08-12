@@ -94,7 +94,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const info: PluginInfo = {
     name: 'Sounds',
     version: '1.0.0',
-    author: 'Piot',
+    author: 'vonhookin',
     description: '?sounds = pomoc',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);

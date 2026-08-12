@@ -206,7 +206,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const info: PluginInfo = {
     name: 'Core Plugin',
     version: '0.3.1',
-    author: 'Piot',
+    author: 'vonhookin',
     description: 'Wszystko wazne, yo!',
   };
   api.output.print(`[${info.name} v${info.version}] loaded`);

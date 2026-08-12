@@ -11,7 +11,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const info: PluginInfo = {
     name: 'Development Plugin',
     version: '1.1.1',
-    author: 'Piot',
+    author: 'vonhookin',
     description: 'Development plugin...',
   };
 
