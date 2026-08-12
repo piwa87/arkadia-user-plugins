@@ -9,6 +9,7 @@ import type { Env } from './env';
 import type { CorsHeaders } from './http';
 import { errorResponse, json, limitStatus } from './http';
 import { DZIEN_MS, DOMYSLNY_LIMIT_GLOSOW } from './limits';
+import { logEvent } from './observability';
 import { formatujCzekanie, sprawdzLimit } from './quota';
 import { toRankingEntry } from './rows';
 import { zapiszZgloszenie } from './submissions';
@@ -27,6 +28,7 @@ export async function postSubmission(req: Request, env: Env, cors: CorsHeaders):
       blad: `limit: jeden klub na 24 godziny; kolejny mozesz wyslac za ${formatujCzekanie(limit.ponownieZaMs)}`,
       limit,
     };
+    logEvent('submission.rate_limited', { retryInMs: limit.ponownieZaMs });
     return json(response, 429, cors);
   }
 
@@ -37,6 +39,11 @@ export async function postSubmission(req: Request, env: Env, cors: CorsHeaders):
     duplikat: saved.duplikat,
     limit: limitStatus(false, DZIEN_MS),
   };
+  logEvent('submission.accepted', {
+    clubId: saved.id,
+    duplicate: saved.duplikat,
+    submissions: saved.zgloszenia,
+  });
   return json(response, saved.duplikat ? 200 : 201, cors);
 }
 
@@ -107,6 +114,7 @@ export async function postVote(
       blad: 'za duzo glosow, sprobuj pozniej',
       ponownieZaMs: result.limit.ponowZaMs,
     };
+    logEvent('vote.rate_limited', { clubId: id, retryInMs: result.limit.ponowZaMs });
     return json(response, 429, cors);
   }
 

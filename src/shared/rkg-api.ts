@@ -140,6 +140,11 @@ export interface BladResponse {
   ponownieZaMs?: number;
 }
 
+export interface HealthResponse {
+  status: 'ok';
+  database: 'ok';
+}
+
 export interface StatusLimitu {
   dostepny: boolean;
   /** Milliseconds until a slot is available; zero means it is ready now. */
@@ -170,9 +175,22 @@ export interface PozycjaModeracji extends Pozycja {
 
 export interface ListaModeracjiResponse {
   pozycje: PozycjaModeracji[];
+  historia: WpisHistoriiModeracji[];
 }
 
-export type AkcjaModeracji = 'ukryj' | 'przywroc' | 'usun';
+export const AKCJE_MODERACJI = ['ukryj', 'przywroc', 'odrzuc', 'usun'] as const;
+export type AkcjaModeracji = (typeof AKCJE_MODERACJI)[number];
+
+export interface WpisHistoriiModeracji {
+  id: string;
+  nazwaId: string;
+  /** Name snapshot retained even when the club is permanently deleted. */
+  wynik: string;
+  akcja: AkcjaModeracji;
+  /** Number of reports present when the moderator acted. */
+  raporty: number;
+  kiedy: number;
+}
 
 export interface ModeracjaRequest {
   akcja: AkcjaModeracji;

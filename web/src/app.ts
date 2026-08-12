@@ -31,6 +31,9 @@ document.addEventListener('click', (event) => {
   const adminId = target.closest<HTMLElement>('[data-admin-id]')?.dataset.adminId;
   const action = target.closest<HTMLElement>('[data-admin-action]')?.dataset.adminAction as AkcjaModeracji | undefined;
   if (adminId && action) void moderation.apply(adminId, action);
+
+  const adminView = target.closest<HTMLElement>('[data-admin-view]')?.dataset.adminView;
+  if (adminView) moderation.changeView(adminView);
 });
 
 element('#wiecej').addEventListener('click', () => void ranking.load(true));

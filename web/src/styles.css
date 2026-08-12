@@ -467,6 +467,26 @@ dialog::backdrop { background: rgba(9, 5, 22, .82); }
   font: .8rem var(--dane);
 }
 .admin-status { margin: 10px 22px; min-height: 1.3em; color: var(--neon); font-size: .78rem; }
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 22px 12px;
+  overflow-x: auto;
+}
+.admin-tabs[hidden] { display: none; }
+.admin-tab {
+  flex: none;
+  border: 2px solid var(--linia);
+  padding: 7px 9px;
+  background: transparent;
+  color: var(--mgla);
+  font: 700 .66rem/1 var(--dane);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.admin-tab span { color: var(--zloto); }
+.admin-tab:hover,
+.admin-tab.akt { border-color: var(--neon); color: var(--biel); }
 .admin-lista { max-height: min(58vh, 560px); overflow-y: auto; padding: 0 22px 22px; }
 .admin-wpis {
   display: grid;
@@ -481,8 +501,11 @@ dialog::backdrop { background: rgba(9, 5, 22, .82); }
 .admin-wpis .admin-powody { color: var(--zloto); }
 .admin-stempel { color: var(--mieta); font: 800 .62rem var(--dane); letter-spacing: .12em; }
 .admin-wpis.ukryty .admin-stempel { color: var(--neon); }
-.admin-akcje { display: flex; align-items: center; gap: 6px; }
+.admin-akcje { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .admin-akcje .usun:not(:disabled):hover { border-color: var(--neon); color: var(--neon); }
+.admin-historia { padding: 13px 0; border-top: 2px solid var(--linia); }
+.admin-historia strong { display: block; margin-top: 6px; color: var(--biel); font: 1.05rem/1 var(--display); text-transform: uppercase; }
+.admin-historia small { display: block; margin-top: 6px; color: var(--mgla); font: .68rem var(--dane); }
 .admin-pusto { color: var(--mgla); text-align: center; }
 
 :focus-visible { outline: 2px solid var(--zloto); outline-offset: 2px; }

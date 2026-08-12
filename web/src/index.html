@@ -84,17 +84,18 @@
       <div class="dialog-tresc">
         <header class="admin-naglowek">
           <div>
-            <p class="dialog-etykieta">Tylko dla obslugi</p>
+            <p class="dialog-etykieta">Tylko dla obsługi</p>
             <h2 id="admin-tytul" class="dialog-tytul">Backstage</h2>
           </div>
           <form method="dialog" class="dialog-zamknij"><button>Zamknij</button></form>
         </header>
         <form id="admin-form" class="admin-form">
           <input id="admin-klucz" type="password" autocomplete="off" placeholder="Klucz moderatora" aria-label="Klucz moderatora" />
-          <button type="submit">Wejdz</button>
+          <button type="submit">Wejdź</button>
         </form>
         <p id="admin-status" class="admin-status" aria-live="polite"></p>
-        <section id="admin-lista" class="admin-lista"><p class="admin-pusto">Podaj klucz, aby zobaczyc kolejke.</p></section>
+        <nav id="admin-tabs" class="admin-tabs" aria-label="Widok moderacji" hidden></nav>
+        <section id="admin-lista" class="admin-lista"><p class="admin-pusto">Podaj klucz, aby zobaczyć kolejkę.</p></section>
       </div>
     </dialog>
     <script type="module" src="./app.js"></script>

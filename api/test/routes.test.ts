@@ -1,7 +1,16 @@
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
+import type { HealthResponse } from '../../src/shared/rkg-api';
 
 describe('API router boundary', () => {
+  it('checks the Worker and its D1 binding', async () => {
+    const response = await SELF.fetch('https://rkg.test/api/health');
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await response.json<HealthResponse>()).toEqual({ status: 'ok', database: 'ok' });
+  });
+
   it('returns a JSON 404 for unknown API routes', async () => {
     const response = await SELF.fetch('https://rkg.test/api/does-not-exist');
 

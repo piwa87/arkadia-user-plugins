@@ -5,13 +5,27 @@ import type {
   ModeracjaResponse,
   PozycjaModeracji,
   RaportResponse,
+  WpisHistoriiModeracji,
 } from '../../src/shared/rkg-api';
+import { AKCJE_MODERACJI } from '../../src/shared/rkg-api';
 import type { Env } from './env';
 import type { CorsHeaders } from './http';
 import { errorResponse, json } from './http';
+import { zapiszModeracje } from './moderation-actions';
+import { logEvent } from './observability';
 import { zapiszRaport } from './reports';
 import { toRankingEntry } from './rows';
 import { walidujRaport } from './validate';
+
+function jestAkcjaModeracji(value: unknown): value is AkcjaModeracji {
+  return typeof value === 'string'
+    && (AKCJE_MODERACJI as readonly string[]).includes(value);
+}
+
+function akcjaZBazy(value: unknown): AkcjaModeracji {
+  if (!jestAkcjaModeracji(value)) throw new Error('unknown moderation action in history');
+  return value;
+}
 
 export async function postReport(
   id: string,
@@ -29,6 +43,7 @@ export async function postReport(
       blad: 'za duzo zgloszen, sprobuj pozniej',
       ponownieZaMs: result.ponownieZaMs,
     };
+    logEvent('report.rate_limited', { clubId: id, retryInMs: result.ponownieZaMs });
     return json(response, 429, cors);
   }
   const response: RaportResponse = {
@@ -59,6 +74,7 @@ async function authorizeAdmin(
   const key = env.RKG_ADMIN;
   if (!key) return errorResponse('nie znaleziono', 404, cors);
   if (!await safeEqual(req.headers.get('X-RKG-Admin') ?? '', key)) {
+    logEvent('moderation.access_denied');
     return errorResponse('brak dostepu', 403, cors);
   }
   return null;
@@ -67,18 +83,27 @@ async function authorizeAdmin(
 export async function getModeration(req: Request, env: Env, cors: CorsHeaders): Promise<Response> {
   const denied = await authorizeAdmin(req, env, cors);
   if (denied) return denied;
-  const { results } = await env.DB.prepare(
+  const [namesResult, historyResult] = await env.DB.batch<Record<string, unknown>>([
+    env.DB.prepare(
     `SELECT n.*, COUNT(r.nazwa_id) AS raporty,
        SUM(CASE WHEN r.powod = 'wulgarne' THEN 1 ELSE 0 END) AS raporty_wulgarne,
        SUM(CASE WHEN r.powod = 'osoba' THEN 1 ELSE 0 END) AS raporty_osoba,
        SUM(CASE WHEN r.powod = 'inne' THEN 1 ELSE 0 END) AS raporty_inne
      FROM nazwy n LEFT JOIN raporty r ON r.nazwa_id = n.id
      GROUP BY n.id
-     ORDER BY n.ukryte DESC, raporty DESC, n.kiedy DESC
+     ORDER BY CASE WHEN COUNT(r.nazwa_id) > 0 THEN 0 WHEN n.ukryte = 1 THEN 1 ELSE 2 END,
+              raporty DESC, n.kiedy DESC
      LIMIT 200`,
-  ).all<Record<string, unknown>>();
+    ),
+    env.DB.prepare(
+      `SELECT id, nazwa_id, wynik, akcja, raporty, kiedy
+       FROM historia_moderacji
+       ORDER BY kiedy DESC, rowid DESC
+       LIMIT 200`,
+    ),
+  ]);
   const response: ListaModeracjiResponse = {
-    pozycje: (results ?? []).map((row): PozycjaModeracji => ({
+    pozycje: (namesResult.results ?? []).map((row): PozycjaModeracji => ({
       ...toRankingEntry(row),
       ukryte: Boolean(row.ukryte),
       raporty: (row.raporty as number) ?? 0,
@@ -87,6 +112,14 @@ export async function getModeration(req: Request, env: Env, cors: CorsHeaders): 
         osoba: (row.raporty_osoba as number) ?? 0,
         inne: (row.raporty_inne as number) ?? 0,
       },
+    })),
+    historia: (historyResult.results ?? []).map((row): WpisHistoriiModeracji => ({
+      id: String(row.id),
+      nazwaId: String(row.nazwa_id),
+      wynik: String(row.wynik),
+      akcja: akcjaZBazy(row.akcja),
+      raporty: Number(row.raporty) || 0,
+      kiedy: Number(row.kiedy) || 0,
     })),
   };
   return json(response, 200, cors);
@@ -100,29 +133,20 @@ export async function postModeration(
 ): Promise<Response> {
   const denied = await authorizeAdmin(req, env, cors);
   if (denied) return denied;
-  const body = await req.json().catch(() => null) as { akcja?: unknown } | null;
-  const action = body?.akcja;
-  if (action !== 'ukryj' && action !== 'przywroc' && action !== 'usun') {
+  const body = await req.json().catch(() => null);
+  const action = body && typeof body === 'object'
+    ? (body as Record<string, unknown>).akcja
+    : undefined;
+  if (!jestAkcjaModeracji(action)) {
     return errorResponse('zla akcja', 400, cors);
   }
 
   const akcja: AkcjaModeracji = action;
-  let changed = 0;
-  if (akcja === 'usun') {
-    const [, , name] = await env.DB.batch([
-      env.DB.prepare('DELETE FROM glosy WHERE nazwa_id = ?').bind(id),
-      env.DB.prepare('DELETE FROM raporty WHERE nazwa_id = ?').bind(id),
-      env.DB.prepare('DELETE FROM nazwy WHERE id = ?').bind(id),
-    ]);
-    changed = name.meta.changes ?? 0;
-  } else {
-    const result = await env.DB.prepare('UPDATE nazwy SET ukryte = ? WHERE id = ?')
-      .bind(akcja === 'ukryj' ? 1 : 0, id)
-      .run();
-    changed = result.meta.changes ?? 0;
+  if (!await zapiszModeracje(env.DB, id, akcja)) {
+    return errorResponse('nie ma takiej nazwy', 404, cors);
   }
-  if (changed === 0) return errorResponse('nie ma takiej nazwy', 404, cors);
 
+  logEvent('moderation.applied', { clubId: id, action: akcja });
   const response: ModeracjaResponse = { id, akcja };
   return json(response, 200, cors);
 }

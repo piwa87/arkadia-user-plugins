@@ -67,6 +67,7 @@ describe('RKG ranking page', () => {
     expect(html).toContain('data-powod="inne"');
     expect(html).not.toContain('<textarea');
     expect(html).toContain('id="admin-dialog"');
+    expect(html).toContain('id="admin-tabs"');
     expect(html).toContain('type="password"');
     expect(html).toContain('Backstage');
   });

@@ -22,7 +22,11 @@ export function corsHeaders(req: Request, env: Env): CorsHeaders {
 export function json(data: unknown, status: number, cors: CorsHeaders): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...cors },
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'application/json; charset=utf-8',
+      ...cors,
+    },
   });
 }
 

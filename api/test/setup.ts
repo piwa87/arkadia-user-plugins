@@ -12,6 +12,7 @@ const testEnv = env as unknown as TestEnv;
 beforeEach(async () => {
   await applyD1Migrations(testEnv.DB, testEnv.TEST_MIGRATIONS);
   await testEnv.DB.batch([
+    testEnv.DB.prepare('DELETE FROM historia_moderacji'),
     testEnv.DB.prepare('DELETE FROM glosy'),
     testEnv.DB.prepare('DELETE FROM raporty'),
     testEnv.DB.prepare('DELETE FROM zdarzenia'),

@@ -1,5 +1,6 @@
 import type { Env } from './env';
 import type { CorsHeaders } from './http';
+import { getHealth } from './health-handlers';
 import { errorResponse } from './http';
 import { getModeration, postModeration, postReport } from './moderation-handlers';
 import { getRanking, postLimitStatus, postSubmission, postVote } from './ranking-handlers';
@@ -13,6 +14,9 @@ export async function routeApi(
   env: Env,
   cors: CorsHeaders,
 ): Promise<Response> {
+  if (url.pathname === '/api/health' && req.method === 'GET') {
+    return getHealth(env, cors);
+  }
   if (url.pathname === '/api/nazwy') {
     if (req.method === 'GET') return getRanking(url, env, cors);
     if (req.method === 'POST') return postSubmission(req, env, cors);

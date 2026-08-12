@@ -1,6 +1,7 @@
 import type { BladResponse } from '../../src/shared/rkg-api';
 import type { Env } from './env';
 import { corsHeaders, json } from './http';
+import { logEvent } from './observability';
 import { routeApi } from './routes';
 
 /**
@@ -19,13 +20,12 @@ export default {
       return await routeApi(req, url, env, cors);
     } catch (error) {
       const requestId = req.headers.get('cf-ray') ?? crypto.randomUUID();
-      console.error(JSON.stringify({
-        message: 'RKG request failed',
+      logEvent('request.failed', {
         requestId,
         method: req.method,
         path: url.pathname,
         error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       const body: BladResponse = { blad: 'blad serwera', requestId };
       return json(body, 500, cors);
     }

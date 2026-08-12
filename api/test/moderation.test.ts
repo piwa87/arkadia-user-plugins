@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { env, SELF } from 'cloudflare:test';
 import type {
   BladResponse,
@@ -91,6 +91,7 @@ describe('public reports', () => {
 describe('protected per-club moderation', () => {
   it('requires the admin secret and shows report counts only to the admin', async () => {
     await seedName('club-1001');
+    await seedName('club-newer-unreported', 0, Date.now() + 1_000);
     await request('/api/nazwy/club-1001/raport', 'POST', {
       glosujacy: 'reporter-admin-list',
       powod: 'osoba',
@@ -111,6 +112,8 @@ describe('protected per-club moderation', () => {
     const response = await request('/api/admin/nazwy', 'GET', undefined, ADMIN);
     expect(response.status).toBe(200);
     const list = await response.json<ListaModeracjiResponse>();
+    expect(list.pozycje[0].id).toBe('club-1001');
+    expect(list.historia).toEqual([]);
     expect(list.pozycje[0]).toMatchObject({
       id: 'club-1001',
       raporty: 1,
@@ -119,7 +122,7 @@ describe('protected per-club moderation', () => {
     });
   });
 
-  it('hides, restores and permanently deletes one club without a global wipe route', async () => {
+  it('hides, restores and permanently deletes one club while retaining its history', async () => {
     await seedName('club-1002');
     await seedName('club-1003');
     await DB.prepare(
@@ -143,7 +146,99 @@ describe('protected per-club moderation', () => {
     expect((await DB.prepare('SELECT id FROM nazwy WHERE id = ?').bind('club-1002').first())).toBeNull();
     expect((await DB.prepare('SELECT 1 FROM glosy WHERE nazwa_id = ?').bind('club-1002').first())).toBeNull();
     expect((await DB.prepare('SELECT 1 FROM raporty WHERE nazwa_id = ?').bind('club-1002').first())).toBeNull();
+    const historyResponse = await request('/api/admin/nazwy', 'GET', undefined, ADMIN);
+    const history = (await historyResponse.json<ListaModeracjiResponse>()).historia
+      .filter((entry) => entry.nazwaId === 'club-1002');
+    expect(history.map((entry) => entry.akcja)).toEqual(expect.arrayContaining([
+      'ukryj',
+      'przywroc',
+      'usun',
+    ]));
+    expect(history.every((entry) => entry.wynik === 'Liga club-1002')).toBe(true);
+    expect(history.find((entry) => entry.akcja === 'usun')?.raporty).toBe(1);
     expect((await request('/api/nazwy', 'DELETE')).status).toBe(404);
+  });
+
+  it('dismisses reports without hiding the club and records what was reviewed', async () => {
+    await seedName('club-1004');
+    await request('/api/nazwy/club-1004/raport', 'POST', {
+      glosujacy: 'reporter-dismiss-one',
+      powod: 'wulgarne',
+    });
+    await request('/api/nazwy/club-1004/raport', 'POST', {
+      glosujacy: 'reporter-dismiss-two',
+      powod: 'inne',
+    });
+
+    const dismissed = await request(
+      '/api/admin/nazwy/club-1004',
+      'POST',
+      { akcja: 'odrzuc' },
+      ADMIN,
+    );
+    expect(await dismissed.json<ModeracjaResponse>()).toEqual({
+      id: 'club-1004',
+      akcja: 'odrzuc',
+    });
+    expect(await DB.prepare('SELECT COUNT(*) AS count FROM raporty WHERE nazwa_id = ?')
+      .bind('club-1004').first<{ count: number }>()).toEqual({ count: 0 });
+    expect(await DB.prepare('SELECT ukryte FROM nazwy WHERE id = ?')
+      .bind('club-1004').first<{ ukryte: number }>()).toEqual({ ukryte: 0 });
+    expect(await DB.prepare(
+      'SELECT akcja, raporty FROM historia_moderacji WHERE nazwa_id = ?',
+    ).bind('club-1004').first<{ akcja: string; raporty: number }>()).toEqual({
+      akcja: 'odrzuc',
+      raporty: 2,
+    });
+  });
+
+  it('returns 404 without creating history for a missing club', async () => {
+    const response = await request(
+      '/api/admin/nazwy/club-missing',
+      'POST',
+      { akcja: 'odrzuc' },
+      ADMIN,
+    );
+    expect(response.status).toBe(404);
+    expect(await DB.prepare('SELECT COUNT(*) AS count FROM historia_moderacji')
+      .first<{ count: number }>()).toEqual({ count: 0 });
+  });
+
+  it('rejects unknown actions without touching the club or history', async () => {
+    await seedName('club-unknown-action');
+    const response = await request(
+      '/api/admin/nazwy/club-unknown-action',
+      'POST',
+      { akcja: 'wyczysc-wszystko' },
+      ADMIN,
+    );
+
+    expect(response.status).toBe(400);
+    expect(await DB.prepare('SELECT ukryte FROM nazwy WHERE id = ?')
+      .bind('club-unknown-action').first<{ ukryte: number }>()).toEqual({ ukryte: 0 });
+    expect(await DB.prepare('SELECT COUNT(*) AS count FROM historia_moderacji')
+      .first<{ count: number }>()).toEqual({ count: 0 });
+  });
+
+  it('rolls the club action back when its history cannot be recorded', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await seedName('club-1005');
+    await DB.prepare(
+      `CREATE TRIGGER fail_moderation_history
+       BEFORE INSERT ON historia_moderacji
+       BEGIN SELECT RAISE(FAIL, 'history unavailable'); END`,
+    ).run();
+
+    const response = await request(
+      '/api/admin/nazwy/club-1005',
+      'POST',
+      { akcja: 'ukryj' },
+      ADMIN,
+    );
+    await DB.prepare('DROP TRIGGER fail_moderation_history').run();
+    expect(response.status).toBe(500);
+    expect(await DB.prepare('SELECT ukryte FROM nazwy WHERE id = ?')
+      .bind('club-1005').first<{ ukryte: number }>()).toEqual({ ukryte: 0 });
   });
 });
 

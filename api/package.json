@@ -8,6 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "deploy:check": "yarn test && yarn typecheck && yarn types:check && wrangler deploy --dry-run && wrangler check startup --outfile .wrangler/worker-startup.cpuprofile",
     "types:bindings": "wrangler types src/worker-configuration.d.ts --env-interface WorkerBindings --include-runtime false",
     "types:check": "wrangler types src/worker-configuration.d.ts --env-interface WorkerBindings --include-runtime false --check",
     "db:migrate": "wrangler d1 migrations apply rkg-wall --remote",
