@@ -184,13 +184,18 @@ body {
 .krok code { font: 700 .92em var(--dane); color: var(--zloto); }
 
 .plugin-link {
+  display: inline-block;
+  padding: 8px 10px;
+  border: 2px solid var(--zloto);
+  background: rgba(255,197,61,.08);
   color: var(--zloto);
   font-family: var(--dane);
   font-weight: 700;
-  text-underline-offset: 3px;
+  line-height: 1.25;
+  text-decoration: none;
   overflow-wrap: anywhere;
 }
-.plugin-link:hover { color: var(--biel); }
+.plugin-link:hover { color: var(--biel); background: rgba(255,197,61,.16); }
 
 /* ── Sort picker ────────────────────────────────────────────────────── */
 
@@ -312,7 +317,8 @@ body {
   padding: 7px 0;
   transition: color .12s, background .12s;
 }
-.strzalka:hover { background: var(--karta-hover); color: var(--biel); }
+.strzalka:not(:disabled):hover { background: var(--karta-hover); color: var(--biel); }
+.strzalka:disabled { cursor: wait; opacity: .45; }
 .strzalka.gora.akt { color: var(--mieta); background: rgba(61,220,151,.14); }
 .strzalka.dol.akt { color: var(--neon); background: rgba(255,46,136,.14); }
 
@@ -426,9 +432,12 @@ dialog::backdrop { background: rgba(9, 5, 22, .82); }
   text-transform: uppercase;
   cursor: pointer;
 }
-.dialog-akcje button:hover,
-.admin-form button:hover,
-.admin-akcje button:hover { border-color: var(--zloto); color: var(--zloto); }
+.dialog-akcje button:not(:disabled):hover,
+.admin-form button:not(:disabled):hover,
+.admin-akcje button:not(:disabled):hover { border-color: var(--zloto); color: var(--zloto); }
+.dialog-akcje button:disabled,
+.admin-form button:disabled,
+.admin-akcje button:disabled { cursor: wait; opacity: .45; }
 .dialog-zamknij { margin-top: 14px; text-align: right; }
 .dialog-zamknij button { border: 0; background: none; color: var(--mgla); cursor: pointer; }
 .dialog-status { min-height: 1.4em; color: var(--mieta); font-size: .78rem; }
@@ -473,7 +482,7 @@ dialog::backdrop { background: rgba(9, 5, 22, .82); }
 .admin-stempel { color: var(--mieta); font: 800 .62rem var(--dane); letter-spacing: .12em; }
 .admin-wpis.ukryty .admin-stempel { color: var(--neon); }
 .admin-akcje { display: flex; align-items: center; gap: 6px; }
-.admin-akcje .usun:hover { border-color: var(--neon); color: var(--neon); }
+.admin-akcje .usun:not(:disabled):hover { border-color: var(--neon); color: var(--neon); }
 .admin-pusto { color: var(--mgla); text-align: center; }
 
 :focus-visible { outline: 2px solid var(--zloto); outline-offset: 2px; }

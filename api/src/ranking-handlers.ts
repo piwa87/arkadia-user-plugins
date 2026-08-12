@@ -8,13 +8,12 @@ import type {
 import type { Env } from './env';
 import type { CorsHeaders } from './http';
 import { errorResponse, json, limitStatus } from './http';
-import { formatujCzekanie, sprawdzLimit, zuzyjLimit } from './quota';
+import { DZIEN_MS, DOMYSLNY_LIMIT_GLOSOW } from './limits';
+import { formatujCzekanie, sprawdzLimit } from './quota';
 import { toRankingEntry } from './rows';
-import { DZIEN, zapiszZgloszenie } from './submissions';
+import { zapiszZgloszenie } from './submissions';
 import { walidujGlos, walidujGlosujacego, walidujZgloszenie } from './validate';
-
-const HOUR = 3_600_000;
-const DEFAULT_VOTE_LIMIT = 300;
+import { zapiszGlos } from './votes';
 
 export async function postSubmission(req: Request, env: Env, cors: CorsHeaders): Promise<Response> {
   const body = await req.json().catch(() => null);
@@ -36,7 +35,7 @@ export async function postSubmission(req: Request, env: Env, cors: CorsHeaders):
     wynik: validated.dane.wynik,
     zgloszenia: saved.zgloszenia,
     duplikat: saved.duplikat,
-    limit: limitStatus(false, DZIEN),
+    limit: limitStatus(false, DZIEN_MS),
   };
   return json(response, saved.duplikat ? 200 : 201, cors);
 }
@@ -45,7 +44,7 @@ export async function postLimitStatus(req: Request, env: Env, cors: CorsHeaders)
   const body = await req.json().catch(() => null);
   const validated = walidujGlosujacego(body);
   if (!validated.ok) return errorResponse(validated.blad, 400, cors);
-  const limit = await sprawdzLimit(env.DB, validated.dane.glosujacy, 'zgloszenie', 1, DZIEN);
+  const limit = await sprawdzLimit(env.DB, validated.dane.glosujacy, 'zgloszenie', 1, DZIEN_MS);
   return json(limitStatus(limit.dozwolony, limit.ponowZaMs), 200, cors);
 }
 
@@ -65,7 +64,7 @@ export async function getRanking(url: URL, env: Env, cors: CorsHeaders): Promise
                    WHERE g.nazwa_id = n.id AND g.kiedy > ?), 0) AS wynik_okresu
        FROM nazwy n WHERE n.ukryte = 0
        ORDER BY wynik_okresu DESC, n.kiedy DESC LIMIT ? OFFSET ?`,
-    ).bind(Date.now() - 7 * DZIEN, limit + 1, offset);
+    ).bind(Date.now() - 7 * DZIEN_MS, limit + 1, offset);
   } else {
     const orderBy = sort === 'nowe'
       ? 'kiedy DESC'
@@ -97,34 +96,20 @@ export async function postVote(
   if (!validated.ok) return errorResponse(validated.blad, 400, cors);
   const { glosujacy, wartosc } = validated.dane;
 
-  const name = await env.DB.prepare('SELECT id FROM nazwy WHERE id = ? AND ukryte = 0')
-    .bind(id)
-    .first<{ id: string }>();
-  if (!name) return errorResponse('nie ma takiej nazwy', 404, cors);
-
-  const voteLimit = Number(env.RKG_LIMIT_GLOSOW) || DEFAULT_VOTE_LIMIT;
-  const quota = await zuzyjLimit(env.DB, glosujacy, 'glos', voteLimit, HOUR);
-  if (!quota.dozwolony) return errorResponse('za duzo glosow, sprobuj pozniej', 429, cors);
-
-  if (wartosc === 0) {
-    await env.DB.prepare('DELETE FROM glosy WHERE nazwa_id = ? AND glosujacy = ?')
-      .bind(id, glosujacy)
-      .run();
-  } else {
-    await env.DB.prepare(
-      `INSERT INTO glosy (nazwa_id, glosujacy, wartosc, kiedy) VALUES (?,?,?,?)
-       ON CONFLICT (nazwa_id, glosujacy) DO UPDATE SET wartosc = excluded.wartosc, kiedy = excluded.kiedy`,
-    ).bind(id, glosujacy, wartosc, Date.now()).run();
+  const configuredLimit = Number(env.RKG_LIMIT_GLOSOW);
+  const voteLimit = Number.isFinite(configuredLimit) && configuredLimit > 0
+    ? Math.floor(configuredLimit)
+    : DOMYSLNY_LIMIT_GLOSOW;
+  const result = await zapiszGlos(env.DB, id, glosujacy, wartosc, voteLimit);
+  if (result.status === 'nie_ma') return errorResponse('nie ma takiej nazwy', 404, cors);
+  if (result.status === 'limit') {
+    const response: BladResponse = {
+      blad: 'za duzo glosow, sprobuj pozniej',
+      ponownieZaMs: result.limit.ponowZaMs,
+    };
+    return json(response, 429, cors);
   }
 
-  const sum = await env.DB.prepare(
-    'SELECT COALESCE(SUM(wartosc), 0) AS s FROM glosy WHERE nazwa_id = ?',
-  ).bind(id).first<{ s: number }>();
-  const wynikGlosow = sum?.s ?? 0;
-  await env.DB.prepare('UPDATE nazwy SET wynik_glosow = ? WHERE id = ?')
-    .bind(wynikGlosow, id)
-    .run();
-
-  const response: GlosResponse = { id, wynikGlosow };
+  const response: GlosResponse = { id, wynikGlosow: result.wynikGlosow };
   return json(response, 200, cors);
 }

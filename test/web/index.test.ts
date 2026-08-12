@@ -40,7 +40,15 @@ describe('RKG ranking page', () => {
 
     expect(instrukcja).toBeGreaterThan(0);
     expect(instrukcja).toBeLessThan(tabs);
-    expect(html).toContain('https://piwa87.github.io/arkadia-user-plugins/rkg-plugin.js');
+    const installHref = html.match(/class="plugin-link" href="([^"]+)"/)?.[1];
+    expect(installHref).toBeTruthy();
+    const installUrl = new URL(installHref!);
+    expect(installUrl.origin).toBe('https://delwing.github.io');
+    expect(installUrl.pathname).toBe('/arkadia-web-client-extension/');
+    expect(installUrl.searchParams.get('add-script')).toBe(
+      'https://piwa87.github.io/arkadia-user-plugins/rkg-plugin.js',
+    );
+    expect(html).toContain('Otwórz klienta i dodaj RKG');
     expect(html).toContain('Wpisz <code>rkg!</code>');
     expect(html).toContain('anuluje je na ostatnim kroku');
     expect(html).toContain('czy wysłać klub do rankingu');

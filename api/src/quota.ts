@@ -1,4 +1,4 @@
-const DZIEN = 86_400_000;
+import { DZIEN_MS } from './limits';
 
 interface QuotaStatement {
   bind(...values: unknown[]): QuotaStatement;
@@ -14,6 +14,19 @@ export interface QuotaDb {
 export interface WynikLimitu {
   dozwolony: boolean;
   ponowZaMs: number;
+}
+
+/** Probabilistic, best-effort pruning shared by every quota consumer. */
+export async function posprzatajStareZdarzenia(
+  db: QuotaDb,
+  teraz = Date.now(),
+): Promise<void> {
+  if (Math.random() >= 0.02) return;
+  await db
+    .prepare('DELETE FROM zdarzenia WHERE kiedy < ?')
+    .bind(teraz - DZIEN_MS)
+    .run()
+    .catch(() => undefined);
 }
 
 /** Read a sliding-window quota without consuming a slot. */
@@ -66,15 +79,7 @@ export async function zuzyjLimit(
     .run();
 
   if ((wynik.meta.changes ?? 0) > 0) {
-    // Maintenance only: a pruning failure must not make an accepted upload
-    // appear to have failed after its slot was consumed.
-    if (Math.random() < 0.02) {
-      await db
-        .prepare('DELETE FROM zdarzenia WHERE kiedy < ?')
-        .bind(teraz - DZIEN)
-        .run()
-        .catch(() => undefined);
-    }
+    await posprzatajStareZdarzenia(db, teraz);
     return { dozwolony: true, ponowZaMs: 0 };
   }
 

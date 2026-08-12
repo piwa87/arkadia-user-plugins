@@ -1,7 +1,6 @@
 import type { CzysteZgloszenie } from './validate';
-import { sprawdzLimit, type WynikLimitu } from './quota';
-
-export const DZIEN = 86_400_000;
+import { DZIEN_MS } from './limits';
+import { posprzatajStareZdarzenia, sprawdzLimit, type WynikLimitu } from './quota';
 
 export type WynikZapisu =
   | { zapisany: false; limit: WynikLimitu }
@@ -21,7 +20,7 @@ export async function zapiszZgloszenie(
 ): Promise<WynikZapisu> {
   const reservationId = crypto.randomUUID();
   const nameId = crypto.randomUUID();
-  const od = teraz - DZIEN;
+  const od = teraz - DZIEN_MS;
 
   const claim = db.prepare(
     `INSERT INTO zdarzenia (id, glosujacy, rodzaj, kiedy)
@@ -62,21 +61,14 @@ export async function zapiszZgloszenie(
     save,
   ]);
   if ((claimResult.meta.changes ?? 0) === 0) {
-    const limit = await sprawdzLimit(db, dane.glosujacy, 'zgloszenie', 1, DZIEN, teraz);
+    const limit = await sprawdzLimit(db, dane.glosujacy, 'zgloszenie', 1, DZIEN_MS, teraz);
     return { zapisany: false, limit };
   }
 
   const row = saveResult.results?.[0];
   if (!row) throw new Error('atomic submission invariant: claimed slot without saved club');
 
-  // Best-effort maintenance outside the user-visible result.
-  if (Math.random() < 0.02) {
-    await db
-      .prepare('DELETE FROM zdarzenia WHERE kiedy < ?')
-      .bind(teraz - DZIEN)
-      .run()
-      .catch(() => undefined);
-  }
+  await posprzatajStareZdarzenia(db, teraz);
 
   return {
     zapisany: true,

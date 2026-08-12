@@ -1,8 +1,6 @@
 import type { PowodRaportu } from '../../src/shared/rkg-api';
-import { sprawdzLimit } from './quota';
-
-const GODZINA = 3_600_000;
-const LIMIT_RAPORTOW = 10;
+import { GODZINA_MS, LIMIT_RAPORTOW_NA_GODZINE } from './limits';
+import { posprzatajStareZdarzenia, sprawdzLimit } from './quota';
 
 export type WynikRaportu =
   | { status: 'przyjete' }
@@ -19,7 +17,7 @@ export async function zapiszRaport(
   teraz = Date.now(),
 ): Promise<WynikRaportu> {
   const reservationId = crypto.randomUUID();
-  const od = teraz - GODZINA;
+  const od = teraz - GODZINA_MS;
   const claim = db.prepare(
     `INSERT INTO zdarzenia (id, glosujacy, rodzaj, kiedy)
      SELECT ?, ?, 'raport', ?
@@ -40,7 +38,7 @@ export async function zapiszRaport(
     glosujacy,
     glosujacy,
     od,
-    LIMIT_RAPORTOW,
+    LIMIT_RAPORTOW_NA_GODZINE,
   );
   const save = db.prepare(
     `INSERT INTO raporty (nazwa_id, glosujacy, powod, kiedy)
@@ -51,6 +49,7 @@ export async function zapiszRaport(
   const [claimResult, saveResult] = await db.batch<{ nazwa_id: string }>([claim, save]);
   if ((claimResult.meta.changes ?? 0) > 0) {
     if (!saveResult.results?.[0]) throw new Error('report invariant: claimed slot without report');
+    await posprzatajStareZdarzenia(db, teraz);
     return { status: 'przyjete' };
   }
 
@@ -68,8 +67,8 @@ export async function zapiszRaport(
     db,
     glosujacy,
     'raport',
-    LIMIT_RAPORTOW,
-    GODZINA,
+    LIMIT_RAPORTOW_NA_GODZINE,
+    GODZINA_MS,
     teraz,
   );
   return { status: 'limit', ponownieZaMs: limit.ponowZaMs };

@@ -30,6 +30,13 @@ describe('ranking row view', () => {
     expect(rankingRow(entry, 0, 'nowe', 0, false)).not.toContain('miejsce podium');
     expect(rankingRow(entry, 0, 'losowe', 0, false)).toContain('bez-miejsca');
   });
+
+  it('locks both vote buttons while that club is being updated', () => {
+    const html = rankingRow(entry, 0, 'top', 0, false, true);
+
+    expect(html).toContain('aria-busy="true"');
+    expect(html.match(/disabled/g)).toHaveLength(2);
+  });
 });
 
 describe('moderation view', () => {
@@ -47,5 +54,19 @@ describe('moderation view', () => {
     expect(html).toContain('data-admin-action="przywroc"');
     expect(html).toContain('wulgarne 2 · osoba 1 · inne 1');
     expect(html).not.toContain('<script>');
+  });
+
+  it('locks moderation controls while that club is being updated', () => {
+    const moderated: PozycjaModeracji = {
+      ...entry,
+      ukryte: false,
+      raporty: 0,
+      raportyPowody: { wulgarne: 0, osoba: 0, inne: 0 },
+    };
+
+    const html = moderationRows([moderated], new Set([moderated.id]));
+
+    expect(html).toContain('aria-busy="true"');
+    expect(html.match(/disabled/g)).toHaveLength(2);
   });
 });

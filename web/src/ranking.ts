@@ -1,5 +1,5 @@
 import type { Pozycja, Sortowanie } from '../../src/shared/rkg-api';
-import { fetchRanking, submitVote } from './api';
+import { apiErrorMessage, fetchRanking, submitVote } from './api';
 import { element, escapeHtml } from './dom';
 import { ownReports, ownVotes, rememberVote, voterId } from './local-state';
 import { mozeDopisac, scal } from './lista';
@@ -9,6 +9,8 @@ interface RankingState {
   cursor?: string;
   pozycje: Pozycja[];
   ladowanie: boolean;
+  oczekujaceGlosy: Set<string>;
+  blad: string;
 }
 
 export interface Ranking {
@@ -30,6 +32,7 @@ export function rankingRow(
   sort: Sortowanie,
   ownVote: number,
   reported: boolean,
+  voting = false,
 ): string {
   const roles = entry.role
     ? `<div class="role">
@@ -64,10 +67,10 @@ export function rankingRow(
         ${reported ? 'zgloszono' : 'zglos'}
       </button>
     </div>
-    <div class="glosy">
-      <button class="strzalka gora ${ownVote === 1 ? 'akt' : ''}" data-id="${entry.id}" data-dir="1" aria-label="Glosuj za">▲</button>
+    <div class="glosy" ${voting ? 'aria-busy="true"' : ''}>
+      <button class="strzalka gora ${ownVote === 1 ? 'akt' : ''}" data-id="${entry.id}" data-dir="1" aria-label="Glosuj za" ${voting ? 'disabled' : ''}>▲</button>
       <span class="wynik">${entry.wynikGlosow}</span>
-      <button class="strzalka dol ${ownVote === -1 ? 'akt' : ''}" data-id="${entry.id}" data-dir="-1" aria-label="Glosuj przeciw">▼</button>
+      <button class="strzalka dol ${ownVote === -1 ? 'akt' : ''}" data-id="${entry.id}" data-dir="-1" aria-label="Glosuj przeciw" ${voting ? 'disabled' : ''}>▼</button>
     </div>
   </li>`;
 }
@@ -83,7 +86,13 @@ function label(sort: Sortowanie): string {
 }
 
 export function createRanking(): Ranking {
-  const state: RankingState = { sort: 'gorace', pozycje: [], ladowanie: false };
+  const state: RankingState = {
+    sort: 'gorace',
+    pozycje: [],
+    ladowanie: false,
+    oczekujaceGlosy: new Set(),
+    blad: '',
+  };
 
   function render(): void {
     element('#tabs').innerHTML = (['gorace', 'top', 'nowe', 'losowe'] as Sortowanie[])
@@ -100,19 +109,27 @@ export function createRanking(): Ranking {
       const votes = ownVotes();
       const reports = ownReports();
       list.innerHTML = state.pozycje
-        .map((entry, index) => rankingRow(entry, index, state.sort, votes[entry.id] ?? 0, reports.has(entry.id)))
+        .map((entry, index) => rankingRow(
+          entry,
+          index,
+          state.sort,
+          votes[entry.id] ?? 0,
+          reports.has(entry.id),
+          state.oczekujaceGlosy.has(entry.id),
+        ))
         .join('');
     }
 
     const more = element<HTMLButtonElement>('#wiecej');
     more.hidden = !state.cursor || state.sort === 'losowe';
     more.textContent = state.ladowanie ? 'Ladowanie…' : 'Pokaz wiecej';
-    if (!state.ladowanie) element('#blad').textContent = '';
+    element('#blad').textContent = state.blad;
   }
 
   async function load(append = false): Promise<void> {
     if (state.ladowanie || (append && !mozeDopisac(state.cursor, state.ladowanie))) return;
     state.ladowanie = true;
+    state.blad = '';
     render();
     try {
       const data = await fetchRanking(state.sort, append ? state.cursor : undefined);
@@ -120,7 +137,7 @@ export function createRanking(): Ranking {
       state.cursor = data.cursor;
     } catch {
       if (!append) state.pozycje = [];
-      element('#blad').textContent = 'Nie udalo sie pobrac listy. Odswiez strone.';
+      state.blad = 'Nie udało się pobrać listy. Odśwież stronę.';
     } finally {
       state.ladowanie = false;
       render();
@@ -128,16 +145,26 @@ export function createRanking(): Ranking {
   }
 
   async function vote(id: string, direction: 1 | -1): Promise<void> {
+    if (state.oczekujaceGlosy.has(id)) return;
     const current = ownVotes()[id] ?? 0;
     const value: 1 | -1 | 0 = current === direction ? 0 : direction;
+    state.oczekujaceGlosy.add(id);
+    state.blad = '';
+    render();
     try {
       const data = await submitVote(id, voterId(), value);
       const entry = state.pozycje.find((item) => item.id === id);
       if (entry) entry.wynikGlosow = data.wynikGlosow;
       rememberVote(id, value);
       render();
-    } catch {
-      element('#blad').textContent = 'Glos nie doszedl. Kliknij jeszcze raz.';
+    } catch (error) {
+      state.blad = apiErrorMessage(
+        error,
+        'Głos nie doszedł. Kliknij jeszcze raz.',
+      );
+    } finally {
+      state.oczekujaceGlosy.delete(id);
+      render();
     }
   }
 

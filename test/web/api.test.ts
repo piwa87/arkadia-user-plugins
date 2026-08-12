@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PageFetch } from '../../web/src/api';
 import {
+  ApiError,
+  apiErrorMessage,
   fetchModeration,
   fetchRanking,
   submitModeration,
@@ -69,8 +71,29 @@ describe('RKG browser API', () => {
   });
 
   it('rejects unsuccessful responses before controllers update the page', async () => {
-    const pageFetch = vi.fn(async () => new Response('{}', { status: 403 })) as PageFetch;
+    const pageFetch = vi.fn(async () => new Response(JSON.stringify({
+      blad: 'za duzo glosow',
+      ponownieZaMs: 5_400_000,
+    }), { status: 429 })) as PageFetch;
 
-    await expect(fetchModeration('wrong', pageFetch)).rejects.toThrow('403');
+    const request = fetchModeration('wrong', pageFetch);
+    await expect(request).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 429,
+      retryAfterMs: 5_400_000,
+    });
+    await expect(request).rejects.toThrow('za duzo glosow');
+  });
+
+  it('turns structured API failures into useful Polish messages', () => {
+    expect(apiErrorMessage(
+      new ApiError(429, { blad: 'limit', ponownieZaMs: 5_400_000 }),
+      'Nie udało się.',
+    )).toBe('Limit został wykorzystany. Spróbuj ponownie za 1 godz. 30 min.');
+
+    expect(apiErrorMessage(
+      new ApiError(500, { blad: 'blad serwera', requestId: 'request-123' }),
+      'Nie udało się zapisać.',
+    )).toBe('Nie udało się zapisać. Kod błędu: request-123.');
   });
 });
