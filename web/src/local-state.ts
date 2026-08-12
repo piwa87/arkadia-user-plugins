@@ -56,3 +56,7 @@ export function adminKey(): string {
 export function rememberAdminKey(value: string): void {
   sessionStorage.setItem(ADMIN_KEY, value);
 }
+
+export function forgetAdminKey(): void {
+  sessionStorage.removeItem(ADMIN_KEY);
+}

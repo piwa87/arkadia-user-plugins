@@ -9,7 +9,7 @@
   <body>
     <div class="wrap">
       <header class="naglowek">
-        <h1 class="tytul">Rendom Klub Dżenerejtor</h1>
+        <h1 class="tytul"><span>Rendom Klub</span><span>Dżenerejtor</span></h1>
         <p class="podtytul">Ranking najbardziej zwałowych klubów</p>
       </header>
       <aside class="limit-dzienny" aria-labelledby="limit-tytul">
@@ -87,7 +87,10 @@
             <p class="dialog-etykieta">Tylko dla obsługi</p>
             <h2 id="admin-tytul" class="dialog-tytul">Backstage</h2>
           </div>
-          <form method="dialog" class="dialog-zamknij"><button>Zamknij</button></form>
+          <div class="admin-naglowek-akcje">
+            <button id="admin-logout" class="admin-logout" type="button" hidden>Wyloguj</button>
+            <form method="dialog" class="dialog-zamknij"><button>Zamknij</button></form>
+          </div>
         </header>
         <form id="admin-form" class="admin-form">
           <input id="admin-klucz" type="password" autocomplete="off" placeholder="Klucz moderatora" aria-label="Klucz moderatora" />

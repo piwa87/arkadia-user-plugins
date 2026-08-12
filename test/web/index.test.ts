@@ -12,8 +12,9 @@ describe('RKG ranking page', () => {
     expect(html).toContain('href="./styles.css"');
     expect(html).not.toContain('<style>');
     expect(css).toContain('.tytul');
-    expect(css).toContain('font-size: clamp(2.55rem, 10.5vw, 4.85rem)');
-    expect(css).toContain('line-height: 1.04');
+    expect(html).toContain('<h1 class="tytul"><span>Rendom Klub</span><span>Dżenerejtor</span></h1>');
+    expect(css).toContain('font-size: clamp(2.8rem, 11.5vw, 5.35rem)');
+    expect(css).toContain('gap: clamp(10px, 2vw, 18px)');
   });
 
   it('puts the daily upload limit before the ranking controls', () => {
@@ -68,6 +69,8 @@ describe('RKG ranking page', () => {
     expect(html).not.toContain('<textarea');
     expect(html).toContain('id="admin-dialog"');
     expect(html).toContain('id="admin-tabs"');
+    expect(html).toContain('id="admin-logout"');
+    expect(html).toContain('>Wyloguj</button>');
     expect(html).toContain('type="password"');
     expect(html).toContain('Backstage');
   });

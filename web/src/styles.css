@@ -40,15 +40,18 @@ body {
 .naglowek { text-align: center; margin-bottom: 34px; }
 
 .tytul {
+  display: grid;
+  gap: clamp(10px, 2vw, 18px);
   font-family: var(--display);
-  font-size: clamp(2.55rem, 10.5vw, 4.85rem);
-  line-height: 1.04;
+  font-size: clamp(2.8rem, 11.5vw, 5.35rem);
+  line-height: .9;
   letter-spacing: .01em;
   text-transform: uppercase;
   color: var(--zloto);
   text-shadow: 5px 5px 0 var(--neon);
   margin: 0;
 }
+.tytul span { display: block; }
 
 .podtytul {
   font-family: var(--dane);
@@ -454,8 +457,21 @@ dialog::backdrop { background: rgba(9, 5, 22, .82); }
   background: var(--noc);
 }
 .admin-naglowek .dialog-tytul { color: var(--neon); text-shadow: 2px 2px 0 var(--zloto); }
+.admin-naglowek-akcje { display: flex; align-items: center; gap: 12px; }
 .admin-naglowek .dialog-zamknij { margin-top: 0; }
+.admin-logout {
+  border: 2px solid var(--linia);
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--mgla);
+  font: 700 .66rem/1 var(--dane);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.admin-logout:hover { border-color: var(--zloto); color: var(--zloto); }
 .admin-form { display: flex; gap: 8px; padding: 14px 22px; border-bottom: 2px solid var(--linia); }
+.admin-form[hidden] { display: none; }
 .admin-form input {
   min-width: 0;
   flex: 1;

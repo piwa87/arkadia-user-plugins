@@ -5,11 +5,12 @@ import type {
 } from '../../src/shared/rkg-api';
 import { apiErrorMessage, fetchModeration, submitModeration } from './api';
 import { element, escapeHtml } from './dom';
-import { adminKey, rememberAdminKey } from './local-state';
+import { adminKey, forgetAdminKey, rememberAdminKey } from './local-state';
 
 export interface Moderation {
   open(): void;
   login(key: string): Promise<void>;
+  logout(): void;
   apply(id: string, action: AkcjaModeracji): Promise<void>;
   changeView(view: string): void;
 }
@@ -101,9 +102,16 @@ export function createModeration(refreshRanking: () => Promise<void>): Moderatio
 
   function render(): void {
     const tabs = element<HTMLElement>('#admin-tabs');
+    const list = element('#admin-lista');
+    element<HTMLFormElement>('#admin-form').hidden = authenticated;
+    element<HTMLButtonElement>('#admin-logout').hidden = !authenticated;
     tabs.hidden = !authenticated;
     tabs.innerHTML = authenticated ? moderationTabs(view, entries, history.length) : '';
-    element('#admin-lista').innerHTML = view === 'historia'
+    if (!authenticated) {
+      list.innerHTML = '<p class="admin-pusto">Podaj klucz, aby zobaczyć kolejkę.</p>';
+      return;
+    }
+    list.innerHTML = view === 'historia'
       ? moderationHistory(history)
       : moderationRows(filterModeration(entries, view), pending);
   }
@@ -122,6 +130,7 @@ export function createModeration(refreshRanking: () => Promise<void>): Moderatio
       entries = [];
       history = [];
       authenticated = false;
+      forgetAdminKey();
       status.textContent = apiErrorMessage(
         error,
         'Nie udało się otworzyć moderacji.',
@@ -138,6 +147,18 @@ export function createModeration(refreshRanking: () => Promise<void>): Moderatio
   async function login(key: string): Promise<void> {
     rememberAdminKey(key);
     await load();
+  }
+
+  function logout(): void {
+    forgetAdminKey();
+    entries = [];
+    history = [];
+    pending.clear();
+    authenticated = false;
+    view = 'zgloszone';
+    element<HTMLInputElement>('#admin-klucz').value = '';
+    element('#admin-status').textContent = 'Wylogowano.';
+    render();
   }
 
   async function apply(id: string, action: AkcjaModeracji): Promise<void> {
@@ -167,5 +188,5 @@ export function createModeration(refreshRanking: () => Promise<void>): Moderatio
     render();
   }
 
-  return { open, login, apply, changeView };
+  return { open, login, logout, apply, changeView };
 }

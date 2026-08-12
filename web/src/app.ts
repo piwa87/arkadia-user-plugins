@@ -38,6 +38,7 @@ document.addEventListener('click', (event) => {
 
 element('#wiecej').addEventListener('click', () => void ranking.load(true));
 element('#moderacja-open').addEventListener('click', moderation.open);
+element('#admin-logout').addEventListener('click', moderation.logout);
 element('#admin-form').addEventListener('submit', (event) => {
   event.preventDefault();
   void moderation.login(element<HTMLInputElement>('#admin-klucz').value);
