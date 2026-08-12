@@ -79,10 +79,9 @@ After enabling Pages in the repository settings, your plugin URLs will look like
 https://<user>.github.io/<repo>/my-aliases-plugin.js
 ```
 
-The build also generates:
-
-- `dist/index.html` with a simple plugin listing
-- `dist/plugins.json` with relative plugin paths
+The build also generates `dist/index.html`, a session-scoped soft password gate
+for the plugin listing. Direct plugin URLs remain public by design; the gate is
+only intended to prevent casual discovery from the Pages root.
 
 ### Netlify
 
