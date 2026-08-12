@@ -22,13 +22,16 @@ export interface Hof {
 
 export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(api)): Hof {
   const wall = createWallClient();
-  const info = (text: string) => api.output.print(`[rkg] ${text}`);
+  const info = (text: string) => {
+    const buffer = new api.AnsiAwareBuffer('[rkg] ', { ...styles.info, bold: true });
+    buffer.append(text, styles.info);
+    api.output.print(buffer);
+  };
   let view: HofView | null = null;
 
   const publisher = createPublisher({
     api,
     baza,
-    styles,
     wall,
     info,
     onChanged: () => view?.refresh(),
@@ -66,24 +69,30 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
   }
 
   function option(text: string, title: string, fn: () => void): void {
-    const buffer = new api.AnsiAwareBuffer('        ', styles.info);
+    const buffer = new api.AnsiAwareBuffer('      › ', styles.info);
     action(buffer, text, title, fn);
     api.output.print(buffer);
   }
 
   function rankingLink(): void {
-    const buffer = new api.AnsiAwareBuffer('      Link do rankingu: ', styles.info);
+    const buffer = new api.AnsiAwareBuffer('      ↗ ranking  ', styles.info);
     action(buffer, WALL, 'Otworz ranking w przegladarce', () => {
       window.open(WALL, '_blank', 'noopener');
     });
     api.output.print(buffer);
   }
 
+  function pokazPomocLokalna(): void {
+    info('Każdy wylosowany klub zapisuje się lokalnie w tym kliencie.');
+    info('Możesz dalej używać rkg! i zbierać propozycje bez zużywania dziennego slotu.');
+    info('Wpisz rkghof, aby otworzyć listę, przejrzeć kluby i wybrać jeden do późniejszego wysłania.');
+  }
+
   function zaproponuj(wpis: WpisLokalny): void {
     try {
       const nick = publisher.defaultNick();
       info('Do rankingu mozesz wyslac tylko jeden klub na 24 godziny — wybierz dobrze.');
-      info('Opcje:');
+      info('WYBIERZ AKCJE');
       option(
         nick ? `wyslij do rankingu (jako ${nick})` : 'wyslij do rankingu',
         'Pokaz ostatnie potwierdzenie publikacji',
@@ -93,6 +102,7 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
         info('ok — pozniej: rkgwyslij albo rkghof'),
       );
       option('otworz okno lokalnych', 'Pokaz zebrane kluby', () => void view?.open('lokalne'));
+      option('pomoc', 'Jak działa lokalna lista klubów', pokazPomocLokalna);
       rankingLink();
     } catch {
       info('rkghof — okno z lista klubow, aby wyslac klub do rankingu');

@@ -1,6 +1,7 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import type { Baza } from './store';
 import type { RkgStyles } from './styles';
+import { printClubTable } from './presentation';
 
 export function setupAliasy(api: PluginApi, baza: Baza, styles: RkgStyles): void {
   const drukuj = (tekst: string, kolor: FormatStateSnapshot) => {
@@ -44,10 +45,7 @@ export function setupAliasy(api: PluginApi, baza: Baza, styles: RkgStyles): void
       return true;
     }
     for (const w of baza.wpisy) {
-      drukuj(w.wynik, styles.clubName);
-      if (w.role?.przywodca) drukuj(`      przywodca: ${w.role.przywodca}`, styles.role);
-      if (w.role?.zastepca) drukuj(`      zastepca:  ${w.role.zastepca}`, styles.role);
-      if (w.role?.czlonek) drukuj(`      czlonek:   ${w.role.czlonek}`, styles.role);
+      printClubTable(api, styles, w.wynik, w.role ?? {});
     }
     info(`[rkg] razem: ${baza.wpisy.length}`);
     return true;

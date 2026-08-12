@@ -9,13 +9,10 @@ import { WZORZEC_NICKA } from '../../shared/rkg-grammar';
 import { getCharName } from '../../lib/getCharName';
 import { storage } from '../../lib/storage';
 import type { Baza } from './store';
-import type { RkgStyles } from './styles';
 import type { WallClient } from './wall-client';
 
 const KL_NICK = 'rkg:nick';
 const KL_ANONIM = 'rkg:anonim';
-// Versioned so people who saw the old, incomplete disclosure see the correction.
-const KL_UJAWNIENIE = 'rkg:ujawnienie:v3';
 const KL_PONOWNIE_OD = 'rkg:limit:ponownieOd';
 const PYTANIE_MS = 60_000;
 const DZIEN = 86_400_000;
@@ -34,15 +31,14 @@ export interface Publisher {
 interface PublisherOptions {
   api: PluginApi;
   baza: Baza;
-  styles: RkgStyles;
   wall: WallClient;
   info(text: string): void;
   onChanged(): void;
 }
 
-/** Owns informed consent, signature selection, confirmation and upload state. */
+/** Owns signature selection, explicit confirmation and upload state. */
 export function createPublisher(options: PublisherOptions): Publisher {
-  const { api, baza, styles, wall, info, onChanged } = options;
+  const { api, baza, wall, info, onChanged } = options;
   const inFlight = new Set<string>();
   const preparing = new Set<string>();
   let knownLimit: StatusLimitu | null = null;
@@ -112,21 +108,6 @@ export function createPublisher(options: PublisherOptions): Publisher {
     } finally {
       checkingLimit = null;
     }
-  }
-
-  /** Printed once per disclosure version, before anything can leave the client. */
-  function disclose(): void {
-    if (storage.get<boolean>(KL_UJAWNIENIE)) return;
-    storage.set(KL_UJAWNIENIE, true);
-    const text =
-      '[rkg] Do rankingu ida: nazwa klubu, skladniki nazwy, tytuly wladz, wybrany nick ' +
-      'oraz losowy identyfikator tej instalacji. Serwer dodatkowo tworzy krotkotrwaly, ' +
-      'nieodwracalny skrot adresu sieciowego. Oba identyfikatory sluza do limitu, ' +
-      'a identyfikator instalacji takze do glosow. Surowy adres nie jest zapisywany; ' +
-      'identyfikatory nie sa kontem.';
-    const buf = new api.AnsiAwareBuffer(text);
-    buf.color([0, text.length], styles.info);
-    api.output.print(buf);
   }
 
   async function confirmUpload(wpis: WpisLokalny, nick: string | null): Promise<void> {
@@ -201,7 +182,6 @@ export function createPublisher(options: PublisherOptions): Publisher {
       return;
     }
     if (inFlight.has(wpis.id)) return;
-    disclose();
 
     // An explicit nick (including null = anonymous) has already resolved the
     // signature choice, but it still goes through the final confirmation.

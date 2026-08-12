@@ -1,7 +1,7 @@
 import { storage } from '../../lib/storage';
 import type { BladResponse, StatusLimitu } from '../../shared/rkg-api';
 
-export const WALL = 'https://rkg.piwa87.workers.dev';
+export const WALL = 'https://rkg.vonhookin.workers.dev';
 
 const KL_GLOSUJACY = 'rkg:glosujacy';
 const TIMEOUT_MS = 8000;

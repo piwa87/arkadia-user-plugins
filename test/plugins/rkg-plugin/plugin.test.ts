@@ -43,10 +43,10 @@ describe('rkg-plugin init', () => {
     await init(mock.api);
 
     expect(mock.api.colors.fromHex).toHaveBeenCalledTimes(4);
-    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#a6a6a6');
-    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#c0c0c0');
-    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#85a5cb');
-    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#0e451c');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#82909d');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#f2c14e');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#82acd1');
+    expect(mock.api.colors.fromHex).toHaveBeenCalledWith('#173d2d');
     await destroy();
   });
 

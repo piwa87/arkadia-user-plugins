@@ -8,6 +8,7 @@ import { RKG_PRZYMIOTNIKI } from './data/adjectives';
 import { RKG_TYPY } from './data/types';
 import { RZECZOWNIKI_SEED } from './data/seed';
 import { pick } from './generator';
+import { printClubTable } from './presentation';
 
 /**
  * `rkg!` — drive the club-creation dialogue, harvesting every menu live, and
@@ -393,11 +394,10 @@ export function setupKreator(
       };
       const zapisany = baza.dodajWpis(wpis);
       sprzatnij();
-      drukuj('[rkg] Wylosowany nowy klub:', styles.info);
-      drukuj(`      ${wynik}`, styles.clubName);
-      if (role.przywodca) drukuj(`      przywodca: ${role.przywodca}`, styles.role);
-      if (role.zastepca) drukuj(`      zastepca:  ${role.zastepca}`, styles.role);
-      if (role.czlonek) drukuj(`      czlonek:   ${role.czlonek}`, styles.role);
+      const header = new api.AnsiAwareBuffer('[rkg] ', styles.info);
+      header.append('WYLOSOWANY KLUB', styles.action);
+      api.output.print(header);
+      printClubTable(api, styles, wynik, role);
       // The offer must not be able to take the run down with it.
       try {
         poZakonczeniu?.(zapisany);

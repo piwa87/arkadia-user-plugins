@@ -185,9 +185,30 @@ describe('rkg! creation dialogue', () => {
     const printed = wydrukowane(mock);
 
     expect(printed.some((t) => t.includes('Loza Maluskich Korbaczy'))).toBe(true);
-    expect(printed.some((t) => t.includes('przywodca:') && t.includes('Przywodca Lozy'))).toBe(true);
+    expect(printed.some((t) => t.includes('PRZYWODCA') && t.includes('Przywodca Lozy'))).toBe(true);
     expect(mock.triggers).toHaveLength(0);
     expect(mock.oneTimeTriggers).toHaveLength(0);
+
+    await destroy();
+  });
+
+  it('renders an aligned table and gives the club name the strongest treatment', async () => {
+    const mock = createMockApi();
+    await init(mock.api);
+
+    przejdzCalyDialog(mock);
+    const rows: MockAnsiAwareBuffer[] = (mock.api.output.print as any).mock.calls
+      .map(([value]: [unknown]) => value)
+      .filter((value: unknown): value is MockAnsiAwareBuffer =>
+        value instanceof MockAnsiAwareBuffer && value.text.includes('│ '),
+      );
+
+    expect(rows.map((row) => row.text.indexOf('│'))).toEqual([17, 17, 17, 17]);
+    expect(rows[0].text).toContain('KLUB       │ Loza Maluskich Korbaczy');
+    expect(rows[0].segments[rows[0].segments.length - 1]?.state).toMatchObject({ bold: true });
+    expect(rows.slice(1).every((row) =>
+      row.segments[row.segments.length - 1]?.state?.bold !== true,
+    )).toBe(true);
 
     await destroy();
   });
@@ -291,13 +312,15 @@ describe('rkg! creation dialogue', () => {
     przejdzCalyDialog(mock);
     const out = wydrukowane(mock).join('\n');
 
-    expect(out).toContain('Wylosowany nowy klub:');
+    expect(out).toContain('WYLOSOWANY KLUB');
     expect(out).toContain('Loza Maluskich Korbaczy');
-    expect(out).toContain('Opcje:');
+    expect(out).toContain('KLUB       │ Loza Maluskich Korbaczy');
+    expect(out).toContain('PRZYWODCA  │ Przywodca Lozy Maluskich Korbaczy');
+    expect(out).toContain('WYBIERZ AKCJE');
     expect(out).toContain('wyslij do rankingu');
     expect(out).toContain('nie wysylaj');
     expect(out).toContain('otworz okno lokalnych');
-    expect(out).toContain('Link do rankingu:');
+    expect(out).toContain('ranking  https://');
 
     await destroy();
   });
@@ -306,7 +329,7 @@ describe('rkg! creation dialogue', () => {
     const mock = createMockApi();
     // A client that chokes on the clickable line must not take the run with it.
     (mock.api.output.print as any).mockImplementation((arg: any) => {
-      if (String(arg?.text ?? arg).includes('Opcje:')) throw new Error('brak linkow');
+      if (String(arg?.text ?? arg).includes('WYBIERZ AKCJE')) throw new Error('brak linkow');
     });
     await init(mock.api);
 

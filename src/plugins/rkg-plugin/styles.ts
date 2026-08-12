@@ -11,22 +11,23 @@ export interface RkgStyles {
 /**
  * Build RKG's small, semantic palette once during plugin initialisation.
  *
- * These values preserve the old CMud ANSI 3/110/11/14 appearance without
- * importing and constructing the shared 128-entry ANSI palette.
+ * The palette keeps routine information quiet, uses cool blue for role data,
+ * and spends its strongest gold-on-green contrast only on the generated name.
  */
 export function createRkgStyles(api: PluginApi): RkgStyles {
-  const info = api.colors.fromHex('#a6a6a6');
-  const neutral = api.colors.fromHex('#c0c0c0');
-  const role = api.colors.fromHex('#85a5cb');
-  const clubBackground = api.colors.fromHex('#0e451c');
+  const info = api.colors.fromHex('#82909d');
+  const accent = api.colors.fromHex('#f2c14e');
+  const role = api.colors.fromHex('#82acd1');
+  const clubBackground = api.colors.fromHex('#173d2d');
 
   return {
     info,
     clubName: {
-      ...neutral,
+      ...accent,
       background: clubBackground.foreground,
+      bold: true,
     },
     role,
-    action: neutral,
+    action: { ...accent, bold: true },
   };
 }

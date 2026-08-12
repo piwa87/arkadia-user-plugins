@@ -82,7 +82,7 @@ file and is not exposed as a package script.
 ```bash
 cd web && yarn build
 cd ../api && yarn deploy:check && yarn db:migrate && yarn deploy
-curl --fail --silent https://rkg.piwa87.workers.dev/api/health
+curl --fail --silent https://rkg.vonhookin.workers.dev/api/health
 ```
 
 Apply remote migrations before deploying code that depends on them. D1 records

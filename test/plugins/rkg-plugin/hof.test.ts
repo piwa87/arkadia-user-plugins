@@ -302,7 +302,7 @@ describe('rkgnick', () => {
 });
 
 describe('zaproponuj — the end-of-run options', () => {
-  it('prints the three options and the ranking link', () => {
+  it('prints the four options and the ranking link', () => {
     const { mock, hof } = setup();
     storage.set('rkg:nick', 'Piot');
 
@@ -310,11 +310,12 @@ describe('zaproponuj — the end-of-run options', () => {
 
     const out = printed(mock).join('\n');
     expect(out).toContain('jeden klub na 24 godziny');
-    expect(out).toContain('Opcje:');
+    expect(out).toContain('WYBIERZ AKCJE');
     expect(out).toContain('wyslij do rankingu (jako Piot)');
     expect(out).toContain('nie wysylaj');
     expect(out).toContain('otworz okno lokalnych');
-    expect(out).toContain('Link do rankingu: https://');
+    expect(out).toContain('pomoc');
+    expect(out).toContain('ranking  https://');
     // Nothing is disclosed or asked before you actually choose to publish.
     expect(out).not.toContain('Nic wiecej');
     expect(mock.commandHooks).toHaveLength(0);
@@ -355,14 +356,27 @@ describe('zaproponuj — the end-of-run options', () => {
     expect(f).not.toHaveBeenCalled();
   });
 
+  it('explains the local collection without sending anything', () => {
+    const { mock, hof } = setup();
+    const f = stubFetch({});
+
+    hof.zaproponuj(WPIS);
+    klikOpcje(mock, 'pomoc');
+
+    const out = printed(mock).join('\n');
+    expect(out).toContain('zapisuje się lokalnie');
+    expect(out).toContain('dalej używać rkg!');
+    expect(out).toContain('bez zużywania dziennego slotu');
+    expect(out).toContain('Wpisz rkghof');
+    expect(out).toContain('wybrać jeden do późniejszego wysłania');
+    expect(f).not.toHaveBeenCalled();
+  });
+
   it('keeps the daily slot when final confirmation is cancelled', async () => {
     const { mock, baza, hof } = setup();
     const f = stubFetch({});
     vi.stubGlobal('confirm', vi.fn(() => false));
     storage.set('rkg:nick', 'Piot');
-    // The corrected, versioned disclosure must not be suppressed by the old flag.
-    storage.set('rkg:zgoda', true);
-    storage.set('rkg:ujawnienie:v2', true);
     baza.dodajWpis(WPIS);
 
     hof.zaproponuj(baza.wpisy[0]);
@@ -373,8 +387,7 @@ describe('zaproponuj — the end-of-run options', () => {
     expect(f).not.toHaveBeenCalled();
     expect(baza.wpisy[0].wyslane).toBeUndefined();
     expect(printed(mock).join('\n')).toContain('slot pozostaje dostepny');
-    expect(printed(mock).join('\n')).toContain('losowy identyfikator tej instalacji');
-    expect(printed(mock).join('\n')).toContain('skrot adresu sieciowego');
+    expect(printed(mock).join('\n')).not.toContain('identyfikator');
   });
 
   it('"otworz okno lokalnych" opens the window on the local tab', async () => {
@@ -405,7 +418,7 @@ describe('zaproponuj — the end-of-run options', () => {
 });
 
 describe('the first upload settles the nick', () => {
-  it('discloses, asks, and takes the character name on a bare Enter', async () => {
+  it('asks and takes the character name on a bare Enter without a verbose disclosure', async () => {
     const { mock, baza, hof } = setup();
     const f = stubFetch({ id: 'zdalne-4', wynik: WPIS.wynik, zgloszenia: 1, duplikat: false });
     ustawPostac(mock, 'piotrek');
@@ -415,11 +428,8 @@ describe('the first upload settles the nick', () => {
     klikOpcje(mock, 'wyslij do rankingu');
 
     const out = printed(mock).join('\n');
-    expect(out).toContain('skladniki nazwy');
-    expect(out).toContain('losowy identyfikator tej instalacji');
-    expect(out).toContain('skrot adresu sieciowego');
-    expect(out).toContain('Surowy adres nie jest zapisywany');
-    expect(out).not.toContain('Nic wiecej');
+    expect(out).not.toContain('Do rankingu ida');
+    expect(out).not.toContain('identyfikator');
     expect(out).toContain("Enter = Piotrek");
     expect(wpisz(mock, ''), 'bare Enter must be swallowed').toBeNull();
 
