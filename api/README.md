@@ -9,7 +9,11 @@ so the Worker sends CORS headers for the origins listed in `RKG_CORS`.
 
 ```
 api/
-  src/index.ts      the Worker (routes, dedupe, voting, rate-limit, CORS, static)
+  src/index.ts      Worker entry, static assets and top-level error handling
+  src/routes.ts     API route matching only
+  src/*-handlers.ts ranking, voting, reporting and moderation endpoints
+  src/http.ts       JSON responses and CORS
+  src/worker-configuration.d.ts generated binding types from wrangler.toml
   src/validate.ts   request validation — reuses the plugin's word lists + grammar
   migrations/       versioned D1 schema changes (production + local tests)
   schema.sql        final schema for manual, fresh database setup only
@@ -21,6 +25,9 @@ Validation and quota helpers are unit-tested from the repo root. `yarn test`
 inside `api/` runs the Worker against a real local D1 through Cloudflare's
 Workers Vitest integration, including concurrent uploads and transaction
 rollback. No production data is touched.
+
+Run `yarn types:bindings` after changing Worker bindings or public variables;
+`yarn types:check` verifies that the committed generated declarations are current.
 
 ## One-time setup
 
@@ -38,7 +45,7 @@ yarn db:migrate
 # 3. build the site so the Worker has assets to serve
 cd ../web && yarn install && yarn build && cd ../api
 
-# 4. beta only — the key that authorises wiping the wall (see below)
+# 4. private password for the per-club moderation panel
 npx wrangler secret put RKG_ADMIN
 ```
 
@@ -76,8 +83,8 @@ Apply remote migrations before deploying code that depends on them. D1 records
 which migrations have already run, so later deploys only apply new files.
 
 The Worker prints its URL (e.g. `https://rkg-wall.<you>.workers.dev`). Put that in
-`WALL` in `src/plugins/rkg-plugin/hof.ts` and rebuild the plugin. A custom domain
-can be attached in the Cloudflare dashboard.
+`WALL` in `src/plugins/rkg-plugin/wall-client.ts` and rebuild the plugin. A
+custom domain can be attached in the Cloudflare dashboard.
 
 ## API
 

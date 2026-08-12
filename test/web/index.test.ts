@@ -2,11 +2,20 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const html = readFileSync(new URL('../../web/src/index.html', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../../web/src/styles.css', import.meta.url), 'utf8');
 const mockClubs = JSON.parse(
   readFileSync(new URL('../../web/dev/mock-clubs.json', import.meta.url), 'utf8'),
 ) as Array<{ id: string; wynik: string; wynikGlosow: number }>;
 
 describe('RKG ranking page', () => {
+  it('keeps page structure and styling in separate source files', () => {
+    expect(html).toContain('href="./styles.css"');
+    expect(html).not.toContain('<style>');
+    expect(css).toContain('.tytul');
+    expect(css).toContain('font-size: clamp(2.55rem, 10.5vw, 4.85rem)');
+    expect(css).toContain('line-height: 1.04');
+  });
+
   it('puts the daily upload limit before the ranking controls', () => {
     const limit = html.indexOf('class="limit-dzienny"');
     const tabs = html.indexOf('id="tabs"');

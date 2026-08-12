@@ -1,0 +1,506 @@
+/*
+  Arcade high-score board for a joke about fake nobility. The clubs are
+  absurd faux-official orders, so the page is styled like a badly printed
+  tournament poster: heavy condensed caps with one hard offset shadow,
+  loud flat colour, no gradients. Dark only — deliberate, not an oversight.
+*/
+:root {
+  --noc: #150d29;
+  --karta: #201545;
+  --karta-hover: #281a55;
+  --neon: #ff2e88;
+  --zloto: #ffc93c;
+  --mieta: #3ddc97;
+  --mgla: #a99fd0;
+  --biel: #f6f2ff;
+  --linia: #33245e;
+
+  --display: Impact, Haettenschweiler, 'Franklin Gothic Bold', 'Arial Narrow', sans-serif;
+  --body: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --dane: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--noc);
+  color: var(--biel);
+  font: 16px/1.5 var(--body);
+  /* Faint scanline wash — the only ambient texture on the page. */
+  background-image: repeating-linear-gradient(
+    0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 4px
+  );
+}
+
+.wrap { max-width: 760px; margin: 0 auto; padding: 40px 16px 72px; }
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+
+.naglowek { text-align: center; margin-bottom: 34px; }
+
+.tytul {
+  font-family: var(--display);
+  font-size: clamp(2.55rem, 10.5vw, 4.85rem);
+  line-height: 1.04;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+  color: var(--zloto);
+  text-shadow: 5px 5px 0 var(--neon);
+  margin: 0;
+}
+
+.podtytul {
+  font-family: var(--dane);
+  font-size: clamp(.7rem, 2.6vw, .82rem);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--mgla);
+  margin: 14px 0 0;
+}
+
+/* ── Daily entry ticket ──────────────────────────── */
+
+.limit-dzienny {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  margin: 0 7px 29px 0;
+  border: 3px solid var(--zloto);
+  background: var(--zloto);
+  color: var(--noc);
+  box-shadow: 7px 7px 0 var(--neon);
+}
+
+.limit-liczba {
+  display: grid;
+  place-items: center;
+  min-width: clamp(78px, 17vw, 119px);
+  padding: 14px 19px 10px;
+  border-right: 3px solid var(--noc);
+  font-family: var(--display);
+  font-size: clamp(4.4rem, 14.5vw, 7.15rem);
+  line-height: .72;
+  color: var(--noc);
+  text-shadow: 3px 3px 0 var(--neon);
+}
+
+.limit-tresc {
+  align-self: center;
+  padding: 14px 19px 15px;
+}
+
+.limit-etykieta {
+  margin: 0 0 4px;
+  font: 700 .64rem/1 var(--dane);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.limit-tytul {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 4.7vw, 2.25rem);
+  line-height: .95;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+}
+
+.limit-opis {
+  max-width: 52ch;
+  margin: 7px 0 0;
+  font-size: .82rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+/* ── Quick start ───────────────────────────────────── */
+
+.jak-dziala { margin: 0 0 30px; }
+
+.jak-naglowek {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.jak-tytul {
+  flex: none;
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.65rem, 5vw, 2.2rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--biel);
+}
+
+.jak-opis {
+  margin: 0;
+  color: var(--mgla);
+  font-size: .88rem;
+}
+
+.kroki {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--linia);
+  background: var(--karta);
+}
+
+.krok {
+  min-width: 0;
+  padding: 14px 15px 16px;
+  border-right: 2px solid var(--linia);
+}
+.krok:last-child { border-right: 0; }
+
+.krok-nr {
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--display);
+  font-size: 1.65rem;
+  line-height: .8;
+  color: var(--neon);
+}
+
+.krok h3 {
+  margin: 0 0 5px;
+  font-size: .9rem;
+  line-height: 1.2;
+  color: var(--biel);
+}
+
+.krok p {
+  margin: 0;
+  font-size: .78rem;
+  line-height: 1.4;
+  color: var(--mgla);
+}
+
+.krok code { font: 700 .92em var(--dane); color: var(--zloto); }
+
+.plugin-link {
+  color: var(--zloto);
+  font-family: var(--dane);
+  font-weight: 700;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.plugin-link:hover { color: var(--biel); }
+
+/* ── Sort picker ────────────────────────────────────────────────────── */
+
+#tabs { display: flex; gap: 8px; justify-content: center; margin: 0 0 24px; flex-wrap: wrap; }
+
+.tab {
+  font-family: var(--dane);
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border: 2px solid var(--linia);
+  background: transparent;
+  color: var(--mgla);
+  padding: 9px 18px;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.tab:hover { border-color: var(--neon); color: var(--biel); }
+.tab.akt {
+  background: var(--neon);
+  border-color: var(--neon);
+  color: var(--noc);
+  font-weight: 700;
+}
+
+/* ── The board ──────────────────────────────────────────────────────── */
+
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.wpis {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: start;
+  background: var(--karta);
+  border: 2px solid var(--linia);
+  padding: 16px 18px;
+  transition: border-color .12s, background .12s;
+}
+/* Sorts other than the ranking have no positions, so no column for them. */
+.wpis.bez-miejsca { grid-template-columns: 1fr auto; }
+.wpis:hover { background: var(--karta-hover); border-color: var(--neon); }
+/* The leader is marked by the board itself, not by a badge. */
+.wpis.mistrz { border-color: var(--zloto); }
+
+.miejsce {
+  font-family: var(--display);
+  font-size: clamp(2.1rem, 7vw, 3rem);
+  line-height: .82;
+  color: var(--mgla);
+  opacity: .4;
+  font-variant-numeric: tabular-nums;
+}
+.miejsce.podium { color: var(--zloto); opacity: 1; text-shadow: 3px 3px 0 var(--neon); }
+
+.tresc { min-width: 0; }
+
+.nazwa {
+  font-family: var(--display);
+  font-size: clamp(1.15rem, 4.4vw, 1.7rem);
+  line-height: 1.04;
+  letter-spacing: .015em;
+  text-transform: uppercase;
+  color: var(--biel);
+  overflow-wrap: anywhere;
+}
+
+/* One title per line: they are three separate offices, not a list of tags. */
+.role { margin: 12px 0 0; display: flex; flex-direction: column; gap: 5px; }
+.rola { display: flex; gap: 9px; font-size: .87rem; color: var(--mgla); line-height: 1.35; }
+.rola .ikona { flex: none; width: 1.2em; text-align: center; }
+.rola.szef { color: var(--zloto); }
+
+.meta {
+  margin-top: 12px;
+  font-family: var(--dane);
+  font-size: .72rem;
+  letter-spacing: .06em;
+  color: var(--mgla);
+  opacity: .75;
+}
+.meta .licznik { color: var(--mieta); }
+.meta .trend { color: var(--zloto); }
+
+.raport-link {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mgla);
+  font: 600 .66rem/1 var(--dane);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  opacity: .55;
+  cursor: pointer;
+}
+.raport-link:hover { color: var(--neon); opacity: 1; }
+.raport-link:disabled { cursor: default; color: var(--mieta); }
+
+/* ── Votes ──────────────────────────────────────────────────────────── */
+
+/* One slab, not three loose controls: arrows and score read as a unit. */
+.glosy {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border: 2px solid var(--linia);
+  min-width: 58px;
+}
+
+.strzalka {
+  border: none;
+  background: transparent;
+  color: var(--mgla);
+  cursor: pointer;
+  font-size: .75rem;
+  line-height: 1;
+  padding: 7px 0;
+  transition: color .12s, background .12s;
+}
+.strzalka:hover { background: var(--karta-hover); color: var(--biel); }
+.strzalka.gora.akt { color: var(--mieta); background: rgba(61,220,151,.14); }
+.strzalka.dol.akt { color: var(--neon); background: rgba(255,46,136,.14); }
+
+.wynik {
+  font-family: var(--display);
+  font-size: 1.7rem;
+  line-height: 1;
+  padding: 3px 8px 5px;
+  text-align: center;
+  color: var(--biel);
+  border-block: 2px solid var(--linia);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── States ─────────────────────────────────────────────────────────── */
+
+.pusto {
+  text-align: center;
+  color: var(--mgla);
+  border: 2px dashed var(--linia);
+  padding: 44px 20px;
+}
+.pusto strong { display: block; font-family: var(--display); font-size: 1.4rem; text-transform: uppercase; color: var(--biel); margin-bottom: 8px; }
+.pusto code { font-family: var(--dane); color: var(--zloto); }
+
+#wiecej {
+  display: block;
+  margin: 20px auto 0;
+  padding: 11px 26px;
+  font-family: var(--dane);
+  font-size: .78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  border: 2px solid var(--linia);
+  background: transparent;
+  color: var(--mgla);
+  cursor: pointer;
+}
+#wiecej:hover { border-color: var(--neon); color: var(--biel); }
+/* An id selector beats the UA's [hidden] rule, so restate it here or the
+   button stays on screen with nothing left to load. */
+#wiecej[hidden] { display: none; }
+
+#blad { text-align: center; color: var(--neon); min-height: 1.3em; margin-top: 14px; font-size: .88rem; }
+
+.stopka {
+  text-align: center;
+  margin-top: 40px;
+  font-family: var(--dane);
+  font-size: .72rem;
+  letter-spacing: .08em;
+  color: var(--mgla);
+  opacity: .6;
+}
+.stopka p { margin: 0; }
+.stopka p + p { margin-top: 5px; }
+.stopka code { color: var(--zloto); }
+
+.stopka-przycisk {
+  display: block;
+  margin: 14px auto 0;
+  border: 1px solid currentColor;
+  padding: 5px 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.stopka-przycisk:hover { color: var(--zloto); }
+
+/* ── Report ticket + moderation backstage pass ─────────────────────── */
+
+dialog {
+  width: min(92vw, 510px);
+  border: 3px solid var(--zloto);
+  border-radius: 0;
+  padding: 0;
+  background: var(--karta);
+  color: var(--biel);
+  box-shadow: 8px 8px 0 var(--neon);
+}
+dialog::backdrop { background: rgba(9, 5, 22, .82); }
+
+.dialog-tresc { padding: 22px; }
+.dialog-etykieta {
+  margin: 0 0 5px;
+  color: var(--neon);
+  font: 800 .66rem/1 var(--dane);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+.dialog-tytul {
+  margin: 0;
+  color: var(--zloto);
+  font: 2rem/.95 var(--display);
+  text-transform: uppercase;
+}
+.dialog-opis { margin: 10px 0 16px; color: var(--mgla); font-size: .86rem; }
+.dialog-akcje { display: grid; gap: 8px; }
+.dialog-akcje button,
+.admin-form button,
+.admin-akcje button {
+  border: 2px solid var(--linia);
+  border-radius: 0;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--biel);
+  font: 700 .72rem/1 var(--dane);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dialog-akcje button:hover,
+.admin-form button:hover,
+.admin-akcje button:hover { border-color: var(--zloto); color: var(--zloto); }
+.dialog-zamknij { margin-top: 14px; text-align: right; }
+.dialog-zamknij button { border: 0; background: none; color: var(--mgla); cursor: pointer; }
+.dialog-status { min-height: 1.4em; color: var(--mieta); font-size: .78rem; }
+
+.admin-dialog { width: min(94vw, 720px); border-color: var(--neon); }
+.admin-dialog .dialog-tresc { padding: 0; }
+.admin-naglowek {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 3px solid var(--neon);
+  background: var(--noc);
+}
+.admin-naglowek .dialog-tytul { color: var(--neon); text-shadow: 2px 2px 0 var(--zloto); }
+.admin-naglowek .dialog-zamknij { margin-top: 0; }
+.admin-form { display: flex; gap: 8px; padding: 14px 22px; border-bottom: 2px solid var(--linia); }
+.admin-form input {
+  min-width: 0;
+  flex: 1;
+  border: 2px solid var(--linia);
+  border-radius: 0;
+  padding: 10px 12px;
+  background: var(--noc);
+  color: var(--biel);
+  font: .8rem var(--dane);
+}
+.admin-status { margin: 10px 22px; min-height: 1.3em; color: var(--neon); font-size: .78rem; }
+.admin-lista { max-height: min(58vh, 560px); overflow-y: auto; padding: 0 22px 22px; }
+.admin-wpis {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  padding: 13px 0;
+  border-top: 2px solid var(--linia);
+}
+.admin-wpis.ukryty { opacity: .62; }
+.admin-wpis strong { display: block; margin-top: 6px; font: 1.15rem/1 var(--display); text-transform: uppercase; }
+.admin-wpis small { display: block; margin-top: 6px; color: var(--mgla); font: .68rem var(--dane); }
+.admin-wpis .admin-powody { color: var(--zloto); }
+.admin-stempel { color: var(--mieta); font: 800 .62rem var(--dane); letter-spacing: .12em; }
+.admin-wpis.ukryty .admin-stempel { color: var(--neon); }
+.admin-akcje { display: flex; align-items: center; gap: 6px; }
+.admin-akcje .usun:hover { border-color: var(--neon); color: var(--neon); }
+.admin-pusto { color: var(--mgla); text-align: center; }
+
+:focus-visible { outline: 2px solid var(--zloto); outline-offset: 2px; }
+
+@media (max-width: 460px) {
+  .wrap { padding-top: 28px; }
+  .naglowek { margin-bottom: 26px; }
+  .limit-dzienny { grid-template-columns: 63px 1fr; margin-bottom: 26px; }
+  .limit-liczba { min-width: 0; padding-inline: 8px; font-size: 4rem; }
+  .limit-tresc { padding: 12px; }
+  .limit-etykieta { font-size: .56rem; }
+  .limit-tytul { font-size: 1.25rem; }
+  .limit-opis { font-size: .78rem; }
+  .jak-naglowek { display: block; }
+  .jak-opis { margin-top: 6px; }
+  .kroki { grid-template-columns: 1fr; }
+  .krok { display: grid; grid-template-columns: 38px 1fr; border-right: 0; border-bottom: 2px solid var(--linia); }
+  .krok:last-child { border-bottom: 0; }
+  .krok-nr { grid-row: 1 / span 2; margin: 2px 0 0; }
+  .wpis { gap: 12px; padding: 14px; }
+  .miejsce { padding-top: 0; }
+  .admin-form { flex-direction: column; }
+  .admin-wpis { grid-template-columns: 1fr; }
+  .admin-akcje { justify-content: stretch; }
+  .admin-akcje button { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

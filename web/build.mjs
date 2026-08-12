@@ -10,7 +10,10 @@ const OUT = path.join(DIR, 'dist');
 const watch = process.argv.includes('--watch');
 
 await fs.mkdir(OUT, { recursive: true });
-await fs.copyFile(path.join(SRC, 'index.html'), path.join(OUT, 'index.html'));
+await Promise.all([
+  fs.copyFile(path.join(SRC, 'index.html'), path.join(OUT, 'index.html')),
+  fs.copyFile(path.join(SRC, 'styles.css'), path.join(OUT, 'styles.css')),
+]);
 
 const opcje = {
   entryPoints: [path.join(SRC, 'app.ts')],

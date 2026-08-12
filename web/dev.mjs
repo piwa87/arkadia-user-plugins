@@ -92,6 +92,9 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/app.js') {
     return plik(res, path.join(OUT, 'app.js'), 'text/javascript; charset=utf-8');
   }
+  if (req.method === 'GET' && url.pathname === '/styles.css') {
+    return plik(res, path.join(SRC, 'styles.css'), 'text/css; charset=utf-8');
+  }
   if (req.method === 'GET' && url.pathname === '/favicon.ico') {
     res.writeHead(204).end();
     return;
