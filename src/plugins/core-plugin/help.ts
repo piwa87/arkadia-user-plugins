@@ -228,6 +228,17 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'xblekitni', desc: 'lever puzzle (Blekitnokrwisci)' },
       { cmd: 'xdru', desc: 'examine stone slabs puzzle' },
 
+      { section: 'BROKILON' },
+      { cmd: 'ha1 / ha2', desc: 'say the learned Brokilon password' },
+      { cmd: 'ql', desc: 'examine the golden tomb' },
+      { cmd: 'sjj', desc: 'open tombs and take golden keys' },
+      { cmd: 'klr / kll', desc: 'read inscription and use key in right / left lock' },
+      { cmd: 'xb', desc: 'loot the golden tomb' },
+      { cmd: 'szu', desc: 'open and search the golden tomb' },
+      { cmd: 'cut', desc: 'draw dagger, cut strap, sheathe dagger' },
+      { cmd: 'al!', desc: 'inspect Brokilon puzzle objects' },
+      { cmd: 'p1–p6', desc: 'search successive Brokilon puzzle objects' },
+
       { section: 'MISC' },
       { cmd: 'ze [dir]', desc: 'zerknij (quick look)' },
       { cmd: 'hi', desc: 'hide (schowaj)' },

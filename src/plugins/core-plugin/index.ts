@@ -1,6 +1,7 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import {
   setupBramy,
+  setupBrokilon,
   setupBronieAliases,
   setupBuklakAliases,
   setupColCialo,
@@ -17,8 +18,9 @@ import {
   createCombatState,
   setupGmcpCombat,
   setupHelpAliases,
-  setupJensEmotes,
   setupJensDobywanie,
+  setupJensEmotes,
+  setupJensOcenaSprzetu,
   setupPalenie,
   setupTorbaAliases,
   setupGertrudaEmotes,
@@ -78,6 +80,7 @@ import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 const TRIGGER_TAGS = [
   'antyflood',
   'bramy',
+  'brokilon',
   'ciosyKolory',
   'colCialo',
   'colEkwipunek',
@@ -104,6 +107,7 @@ const TRIGGER_TAGS = [
 ];
 
 let cleanupCombat: (() => void) | null = null;
+let cleanupBrokilon: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
 let cleanupAntyflood: (() => void) | null = null;
@@ -136,6 +140,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupBattleAliases(api);
   setupBindAliases(api);
   setupBramy(api);
+  cleanupBrokilon = setupBrokilon(api);
   setupBronieAliases(api);
   setupBuklakAliases(api);
   setupCiosyKolory(api);
@@ -193,6 +198,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     if (name === 'jens') {
       setupJensEmotes(api);
       setupJensDobywanie(api, dobywanieState);
+      setupJensOcenaSprzetu(api);
       cleanupPalenie = setupPalenie(api);
       cleanupTorba = setupTorbaAliases(api);
     } else if (name === 'gertruda') {
@@ -216,6 +222,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 export async function destroy(): Promise<void> {
   cleanupCombat?.();
   cleanupCombat = null;
+  cleanupBrokilon?.();
+  cleanupBrokilon = null;
   cleanupPalenie?.();
   cleanupPalenie = null;
   cleanupAtakPyk?.();

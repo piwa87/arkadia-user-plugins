@@ -1,4 +1,5 @@
 export { setupBramy } from './bramy';
+export { setupBrokilon } from './brokilon';
 export { setupBronieAliases } from './bronie';
 export { setupBuklakAliases } from './buklak';
 export { setupColCialo } from './colors/col_cialo';
@@ -16,6 +17,7 @@ export { createCombatState, setupGmcpCombat } from './gmcp-combat/combat-state';
 export { setupHelpAliases } from './help';
 export { setupJensEmotes } from './jens/emotes';
 export { setupJensDobywanie } from './jens/dobywanie';
+export { setupJensOcenaSprzetu } from './jens/ocena-sprzetu';
 export { setupPalenie } from './jens/palenie';
 export { setupTorbaAliases } from './jens/torba';
 export { setupGertrudaEmotes } from './gertruda/emotes';
