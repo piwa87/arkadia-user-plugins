@@ -190,14 +190,8 @@ export function setupBrokilon(api: PluginApi): () => void {
     'otworz trumne',
     'wez zloty klucz z trumny',
   ]);
-  registerSequenceAlias(api, /^klr$/i, [
-    'przeczytaj prawy napis',
-    'wloz zloty klucz do prawego zamka',
-  ]);
-  registerSequenceAlias(api, /^kll$/i, [
-    'przeczytaj lewy napis',
-    'wloz zloty klucz do lewego zamka',
-  ]);
+  registerSequenceAlias(api, /^klr$/i, ['przeczytaj prawy napis', 'wloz zloty klucz do prawego zamka']);
+  registerSequenceAlias(api, /^kll$/i, ['przeczytaj lewy napis', 'wloz zloty klucz do lewego zamka']);
   registerSequenceAlias(api, /^xb$/i, [
     'otworz grobowiec',
     'wez wszystkie zbroje z grobowca',
@@ -219,6 +213,36 @@ export function setupBrokilon(api: PluginApi): () => void {
   for (const [alias, command] of Object.entries(searchAliases)) {
     registerTextAlias(api, new RegExp(`^${alias}$`, 'i'), command);
   }
+
+  // brok_arrow1: arrow hits the ground
+  registerTokenGate(
+    api,
+    'strzala',
+    /^W ziemie wbila sie z niesamowita predkoscia.*strzala\./i,
+    (line) => {
+      const prefix = '  ***  STRZALA  ***  ';
+      line.replace([0, line.text.length], prefix + line.text);
+      line.color([0, prefix.length], ansi37);
+      api.command.send('play_tink');
+      return line;
+    },
+    TAG,
+  );
+
+  // brok_arrow2: arrow approaches
+  registerTokenGate(
+    api,
+    'strzala',
+    /^(?:Nagle jakas|Nadlatujaca ze swistem).*strzala .*\./i,
+    (line) => {
+      const prefix = '  ***  STRZALA  ***  ';
+      line.replace([0, line.text.length], prefix + line.text);
+      line.color([0, prefix.length], ansi37);
+      api.command.send('play_tink');
+      return line;
+    },
+    TAG,
+  );
 
   return () => {
     if (tickWarningTimer) clearTimeout(tickWarningTimer);

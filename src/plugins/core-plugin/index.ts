@@ -20,6 +20,7 @@ import {
   setupHelpAliases,
   setupJensDobywanie,
   setupJensEmotes,
+  setupJensMisc,
   setupJensOcenaSprzetu,
   setupPalenie,
   setupTorbaAliases,
@@ -42,6 +43,7 @@ import {
   setupMgfnAlias,
   setupMieszekAliases,
   setupMiscAliases,
+  setupGhoule,
   setupMovementAliases,
   setupKeyboardBindings,
   teardownKeyboardBindings,
@@ -51,6 +53,7 @@ import {
   setupGlassSounds,
   setupPingSounds,
   setupStatsAliases,
+  setupStun,
   setupTeamAliases,
   setupTeam,
   destroyTeam,
@@ -66,6 +69,7 @@ import {
   setupAtakiTriggers,
   setupCombatAliases,
   setupKillAlias,
+  setupKompas,
   setupPartyShieldAliases,
   setupPrzelamAliases,
   setupWalker,
@@ -92,9 +96,12 @@ const TRIGGER_TAGS = [
   'mod_team',
   'mod_team:wylap',
   'glassSounds',
+  'ghoule',
   'kondycje',
+  'kompas',
   'miscTriggers',
   'pingSounds',
+  'stun',
   'tmpk',
   'walkaAliasy',
   'zmeczenie',
@@ -112,6 +119,7 @@ let cleanupBrokilon: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
 let cleanupAntyflood: (() => void) | null = null;
+let cleanupGhoule: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
 let cleanupHpBar: (() => void) | null = null;
@@ -137,6 +145,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   cleanupAtakPyk = setupAtakPyk(api);
   cleanupAntyflood = setupAntyflood(api);
+  cleanupGhoule = setupGhoule(api);
   cleanupAtakiTriggers = setupAtakiTriggers(api, kondycjeState);
   setupBattleAliases(api);
   setupBindAliases(api);
@@ -154,6 +163,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Weapon-drawing (dobywanie) aliases are character-specific and registered in
   // onCharName below; the kill alias only needs the shared drawn/drawCurrent state.
   setupKillAlias(api, targets, dobywanieState);
+  setupKompas(api);
   setupPrzelamAliases(api);
   cleanupDoo = setupDooAliases(api);
   setupEquipmentAliases(api);
@@ -181,6 +191,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupPingSounds(api);
   setupPostAliases(api);
   setupStatsAliases(api);
+  setupStun(api);
   setupTeamAliases(api);
   setupTeam(api); // mod_team: declensions, shield/attack banners, leadership, wylap
   setupTmpk(api);
@@ -200,6 +211,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     if (name === 'jens') {
       setupJensEmotes(api);
       setupJensDobywanie(api, dobywanieState);
+      setupJensMisc(api);
       setupJensOcenaSprzetu(api);
       cleanupPalenie = setupPalenie(api);
       cleanupTorba = setupTorbaAliases(api);
@@ -232,6 +244,8 @@ export async function destroy(): Promise<void> {
   cleanupAtakPyk = null;
   cleanupAntyflood?.();
   cleanupAntyflood = null;
+  cleanupGhoule?.();
+  cleanupGhoule = null;
   cleanupWalker?.();
   cleanupWalker = null;
   cleanupZiola?.();

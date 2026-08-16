@@ -34,22 +34,26 @@ export function setupMiscAliases(api: PluginApi): void {
 
       api.output.print(`--> Szukam: ${pattern}`);
 
-      api.triggers.registerOneTime(regex, (line, triggerMatches) => {
-        const range = findMatchRange(line.text, triggerMatches?.[0] ?? '');
-        if (range) line.color(range, matchColor);
+      api.triggers.registerOneTime(
+        regex,
+        (line, triggerMatches) => {
+          const range = findMatchRange(line.text, triggerMatches?.[0] ?? '');
+          if (range) line.color(range, matchColor);
 
-        api.command.send('play_tink');
+          api.command.send('play_tink');
 
-        api.output.print('');
-        for (const artLine of artLines) {
-          const buf = new api.AnsiAwareBuffer(artLine);
-          buf.color([0, artLine.length], artColor);
-          api.output.print(buf);
-        }
-        api.output.print('');
+          api.output.print('');
+          for (const artLine of artLines) {
+            const buf = new api.AnsiAwareBuffer(artLine);
+            buf.color([0, artLine.length], artColor);
+            api.output.print(buf);
+          }
+          api.output.print('');
 
-        return line;
-      }, TEMP_TRIGGER_TAG);
+          return line;
+        },
+        TEMP_TRIGGER_TAG,
+      );
 
       return true;
     });
