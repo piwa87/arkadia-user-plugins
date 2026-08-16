@@ -116,11 +116,160 @@ describe('c / z attack aliases', () => {
     expect(api.command.send).toHaveBeenCalledWith('zabij kota');
   });
 
-  it('no longer registers the cc aliases', async () => {
+  it('cc does zabij + wskaz + team order for leader', async () => {
+    const { api, aliases } = createMockApi();
+    // Leader: team with >1 member means we are the leader.
+    vi.spyOn(api.team, 'getMembers').mockReturnValue(['jens', 'gertruda']);
+    vi.spyOn(api.team, 'getLeaderId').mockReturnValue(1);
+    vi.spyOn(api.team, 'getPlayerNum').mockReturnValue(1);
+    await init(api);
+
+    const ccAlias = aliases.find((a) => a.pattern.test('cc'));
+    expect(ccAlias).toBeDefined();
+    ccAlias!.callback(['cc'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('zabij INIT');
+    expect(api.command.send).toHaveBeenCalledWith('wskaz INIT jako cel ataku');
+    expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac INIT');
+  });
+
+  it('cc for follower skips team order, uses own target', async () => {
+    const { api, aliases } = createMockApi();
+    vi.spyOn(api.team, 'getMembers').mockReturnValue(['jens', 'gertruda']);
+    vi.spyOn(api.team, 'getLeaderId').mockReturnValue(2);
+    vi.spyOn(api.team, 'getPlayerNum').mockReturnValue(1);
+    await init(api);
+
+    const ccAlias = aliases.find((a) => a.pattern.test('cc'));
+    expect(ccAlias).toBeDefined();
+    ccAlias!.callback(['cc'] as unknown as RegExpMatchArray);
+    // cc always attacks the user's own target, not the leader's
+    expect(api.command.send).toHaveBeenCalledWith('zabij INIT');
+    expect(api.command.send).not.toHaveBeenCalledWith('zabij cel ataku');
+    expect(api.command.send).not.toHaveBeenCalledWith('wskaz ', expect.anything());
+    expect(api.command.send).not.toHaveBeenCalledWith('rozkaz druzynie', expect.anything());
+  });
+
+  it('v without arg drops cover then breaks', async () => {
     const { api, aliases } = createMockApi();
     await init(api);
 
-    expect(aliases.find((a) => a.pattern.test('cc'))).toBeUndefined();
-    expect(aliases.find((a) => a.pattern.test('cc kota'))).toBeUndefined();
+    const vAlias = aliases.find((a) => a.pattern.test('v'));
+    expect(vAlias).toBeDefined();
+    vAlias!.callback(['v'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+  });
+
+  it('v <name> drops cover then breaks named target', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    const vAlias = aliases.find((a) => a.pattern.test('v troll'));
+    expect(vAlias).toBeDefined();
+    vAlias!.callback(['v troll', 'troll'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone troll');
+  });
+
+  it('v for follower also attacks after break', async () => {
+    const { api, aliases } = createMockApi();
+    vi.spyOn(api.team, 'getMembers').mockReturnValue(['lider', 'jens']);
+    vi.spyOn(api.team, 'getLeaderId').mockReturnValue(1);
+    vi.spyOn(api.team, 'getPlayerNum').mockReturnValue(2);
+    await init(api);
+
+    const vAlias = aliases.find((a) => a.pattern.test('v'));
+    expect(vAlias).toBeDefined();
+    vAlias!.callback(['v'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    // Follower also attacks the leader's target after breaking
+    expect(api.command.send).toHaveBeenCalledWith('c');
+  });
+
+  it('vv (solo) drops cover then breaks then orders team attack', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    const vvAlias = aliases.find((a) => a.pattern.test('vv'));
+    expect(vvAlias).toBeDefined();
+    vvAlias!.callback(['vv'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac cel ataku');
+  });
+
+  it('vv <name> (solo) drops cover then breaks and orders team attack on named target', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    const vvAlias = aliases.find((a) => a.pattern.test('vv troll'));
+    expect(vvAlias).toBeDefined();
+    vvAlias!.callback(['vv troll', 'troll'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone troll');
+    expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac troll');
+  });
+
+  it('vv (follower) orders team FIRST then drops cover + breaks + c', async () => {
+    const { api, aliases } = createMockApi();
+    vi.spyOn(api.team, 'getMembers').mockReturnValue(['lider', 'jens']);
+    vi.spyOn(api.team, 'getLeaderId').mockReturnValue(1);
+    vi.spyOn(api.team, 'getPlayerNum').mockReturnValue(2);
+    await init(api);
+
+    const vvAlias = aliases.find((a) => a.pattern.test('vv'));
+    expect(vvAlias).toBeDefined();
+    vvAlias!.callback(['vv'] as unknown as RegExpMatchArray);
+    // Follower orders team attack FIRST
+    expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac cel ataku');
+    // Then drops cover + breaks + attacks
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('c');
+  });
+
+  it('vc (solo) breaks then kills then checks condition', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    const vcAlias = aliases.find((a) => a.pattern.test('vc'));
+    expect(vcAlias).toBeDefined();
+    vcAlias!.callback(['vc'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
+    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('zabij cel ataku');
+    expect(api.command.send).toHaveBeenCalledWith('kondycja wszystkich');
+  });
+
+  it('vc (follower) checks condition FIRST then v + c + separator', async () => {
+    const { api, aliases } = createMockApi();
+    vi.spyOn(api.team, 'getMembers').mockReturnValue(['lider', 'jens']);
+    vi.spyOn(api.team, 'getLeaderId').mockReturnValue(1);
+    vi.spyOn(api.team, 'getPlayerNum').mockReturnValue(2);
+    await init(api);
+
+    const vcAlias = aliases.find((a) => a.pattern.test('vc'));
+    expect(vcAlias).toBeDefined();
+    vcAlias!.callback(['vc'] as unknown as RegExpMatchArray);
+    // Follower: kondycja ALLES FIRST
+    expect(api.command.send).toHaveBeenCalledWith('kondycja wszystkich');
+    // Then v (which drops cover + breaks)
+    expect(api.command.send).toHaveBeenCalledWith('v');
+    // Then c (attacks the leader's target)
+    expect(api.command.send).toHaveBeenCalledWith('c');
+  });
+
+  it('cv is a no-op when wrog_zlamany is empty', async () => {
+    const { api, aliases } = createMockApi();
+    await init(api);
+
+    // When wrog_zlamany is empty, cv returns true without sending anything
+    const cvAlias = aliases.find((a) => a.pattern.test('cv'));
+    expect(cvAlias).toBeDefined();
+    const result = cvAlias!.callback(['cv'] as unknown as RegExpMatchArray);
+    expect(result).toBe(true);
+    // No commands should have been sent since there's no wrog_zlamany
+    expect(api.command.send).not.toHaveBeenCalledWith('zabij ', expect.anything());
   });
 });

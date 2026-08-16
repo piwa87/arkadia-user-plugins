@@ -57,6 +57,7 @@ export { setupAtakiTriggers } from './walka/atak_triggers';
 export { setupCombatAliases } from './walka/walka_aliasy';
 export { setupKillAlias } from './walka/c';
 export { setupPartyShieldAliases } from './walka/walka_zaslony';
+export { setupPrzelamAliases } from './walka/przelam_aliasy';
 export { setupWalker } from './walker';
 export { setupZiolaAliases } from './ziola';
 export { storage } from '../../lib/storage';

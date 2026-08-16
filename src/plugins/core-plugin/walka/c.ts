@@ -59,12 +59,26 @@ export function setupKillAlias(api: PluginApi, targets: string[], weaponState: D
     api.command.send(`/z ${matches?.[1]}`);
     return true;
   });
+
+  // cc — same as c but adds 'rozkaz druzynie zaatakowac' for leader.
+  // NOTE: unlike `c`, `cc` always attacks the user's own target (targets[0]),
+  // NOT the leader's marked target. The follower XML says `zabij @CEL`.
+  api.aliases.register(/^cc$/, () => {
+    ensureWeaponDrawn(api, weaponState);
+    const mode = getMode(api);
+    api.command.send(`zabij ${targets[0]}`);
+    if (mode === 'leader') {
+      api.command.send(`wskaz ${targets[0]} jako cel ataku`);
+      api.command.send(`rozkaz druzynie zaatakowac ${targets[0]}`);
+    }
+    return true;
+  });
 }
 
 type Mode = 'solo' | 'leader' | 'follower';
 
 /** Current team role. `getMembers()` includes the player, so >1 means a team. */
-function getMode(api: PluginApi): Mode {
+export function getMode(api: PluginApi): Mode {
   const members = api.team.getMembers() ?? [];
   if (members.length <= 1) return 'solo';
   const leaderId = api.team.getLeaderId();

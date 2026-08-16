@@ -67,6 +67,7 @@ import {
   setupCombatAliases,
   setupKillAlias,
   setupPartyShieldAliases,
+  setupPrzelamAliases,
   setupWalker,
   setupZiolaAliases,
   storage,
@@ -153,6 +154,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // Weapon-drawing (dobywanie) aliases are character-specific and registered in
   // onCharName below; the kill alias only needs the shared drawn/drawCurrent state.
   setupKillAlias(api, targets, dobywanieState);
+  setupPrzelamAliases(api);
   cleanupDoo = setupDooAliases(api);
   setupEquipmentAliases(api);
   setupEventTriggers(api);

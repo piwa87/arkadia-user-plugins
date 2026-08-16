@@ -86,6 +86,11 @@ export function getTeamZlamany(): string {
   return teamZlamany;
 }
 
+/** Clear the last-broken-enemy reference (e.g. after `v` acted on it). */
+export function clearWrogZlamany(): void {
+  wrogZlamany = '';
+}
+
 /** CMUD `lamanieres!` — drop the break bookkeeping. */
 function resetLamanieState(): void {
   wrogZlamany = '';

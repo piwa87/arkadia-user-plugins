@@ -69,10 +69,9 @@ export function setupEquipmentAliases(api: PluginApi): void {
     return true;
   });
 
-  // #region wsu [item] - try to put ring on each finger
+  // #region wsu [item] - try to put ring on each finger (default: pierscien)
   api.aliases.register(/^wsu(?:\s+(.+))?$/, (matches) => {
-    const item = matches?.[1]?.trim();
-    if (!item) return true;
+    const item = matches?.[1]?.trim() || 'pierscien';
     api.command.send(`wsun ${item} na maly palec`);
     api.command.send(`wsun ${item} na palec wskazujacy`);
     api.command.send(`wsun ${item} na palec srodkowy`);
