@@ -26,6 +26,20 @@ export function setupBrokilon(api: PluginApi): () => void {
   let haslo1 = storage.get<string>(HASLO1_KEY) ?? DEFAULT_HASLO1;
   const haslo2 = '';
   let tickWarningTimer: ReturnType<typeof setTimeout> | null = null;
+  let brokilonEnabled = true;
+
+  // ── Module toggle: brok+ / brok- ──────────────────────────────────────────
+  api.aliases.register(/^brok\+$/i, () => {
+    brokilonEnabled = true;
+    api.output.print('[Brokilon] module enabled');
+    return true;
+  });
+
+  api.aliases.register(/^brok-$/i, () => {
+    brokilonEnabled = false;
+    api.output.print('[Brokilon] module disabled');
+    return true;
+  });
 
   const printColored = (text: string, color: typeof ansi5): void => {
     const buffer = new api.AnsiAwareBuffer(text);
@@ -60,6 +74,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     'grobowiec',
     /^Zamkniety zloty grobowiec\./,
     (line) => {
+      if (!brokilonEnabled) return line;
       line.color([0, line.text.length], color62);
       setBind(api, 'otworz grobowiec;przeszukaj grobowiec');
       return line;
@@ -72,6 +87,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     ['przedmiot', 'kluczyk'],
     /^(?:.*znajduje jakis niewielki przedmiot|Znajdujesz w niej metalowy kluczyk)/,
     (line) => {
+      if (!brokilonEnabled) return line;
       printBanner('   K L U C Z Y K  !!!', ansi5);
       return line;
     },
@@ -83,6 +99,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     'kukielka',
     /Nagle.*podlatuje w gore, robi pol salta i zawisa bezwladnie, przywiaza\w+ do drzewa, by dyndac jak kukielka\./,
     (line) => {
+      if (!brokilonEnabled) return line;
       for (let i = 0; i < 3; i++) {
         printColored('          ktos zawisl          ', ansi37);
       }
@@ -97,6 +114,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     ['Isserath', 'Galiaar', 'Rzemienna'],
     /(?:Isserath|Galiaar|Rzemienna petla)/,
     (line) => {
+      if (!brokilonEnabled) return line;
       line.color([0, line.text.length], color5);
       return line;
     },
@@ -108,6 +126,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     'zgrzytem',
     /^Po wlozeniu drugiego klucza wrota otwieraja sie z ciezkim zgrzytem!/,
     (line) => {
+      if (!brokilonEnabled) return line;
       api.command.send('napelnij lampe olejem');
       api.command.send('sus2');
       printBanner('     1 0 0       S E K U N D     !!!', ansi5);
@@ -129,6 +148,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     'Imie',
     /\s*Imie ich bylo (.*),/,
     (line, matches) => {
+      if (!brokilonEnabled) return line;
       haslo1 = matches[1].trim();
       try {
         storage.set(HASLO1_KEY, haslo1);
@@ -142,65 +162,115 @@ export function setupBrokilon(api: PluginApi): () => void {
   );
 
   api.aliases.register(/^ha1$/i, () => {
+    if (!brokilonEnabled) return true;
     api.command.send(`powiedz ${haslo1}`);
     return true;
   });
 
   api.aliases.register(/^ha2$/i, () => {
+    if (!brokilonEnabled) return true;
     api.command.send(`powiedz ${haslo2}`);
     return true;
   });
 
-  registerSequenceAlias(api, /^al!$/i, [
-    'ob lewy posag',
-    'ob dlon',
-    'ob prawy posag',
-    'ob ksiege',
-    'ob wrota',
-    'ob kolumny',
-    'ob dziurke?',
-    'ob polke',
-    'ob posadzke',
-    'ob kafelki',
-    'ob obluzowany kafelek',
-    'ob kafelek',
-    'ob piedestaly',
-    'ob czwarty puginal',
-    'ob czwarty piedestal',
-    'ob piaty piedestal',
-    'ob srodkowy posag',
-    'ob miecz',
-    'ob rekojesc',
-    'ob helm',
-    'ob dlonie',
-    'ob uszy',
-    'ob oczy',
-    'ob usta',
-    'ob stopy',
-    'ob buty',
-    'ob glowice',
-  ]);
+  api.aliases.register(/^al!$/i, () => {
+    if (!brokilonEnabled) return true;
+    for (const cmd of [
+      'ob lewy posag',
+      'ob dlon',
+      'ob prawy posag',
+      'ob ksiege',
+      'ob wrota',
+      'ob kolumny',
+      'ob dziurke?',
+      'ob polke',
+      'ob posadzke',
+      'ob kafelki',
+      'ob obluzowany kafelek',
+      'ob kafelek',
+      'ob piedestaly',
+      'ob czwarty puginal',
+      'ob czwarty piedestal',
+      'ob piaty piedestal',
+      'ob srodkowy posag',
+      'ob miecz',
+      'ob rekojesc',
+      'ob helm',
+      'ob dlonie',
+      'ob uszy',
+      'ob oczy',
+      'ob usta',
+      'ob stopy',
+      'ob buty',
+      'ob glowice',
+    ]) {
+      api.command.send(cmd);
+    }
+    return true;
+  });
 
-  registerTextAlias(api, /^ql$/i, 'ob grobowiec');
-  registerSequenceAlias(api, /^sjj$/i, [
-    'otworz grobowiec',
-    'wez zloty klucz z grobowca',
-    'otworz sarkofag',
-    'wez zloty klucz z sarkofagu',
-    'otworz trumne',
-    'wez zloty klucz z trumny',
-  ]);
-  registerSequenceAlias(api, /^klr$/i, ['przeczytaj prawy napis', 'wloz zloty klucz do prawego zamka']);
-  registerSequenceAlias(api, /^kll$/i, ['przeczytaj lewy napis', 'wloz zloty klucz do lewego zamka']);
-  registerSequenceAlias(api, /^xb$/i, [
-    'otworz grobowiec',
-    'wez wszystkie zbroje z grobowca',
-    'odloz je',
-    'wez wszystko z grobowca',
-    'odloz szczatki',
-  ]);
-  registerSequenceAlias(api, /^szu$/i, ['otworz grobowiec', 'przeszukaj grobowiec']);
-  registerSequenceAlias(api, /^cut$/i, ['dobs', 'przetnij rzemien', 'opus']);
+  api.aliases.register(/^ql$/i, () => {
+    if (!brokilonEnabled) return true;
+    api.command.send('ob grobowiec');
+    return true;
+  });
+
+  api.aliases.register(/^sjj$/i, () => {
+    if (!brokilonEnabled) return true;
+    for (const cmd of [
+      'otworz grobowiec',
+      'wez zloty klucz z grobowca',
+      'otworz sarkofag',
+      'wez zloty klucz z sarkofagu',
+      'otworz trumne',
+      'wez zloty klucz z trumny',
+    ]) {
+      api.command.send(cmd);
+    }
+    return true;
+  });
+
+  api.aliases.register(/^klr$/i, () => {
+    if (!brokilonEnabled) return true;
+    api.command.send('przeczytaj prawy napis');
+    api.command.send('wloz zloty klucz do prawego zamka');
+    return true;
+  });
+
+  api.aliases.register(/^kll$/i, () => {
+    if (!brokilonEnabled) return true;
+    api.command.send('przeczytaj lewy napis');
+    api.command.send('wloz zloty klucz do lewego zamka');
+    return true;
+  });
+
+  api.aliases.register(/^xb$/i, () => {
+    if (!brokilonEnabled) return true;
+    const cmds = [
+      'otworz grobowiec',
+      'wez wszystkie zbroje z grobowca',
+      'odloz je',
+      'wez wszystko z grobowca',
+      'odloz szczatki',
+    ];
+    for (const cmd of cmds) api.command.send(cmd);
+    return true;
+  });
+
+  api.aliases.register(/^szu$/i, () => {
+    if (!brokilonEnabled) return true;
+    api.command.send('otworz grobowiec');
+    api.command.send('przeszukaj grobowiec');
+    return true;
+  });
+
+  api.aliases.register(/^cut$/i, () => {
+    if (!brokilonEnabled) return true;
+    for (const cmd of ['dobs', 'przetnij rzemien', 'opus']) {
+      api.command.send(cmd);
+    }
+    return true;
+  });
 
   const searchAliases: Record<string, string> = {
     p1: 'przeszukaj dlon',
@@ -211,7 +281,11 @@ export function setupBrokilon(api: PluginApi): () => void {
     p6: 'przeszukaj piedestaly',
   };
   for (const [alias, command] of Object.entries(searchAliases)) {
-    registerTextAlias(api, new RegExp(`^${alias}$`, 'i'), command);
+    api.aliases.register(new RegExp(`^${alias}$`, 'i'), () => {
+      if (!brokilonEnabled) return true;
+      api.command.send(command);
+      return true;
+    });
   }
 
   // brok_arrow1: arrow hits the ground
@@ -220,6 +294,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     'strzala',
     /^W ziemie wbila sie z niesamowita predkoscia.*strzala\./i,
     (line) => {
+      if (!brokilonEnabled) return line;
       const prefix = '  ***  STRZALA  ***  ';
       line.replace([0, line.text.length], prefix + line.text);
       line.color([0, prefix.length], ansi37);
@@ -235,6 +310,7 @@ export function setupBrokilon(api: PluginApi): () => void {
     'strzala',
     /^(?:Nagle jakas|Nadlatujaca ze swistem).*strzala .*\./i,
     (line) => {
+      if (!brokilonEnabled) return line;
       const prefix = '  ***  STRZALA  ***  ';
       line.replace([0, line.text.length], prefix + line.text);
       line.color([0, prefix.length], ansi37);

@@ -32,7 +32,9 @@ export { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczen
 export { setupLampAliases } from './lampa';
 export { setupLocationsAliases } from './locations';
 export { setupLootAliases } from './loot';
+export { setupLootShitAliases } from './loot-shit';
 export { setupMapAliases } from './map';
+export { setupMorze } from './morze';
 export { megaphone, setupMgfnAlias } from './mgfn';
 export { setupMieszekAliases } from './mieszek';
 export { setupMiscAliases } from './misc';
@@ -63,6 +65,6 @@ export { setupKillAlias } from './walka/c';
 export { setupPartyShieldAliases } from './walka/walka_zaslony';
 export { setupPrzelamAliases } from './walka/przelam_aliasy';
 export { setupWalker } from './walker';
-export { setupZiolaAliases } from './ziola';
+export { setupZiolaAliases } from './ziola/index';
 export { storage } from '../../lib/storage';
 export { onCharName } from '../../lib/getCharName';

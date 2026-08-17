@@ -1,22 +1,20 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { withDelay } from '../../lib/withDelay';
-import { notify } from '../../lib/notifications';
-import { registerTextAlias } from '../../lib/registerTextAlias';
-
-const BAG_COUNT = 6;
+import { withDelay } from '../../../lib/withDelay';
+import { notify } from '../../../lib/notifications';
+import { pakujZiola } from './pakuj';
 
 const DELAY_MIN = 6123;
 const DELAY_MAX = 6650;
 
-function pakujZiola(api: PluginApi, bagCount = BAG_COUNT): void {
-  api.command.send('otworz woreczki', false);
-  for (let i = 1; i <= bagCount; i++) {
-    api.command.send(`wloz ziola do ${i}. woreczka`, false);
-  }
-  api.command.send('zamknij woreczki', false);
-}
-
-export function setupZiolaAliases(api: PluginApi): () => void {
+/**
+ * Register aliases for herb gathering, packing, and batch harvesting.
+ *
+ * - `/zio_szukaj` — search for herbs twice
+ * - `/zio_pakuj[N]` — pack herbs into N bags (default 6)
+ * - `zii [direction] [count]` — go direction, search & pack, repeat N times
+ * - `zx[N]` — shorthand for `/zio_pakuj[N]`
+ */
+export function setupGatherAliases(api: PluginApi): string[] {
   const ids: string[] = [];
 
   ids.push(
@@ -29,7 +27,7 @@ export function setupZiolaAliases(api: PluginApi): () => void {
 
   ids.push(
     api.aliases.register(/^\/zio_pakuj(\d+)?$/i, (matches) => {
-      const bagCount = matches?.[1] ? parseInt(matches[1], 10) : BAG_COUNT;
+      const bagCount = matches?.[1] ? parseInt(matches[1], 10) : undefined;
       pakujZiola(api, bagCount);
       return true;
     }),
@@ -39,6 +37,7 @@ export function setupZiolaAliases(api: PluginApi): () => void {
     api.aliases.register(/^zii(?:\s+(\S+)(?:\s+(\d+))?)?$/i, (matches) => {
       const kier = matches?.[1] ?? 'idz';
       const ile = matches?.[2] ? parseInt(matches[2], 10) : 4;
+
       function step(remaining: number): void {
         if (remaining <= 0) {
           pakujZiola(api);
@@ -58,26 +57,6 @@ export function setupZiolaAliases(api: PluginApi): () => void {
     }),
   );
 
-  // --- Herb interface aliases ---
-  // Zestawy
-  ids.push(registerTextAlias(api, /^hp\+$/i, '/zestaw hp'));
-  ids.push(registerTextAlias(api, /^mana\+$/i, '/zestaw mana'));
-  ids.push(registerTextAlias(api, /^st\+$/i, '/zestaw sterydy'));
-  ids.push(registerTextAlias(api, /^zm\+$/i, '/zestaw zm'));
-
-  // Pozostale
-  ids.push(registerTextAlias(api, /^obz$/i, '/ziola'));
-  ids.push(registerTextAlias(api, /^zi$/i, '/zio_szukaj'));
-
-  ids.push(
-    api.aliases.register(/^obz!$/i, () => {
-      api.command.send('wyj woreczki');
-      api.command.send('/ziola');
-      api.command.send('/ziola_buduj');
-      return true;
-    }),
-  );
-
   ids.push(
     api.aliases.register(/^zx(\d+)?$/i, (matches) => {
       const n = matches?.[1] ?? '';
@@ -86,7 +65,5 @@ export function setupZiolaAliases(api: PluginApi): () => void {
     }),
   );
 
-  return () => {
-    ids.forEach((id) => api.aliases.remove(id));
-  };
+  return ids;
 }

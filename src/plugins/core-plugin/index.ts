@@ -38,7 +38,9 @@ import {
   setupLampAliases,
   setupLocationsAliases,
   setupLootAliases,
+  setupLootShitAliases,
   setupMapAliases,
+  setupMorze,
   megaphone,
   setupMgfnAlias,
   setupMieszekAliases,
@@ -100,6 +102,7 @@ const TRIGGER_TAGS = [
   'kondycje',
   'kompas',
   'miscTriggers',
+  'morze',
   'pingSounds',
   'stun',
   'tmpk',
@@ -120,6 +123,7 @@ let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
 let cleanupAntyflood: (() => void) | null = null;
 let cleanupGhoule: (() => void) | null = null;
+let cleanupMorze: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
 let cleanupHpBar: (() => void) | null = null;
@@ -176,12 +180,14 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupKondycjeAliases(api, kondycjeState);
   setupKondycjeTriggers(api, kondycjeState);
   cleanupHpBar = setupHpBar(api);
+  cleanupMorze = setupMorze(api);
   setupLampAliases(api);
   cleanupLocationTriggers = setupLocationTriggers(api);
   setupLocationsAliases(api);
   setupLootAliases(api);
+  setupLootShitAliases(api);
   setupMapAliases(api);
-  setupMgfnAlias(api);
+    setupMgfnAlias(api);
   setupMieszekAliases(api);
   setupMiscAliases(api);
   setupMiscTriggers(api);
@@ -246,6 +252,8 @@ export async function destroy(): Promise<void> {
   cleanupAntyflood = null;
   cleanupGhoule?.();
   cleanupGhoule = null;
+  cleanupMorze?.();
+  cleanupMorze = null;
   cleanupWalker?.();
   cleanupWalker = null;
   cleanupZiola?.();

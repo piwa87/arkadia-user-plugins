@@ -21,7 +21,7 @@ describe('per-line trigger budget', () => {
     const dev = createMockApi();
     await initDev(dev.api);
 
-    expect(core.triggers.length).toBeLessThanOrEqual(8);
+    expect(core.triggers.length).toBeLessThanOrEqual(11);
     expect(dev.triggers.length).toBe(0);
     expect(core.oneTimeTriggers).toHaveLength(0);
     expect(dev.oneTimeTriggers).toHaveLength(0);

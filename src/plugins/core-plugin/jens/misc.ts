@@ -5,6 +5,12 @@ import type { PluginApi } from '@arkadia/plugin-types';
  * and door unlocking with the signet ring.
  */
 export function setupJensMisc(api: PluginApi): void {
+  // tl - wrinkled envelope (Jens-specific mail title)
+  api.aliases.register(/^tl$/i, () => {
+    api.command.send('Pomieta koperta');
+    return true;
+  });
+
   // hide+ - hide from association listing and stash signet ring
   api.aliases.register(/^hide\+$/, () => {
     api.command.send('opcje stowarzyszenie -');

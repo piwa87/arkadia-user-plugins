@@ -10,7 +10,7 @@ export function setupHelpAliases(api: PluginApi): void {
 
     const rows: HelpEntry[] = [
       { section: 'HELP' },
-      { cmd: '?alias', desc: 'show this help' },
+      { cmd: 'help!', desc: 'show this help' },
 
       { section: 'COMBAT' },
       { cmd: 'c', desc: 'attack target 1 (zabij CEL)' },
@@ -60,6 +60,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'zb!', desc: 'toggle armor on/off' },
       { cmd: 'macka!', desc: 'evaluate one-handed mace then drop' },
       { cmd: 'miecz!', desc: 'evaluate one-handed sword then drop' },
+      { cmd: 'wpr <what>', desc: 'swap gemstone in wielded weapon' },
 
       { section: 'EQUIPMENT / BAGS' },
       { cmd: 'la+', desc: 'lamp on sequence' },
@@ -144,6 +145,9 @@ export function setupHelpAliases(api: PluginApi): void {
       { section: 'MAIL' },
       { cmd: 'pl<N>', desc: 'read mail message N' },
       { cmd: 'li1–li4', desc: 'mail categories: 1=unread 2=received 3=sent 4=unsent' },
+      { cmd: 'sms <text>', desc: 'quick mail: write, message, tl, send' },
+      { cmd: 'send', desc: 'send animal' },
+      { cmd: 'fw / fwd <args>', desc: 'forward mail (F/f)' },
 
       { section: 'TRAVEL / ARRIVAL' },
       { cmd: 'op+', desc: 'auto-board when transport arrives' },
@@ -156,6 +160,19 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'opw', desc: 'board carriage / wagon / coach' },
       { cmd: 'wzb', desc: 'jump overboard and check gps' },
       { cmd: 'kigge', desc: 'board ship, loot, disembark' },
+
+      { section: 'SEA / DIVING' },
+      { cmd: 'wyp!', desc: 'emergency surface (resets all flags)' },
+      { cmd: 'nur! <N>', desc: 'dive to depth N with auto-dive' },
+      { cmd: 'nurek!', desc: 'pearl diver mode (depth 3, auto-per8 on bottom)' },
+      { cmd: 'nurk <dir>', desc: 'full pearl routine: dive 3, search, move, search, surface 3' },
+      { cmd: 'per! <dir>', desc: 'move then 5x search bottom' },
+      { cmd: 'per4 / per8', desc: 'search bottom 4x / 8x' },
+      { cmd: 'perly!', desc: 'open 5 shells with dagger, take pearls' },
+      { cmd: 'wrak!', desc: 'search bottom for wreck (8x)' },
+      { cmd: 'wodor! <dir>', desc: 'seaweed gathering mode in direction' },
+      { cmd: 'bur!', desc: 'amber searching loop (4x search per step)' },
+      { cmd: 'qu', desc: 'quit all sea modes' },
 
       { section: 'TEAM' },
       { cmd: 'ps', desc: 'introduce yourself' },
@@ -229,6 +246,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'xdru', desc: 'examine stone slabs puzzle' },
 
       { section: 'BROKILON' },
+      { cmd: 'brok+ / brok-', desc: 'enable / disable Brokilon trigger set' },
       { cmd: 'ha1 / ha2', desc: 'say the learned Brokilon password' },
       { cmd: 'ql', desc: 'examine the golden tomb' },
       { cmd: 'sjj', desc: 'open tombs and take golden keys' },
@@ -347,7 +365,7 @@ export function setupHelpAliases(api: PluginApi): void {
     printBorder('─'.repeat(lineW));
   };
 
-  api.aliases.register(/^\?alias$/, () => {
+  api.aliases.register(/^help!$/i, () => {
     printHelp();
     return true;
   });
