@@ -26,14 +26,6 @@ export function setupLootAliases(api: PluginApi): void {
     });
   }
 
-  // wyt1–wyt99 → wytnij wszystko z N. ciala
-  for (let n = 1; n <= 99; n++) {
-    api.aliases.register(new RegExp(`^wyt${n}$`, 'i'), () => {
-      api.command.send(`wytnij wszystko z ${n}. ciala`);
-      return true;
-    });
-  }
-
   // ww0 - strip weapons and armor from 8 bodies
   api.aliases.register(/^ww0$/, () => {
     for (let i = 1; i <= 8; i++) {

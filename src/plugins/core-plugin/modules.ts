@@ -65,6 +65,7 @@ export { setupKillAlias } from './walka/c';
 export { setupPartyShieldAliases } from './walka/walka_zaslony';
 export { setupPrzelamAliases } from './walka/przelam_aliasy';
 export { setupWalker } from './walker';
+export { setupWycinanieAliases } from './wycinanie';
 export { setupZiolaAliases } from './ziola/index';
 export { storage } from '../../lib/storage';
 export { onCharName } from '../../lib/getCharName';

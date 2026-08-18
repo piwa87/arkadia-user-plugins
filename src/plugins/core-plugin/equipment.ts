@@ -89,10 +89,9 @@ export function setupEquipmentAliases(api: PluginApi): void {
 
   // #region ciach - cut heads off up to 4 bodies and drop
   api.aliases.register(/^ciach$/, () => {
-    api.command.send('odrab glowe od ciala');
-    api.command.send('odrab glowe od drugiego ciala');
-    api.command.send('odrab glowe od trzeciego ciala');
-    api.command.send('odrab glowe od czwartego ciala');
+    for (let i = 1; i <= 4; i++) {
+      api.command.send(`odrab glowe od ${i}. ciala`);
+    }
     api.command.send('odloz glowy');
     return true;
   });
@@ -101,9 +100,8 @@ export function setupEquipmentAliases(api: PluginApi): void {
   api.aliases.register(/^ciach2$/, () => {
     api.command.send('opusc bron');
     api.command.send('dobs');
-    const ordinals = ['', 'drugiego ', 'trzeciego ', 'czwartego '];
-    for (const ord of ordinals) {
-      api.command.send(`odetnij glowe od ${ord}ciala`);
+    for (let i = 1; i <= 4; i++) {
+      api.command.send(`odetnij glowe od ${i}. ciala`);
     }
     api.command.send('odloz glowy');
     api.command.send('opus');
@@ -152,14 +150,6 @@ export function setupEquipmentAliases(api: PluginApi): void {
     for (const ord of ordinals) {
       api.command.send(`rozerwij ${ord}kokon`);
       api.command.send('wez wszystko z niego');
-    }
-    return true;
-  });
-
-  // #region wytj - take eggs from 4 nests
-  api.aliases.register(/^wytj$/, () => {
-    for (let i = 1; i <= 4; i++) {
-      api.command.send(`wez jaja z ${i}. gniazda`);
     }
     return true;
   });

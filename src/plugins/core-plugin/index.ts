@@ -62,6 +62,7 @@ import {
   setupTmpk,
   setupTravelAliases,
   setupWsiadaczAliases,
+  setupWycinanieAliases,
   setupEventTriggers,
   setupLocationTriggers,
   setupMiscTriggers,
@@ -109,12 +110,14 @@ const TRIGGER_TAGS = [
   'walkaAliasy',
   'zmeczenie',
   // Armed-on-demand one-shot triggers that may be waiting for a match:
+  'damaris',
   TEMP_TRIGGER_TAG,
   'na_statek_oneshot',
   'wsiadacz_statek',
   'wsiadacz_woz',
   'wsiadacz_statek_ned',
   'siad_oneshot',
+  'wycinanie',
 ];
 
 let cleanupCombat: (() => void) | null = null;
@@ -204,6 +207,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupTravelAliases(api);
   cleanupWalker = setupWalker(api);
   setupWsiadaczAliases(api);
+  setupWycinanieAliases(api);
   cleanupZiola = setupZiolaAliases(api);
   setupZmeczenieTriggers(api, zmeczenieState);
   cleanupCombat = setupGmcpCombat(api, combatState, () => megaphone(api, 'ciemno'));
