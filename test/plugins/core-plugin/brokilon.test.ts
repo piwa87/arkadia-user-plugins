@@ -10,6 +10,9 @@ import {
 function setup(): MockApi & { cleanup: () => void } {
   const mock = createMockApi();
   const cleanup = setupBrokilon(mock.api);
+  runAlias(mock, 'brok+');
+  (mock.api.output.print as any).mockClear();
+  (mock.api.command.send as any).mockClear();
   return { ...mock, cleanup };
 }
 
@@ -32,6 +35,33 @@ function runAlias(mock: MockApi, command: string): void {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+describe('Brokilon module toggle', () => {
+  it('defaults to disabled: triggers and aliases are inert', () => {
+    const mock = createMockApi();
+    setupBrokilon(mock.api);
+
+    const line = runLine(mock, 'Zamkniety zloty grobowiec.');
+    expect(line!.color).not.toHaveBeenCalled();
+    expect(mock.api.bind.set).not.toHaveBeenCalled();
+
+    runAlias(mock, 'ql');
+    expect(sentCommands(mock)).toEqual([]);
+  });
+
+  it('brok+ enables the module and brok- disables it again', () => {
+    const mock = createMockApi();
+    setupBrokilon(mock.api);
+
+    runAlias(mock, 'brok+');
+    runAlias(mock, 'ql');
+    expect(sentCommands(mock)).toEqual(['ob grobowiec']);
+
+    runAlias(mock, 'brok-');
+    runAlias(mock, 'ql');
+    expect(sentCommands(mock)).toEqual(['ob grobowiec']);
+  });
 });
 
 describe('Brokilon triggers', () => {

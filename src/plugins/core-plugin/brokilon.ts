@@ -26,7 +26,7 @@ export function setupBrokilon(api: PluginApi): () => void {
   let haslo1 = storage.get<string>(HASLO1_KEY) ?? DEFAULT_HASLO1;
   const haslo2 = '';
   let tickWarningTimer: ReturnType<typeof setTimeout> | null = null;
-  let brokilonEnabled = true;
+  let brokilonEnabled = false;
 
   // ── Module toggle: brok+ / brok- ──────────────────────────────────────────
   api.aliases.register(/^brok\+$/i, () => {

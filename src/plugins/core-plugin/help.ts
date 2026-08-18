@@ -109,6 +109,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'w1–w20', desc: 'take everything from body N' },
       { cmd: 'm1–m20', desc: 'take coins from body N' },
       { cmd: 'b1–b20', desc: 'take weapon from body N' },
+      { cmd: 'wyt1–wyt99', desc: 'cut everything from body N' },
       { cmd: 'ww0', desc: 'strip weapons and armor from 8 bodies' },
       { cmd: 'mx[N]', desc: 'take coins from location + N bodies (default 5)' },
 

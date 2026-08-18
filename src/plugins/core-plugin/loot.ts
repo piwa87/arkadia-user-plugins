@@ -19,6 +19,19 @@ export function setupLootAliases(api: PluginApi): void {
       api.command.send(`wez bron z ${n}. ciala`);
       return true;
     });
+
+    api.aliases.register(new RegExp(`^t${n}$`, 'i'), () => {
+      api.command.send(`wez tarcze z ${n}. ciala`);
+      return true;
+    });
+  }
+
+  // wyt1–wyt99 → wytnij wszystko z N. ciala
+  for (let n = 1; n <= 99; n++) {
+    api.aliases.register(new RegExp(`^wyt${n}$`, 'i'), () => {
+      api.command.send(`wytnij wszystko z ${n}. ciala`);
+      return true;
+    });
   }
 
   // ww0 - strip weapons and armor from 8 bodies

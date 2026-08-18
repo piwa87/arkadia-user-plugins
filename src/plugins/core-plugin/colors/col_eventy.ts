@@ -45,7 +45,11 @@ export function setupColEventy(api: PluginApi): void {
   // --- Megaphone announces (data-driven) ---
 
   const ANNOUNCES: [string | string[], RegExp, string][] = [
-    ['fusta', /Marynarze sciagaja trap i fusta odbija od brzegu, kierujac sie ku pelnemu morzu\./, 'piraci sobie odplyneli'],
+    [
+      'fusta',
+      /Marynarze sciagaja trap i fusta odbija od brzegu, kierujac sie ku pelnemu morzu\./,
+      'piraci sobie odplyneli',
+    ],
     ['gestnieje', /Ciemnosc gestnieje wokol .* upiora!/, 'ciemnosc'],
     ['zaalarmowani', /^Zaalarmowani zolnierze pojawiaja sie, aby wesprzec towarzysza\./, 'zwalilo sie wojsko'],
     [
@@ -60,7 +64,11 @@ export function setupColEventy(api: PluginApi): void {
       'kraken obecny',
     ],
     ['sufitu', /^Z sufitu opuszczaja sie kolejne pajaki\./, 'pajaczki, wiecej pajaczow!'],
-    ['mackami', /stwor wywijajac na wszystkie strony dlugimi mackami zanurza sie w wodzie jeziora i odplywa\./, 'kraken zwial'],
+    [
+      'mackami',
+      /stwor wywijajac na wszystkie strony dlugimi mackami zanurza sie w wodzie jeziora i odplywa\./,
+      'kraken zwial',
+    ],
     ['niematerialne', /^Niematerialne uderzenie pozbawia cie na moment tchu\./, 'bruxa przywalila'],
     ['kultysci', /^Kultysci rozchodza sie, znikajac miedzy drzewami\./, 'kultysci zwiali'],
     ['przeciera', /.*przeciera dlonia wypisany kreda symbol i po chwili nie zostaje po nim sladu\./, 'symbol starty'],
@@ -69,7 +77,11 @@ export function setupColEventy(api: PluginApi): void {
       /Rozmyta wysmukla zjawa kobiety sklada rece w krzyz na piersiach i powoli zsuwa je do siebie, zamykajac dlonie w piesci. Po chwili, gwaltownym ruchem wyrzuca rece w twoim kierunku, wypuszczajac z ich wnetrza migotliwy pyl, ktory wpada ci w oczy.*/,
       'blaviken slepota',
     ],
-    ['obumierajaca', /Obumierajaca ziemia wokol .* wysysa energie ze wszystkiego co zyje, w tym i ciebie!/, 'upior jeb'],
+    [
+      'obumierajaca',
+      /Obumierajaca ziemia wokol .* wysysa energie ze wszystkiego co zyje, w tym i ciebie!/,
+      'upior jeb',
+    ],
     [
       'zelezce',
       /^Zelezce twojego zasniedzialego obosiecznego topora wybucha nagle oslepiajacym swiatlem, ktore porownac mozna tylko do blasku tysiacy gwiazd migocacych na nocnym niebie. Gdy bron wygasa, w niczym nie przypomina juz starego, zasniedzialego oreza, jakim byla jeszcze przed chwila\./,
@@ -126,7 +138,10 @@ export function setupColEventy(api: PluginApi): void {
   const ALERTS: [string | string[], RegExp][] = [
     ['zaglebienie', /.*zaglebienie w piasku zbliza sie w twoim kierunku!/],
     ['szuwary', /^Cos zbliza sie do ciebie przez pobliskie szuwary!/],
-    ['skowyt', /^Slyszysz glosny skowyt, a po chwili dostrzegasz sylwetke jakiegos skrzydlatego potwora, lecacego prosto w twoja strone!/],
+    [
+      'skowyt',
+      /^Slyszysz glosny skowyt, a po chwili dostrzegasz sylwetke jakiegos skrzydlatego potwora, lecacego prosto w twoja strone!/,
+    ],
     ['zamazuja', /^Powietrze zaczyna lekko drgac, ksztalty nieco zamazuja sie\.\.\./],
   ];
 
@@ -257,7 +272,13 @@ export function setupColEventy(api: PluginApi): void {
   );
 
   // Empty container — prefix + tint original
-  registerTokenGate(api, 'zupelnie', /^.* jest zupelnie pust.\./, (line) => prependLabel(line, '[ zle ]', c38, c35), TAG);
+  registerTokenGate(
+    api,
+    'zupelnie',
+    /^.* jest zupelnie pust.\./,
+    (line) => prependLabel(line, '[ zle ]', c38, c35),
+    TAG,
+  );
 
   // Spider web immobilization
   registerTokenGate(
@@ -395,7 +416,6 @@ export function setupColEventy(api: PluginApi): void {
     /^(?:Nie jestes w stanie dluzej czytac|.* konczy prace)\./,
     (line) => {
       api.command.send('play_tink');
-      // setBind(api, 'napwsz');
       return col(line, c43);
     },
     TAG,

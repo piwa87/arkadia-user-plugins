@@ -159,10 +159,9 @@ export function setupMiscAliases(api: PluginApi): void {
 
   // napwsz - sharpen all weapons and repair all armor
   api.aliases.register(/^napwsz$/, () => {
-    api.command.send('otworz zalozona torbe');
     api.command.send('dob');
-    api.command.send('naostrz wszystkie bronie');
-    api.command.send('napraw wszystkie zbroje');
+    api.command.send('/napraw');
+
     return true;
   });
 
