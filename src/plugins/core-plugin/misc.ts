@@ -1,7 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { registerTextAlias } from '../../lib/registerTextAlias';
 import { makeTemp } from '../../lib/makeTemp';
-import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
+import { TEMP_TRIGGER_TAG, registerTempTrigger } from '../../lib/registerTempTrigger';
 import { withDelay } from '../../lib/withDelay';
 import { findMatchRange } from '../../lib/findMatchRange';
 import { getMyColor } from '../../lib/colors/my-colors';
@@ -380,6 +380,25 @@ export function setupMiscAliases(api: PluginApi): void {
     for (const line of keys) {
       api.output.print(line);
     }
+    return true;
+  });
+
+  // xdam - arm one-shot trigger for "wytraca ci", then draw weapon, go south, attack
+  api.aliases.register(/^xdam$/, () => {
+    registerTempTrigger(
+      api,
+      /wytraca ci/i,
+      368,
+      987,
+      () => {
+        api.command.send('n');
+      },
+      'damaris',
+    );
+    api.command.send('dobadz broni');
+    api.command.send('s');
+    api.command.send('c zboja');
+    api.output.print('[xdam] armed');
     return true;
   });
 }
