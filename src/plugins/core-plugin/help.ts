@@ -14,20 +14,24 @@ export function setupHelpAliases(api: PluginApi): void {
 
       { section: 'COMBAT' },
       { cmd: 'c', desc: 'attack target 1 (zabij CEL)' },
-      { cmd: 'c<n>', desc: 'attack enemy <n> from the client\'s list (/z n)' },
+      { cmd: 'c<n>', desc: "attack enemy <n> from the client's list (/z n)" },
       { cmd: 'z [target/1–4]', desc: 'zabij named target or by slot' },
       { cmd: 'z1 / z2 / z3 / z4', desc: 'attack target by slot' },
       { cmd: 'dp', desc: 'attack all 4 targets in reverse priority' },
       { cmd: 'set <target>', desc: 'set targets 1–4 with ordinal prefixes' },
       { cmd: 'set1–4 <what>', desc: 'set individual target verbatim' },
       { cmd: 'xxx', desc: 'stop fighting' },
-      { cmd: 'pyk+ / pyk-', desc: 'auto-attack leader\'s target on/off' },
+      { cmd: 'pyk+ / pyk-', desc: "auto-attack leader's target on/off" },
       { cmd: 'next!', desc: 'print N E X T visual banner' },
 
       { section: 'BATTLE PRESETS' },
-      { cmd: 'b* presets', desc: 'b_wsiowe bakb bbod bcz bgb bgrz bhas bjas bkis bkur bryb bstr bszcz bu bwy bzbo bzol' },
+      {
+        cmd: 'b* presets',
+        desc: 'b_wsiowe bakb bbod bcz bgb bgrz bhas bjas bkis bkur bryb bstr bszcz bu bwy bzbo bzol',
+      },
 
       { section: 'PARTY SHIELD (10 keys)' },
+      { cmd: 'rz', desc: 'order team to shield you (/rz @)' },
       { cmd: 'qq ww ee rr tt yy uu ii oo pp', desc: 'shield team member #1–10' },
       { cmd: '<key>w', desc: 'mark that member as defense target' },
       { cmd: '<key>x', desc: 'hide behind that member' },
@@ -300,7 +304,10 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: '?gmcp [path]', desc: 'print GMCP state (or sub-path)' },
 
       { section: 'EMOTES' },
-      { cmd: 'emotes', desc: 'ce, cmo, haha, hm?, kiw, krz1, krz2, kurw, ma, mach, obr, par, pod, pok, pokr, roll, roz, semig, usr1–3, uwa, wypat, wyb, wytr, wys1–2, zag, zagw, zam, zar, zat, zd' },
+      {
+        cmd: 'emotes',
+        desc: 'ce, cmo, haha, hm?, kiw, krz1, krz2, kurw, ma, mach, obr, par, pod, pok, pokr, roll, roz, semig, usr1–3, uwa, wypat, wyb, wytr, wys1–2, zag, zagw, zam, zar, zat, zd',
+      },
     ];
 
     type Cmd = { cmd: string; desc: string };

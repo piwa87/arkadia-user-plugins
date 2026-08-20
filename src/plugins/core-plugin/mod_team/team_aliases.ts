@@ -4,6 +4,12 @@ import { getCurrentTeam } from './team_state';
 let prprAliasId: string | undefined;
 
 export function setupTeamCommandAliases(api: PluginApi): void {
+  // rz - order the team to shield the player identified by @
+  api.aliases.register(/^rz$/, () => {
+    api.command.send('/rz @');
+    return true;
+  });
+
   // ws - support/buff ally
   api.aliases.register(/^ws$/, () => {
     api.command.send('wesprzyj');
