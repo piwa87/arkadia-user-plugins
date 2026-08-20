@@ -3,21 +3,19 @@ import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { rewrite } from './banner';
-import { getCurrentTeam, teamNominativeForms } from './team_state';
+import { teamNominativeForms } from './team_state';
 
 /**
- * Leadership handover banners, the `prpr` alias, and the team-loss audio cues.
+ * Leadership handover banners and team-loss audio cues.
  *
- * Migrated from CMUD `mod_druzyna` (triggers 8101-8103, alias `prpr`, and the
- * sound halves of `team_gubi` / `team_disc`).
+ * Migrated from CMUD `mod_druzyna` (triggers 8101-8103 and the sound halves of
+ * `team_gubi` / `team_disc`). The `prpr` alias lives in team_aliases.ts.
  *
  * The visual/bookkeeping side of losing a team member is NOT reimplemented: the
  * web client already tracks it far better (lostTeamMates.ts marks who was lost
  * and in which room, colors the disconnect line, and feeds the map). Only the
  * audio cue the client has no equivalent for is kept here.
  */
-
-let prprAliasId: string | undefined;
 
 export function setupLider(api: PluginApi, tag: string): void {
   const c3 = getAnsiFormatState(3, api); // %ansi(3) — handover banners
@@ -107,32 +105,8 @@ export function setupLider(api: PluginApi, tag: string): void {
     },
     tag,
   );
-
-  // ---- prpr: hand leadership to a team slot (or a literal name) -------------
-  //   prpr 2        — przekaz prowadzenie <celownik of team slot 2>
-  //   prpr vindael  — przekaz prowadzenie vindael
-  // CMUD sent lowercased forms; the game matches case-insensitively either way.
-  prprAliasId = api.aliases.register(/^prpr\s+(.+)$/i, (matches) => {
-    const arg = matches?.[1]?.trim() ?? '';
-    if (!arg) return true;
-
-    const slot = Number(arg);
-    const team = getCurrentTeam();
-    const target =
-      Number.isInteger(slot) && slot >= 1 && slot <= team.length
-        ? team[slot - 1].C // %item(@druzynaC, %1)
-        : arg;
-
-    send(`przekaz prowadzenie ${target.toLowerCase()}`);
-    send('druzyna');
-    return true;
-  });
 }
 
 export function destroyLider(api: PluginApi): void {
-  if (prprAliasId) {
-    api.aliases.remove(prprAliasId);
-    prprAliasId = undefined;
-  }
   // The triggers are removed via api.triggers.removeByTag(tag).
 }

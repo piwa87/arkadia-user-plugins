@@ -8,6 +8,24 @@ import { getMyColor } from '../../lib/colors/my-colors';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 
 export function setupMiscAliases(api: PluginApi): void {
+  // ps - introduce yourself
+  registerTextAlias(api, /^ps$/, 'przedstaw sie');
+
+  // xxx - stop fighting
+  registerTextAlias(api, /^xxx$/, 'przestan walczyc');
+
+  // xx - stop shielding
+  registerTextAlias(api, /^xx$/, 'przestan zaslaniac');
+
+  // xxb - stop blocking
+  registerTextAlias(api, /^xxb$/, 'przestan blokowac');
+
+  // xxc - stop reading
+  registerTextAlias(api, /^xxc$/, 'przestan czytac');
+
+  // xp - stop current action
+  registerTextAlias(api, /^xp$/, 'przestan');
+
   // maketemp <pattern> <cmd1;cmd2;...>
   // Arms a one-shot trigger: fires commands once when pattern appears in output.
   api.aliases.register(/^maketemp\s+(\S+)\s+(.+)$/, (matches) => {
@@ -79,20 +97,6 @@ export function setupMiscAliases(api: PluginApi): void {
     api.command.send('ob tabliczke');
     api.command.send('ob pergamin');
     api.command.send('pr tablice');
-    return true;
-  });
-
-  // i1-i5 - movement speeds
-  const speeds: Record<string, string> = {
-    '1': 'niespiesznie',
-    '2': 'marszem',
-    '3': 'truchtem',
-    '4': 'biegiem',
-    '5': 'szybkim biegiem',
-  };
-  api.aliases.register(/^i([1-5])$/, (matches) => {
-    const speed = speeds[matches![1]];
-    if (speed) api.command.send(`idz ${speed}`);
     return true;
   });
 
@@ -234,42 +238,6 @@ export function setupMiscAliases(api: PluginApi): void {
     return true;
   });
 
-  // gale! - navigate through the galeon in sequence with random delays between steps
-  api.aliases.register(/^gale!$/, () => {
-    const rooms = [
-      'dziob',
-      'sterburta',
-      'd',
-      'kajuta',
-      'korytarz',
-      'rufa',
-      'druga',
-      'korytarz',
-      'pierwsza',
-      'korytarz',
-      'rufa',
-      'czwarta',
-      'korytarz',
-      'trzecia',
-      'korytarz',
-      'dziob',
-      'dziob',
-      'u',
-      'srodokrecie',
-      'rufa',
-      'bakburta',
-      'srodokrecie',
-    ];
-    let i = 0;
-    const step = () => {
-      if (i >= rooms.length) return;
-      api.command.send(rooms[i++]);
-      if (i < rooms.length) withDelay(56, 234, step);
-    };
-    step();
-    return true;
-  });
-
   // #region hide+ - hide from association listing and stash signet ring
   api.aliases.register(/^hide\+$/, () => {
     api.command.send('opcje stowarzyszenie -');
@@ -296,46 +264,6 @@ export function setupMiscAliases(api: PluginApi): void {
   });
 
   registerTextAlias(api, /^rp\!/, '/reload-plugins');
-
-  // mran - send a random exit from the current room
-  {
-    const dirToCmd: Record<string, string> = {
-      north: 'n',
-      south: 's',
-      east: 'e',
-      west: 'w',
-      northeast: 'ne',
-      northwest: 'nw',
-      southeast: 'se',
-      southwest: 'sw',
-      up: 'u',
-      down: 'd',
-      in: 'in',
-      out: 'out',
-    };
-
-    api.aliases.register(/^mran$/, () => {
-      const room = api.map.getRoom();
-      if (!room) {
-        api.output.print('[mran] brak danych mapy');
-        return true;
-      }
-
-      const exits = [
-        ...Object.keys(room.exits).map((dir) => dirToCmd[dir] ?? dir),
-        ...Object.keys(room.specialExits ?? {}),
-      ];
-
-      if (exits.length === 0) {
-        api.output.print('[mran] brak wyjsc');
-        return true;
-      }
-
-      const chosen = exits[Math.floor(Math.random() * exits.length)];
-      api.command.send(chosen);
-      return true;
-    });
-  }
 
   // sig <text> - print styled message to output
   api.aliases.register(/^sig(?:\s+(.+))?$/, (matches) => {

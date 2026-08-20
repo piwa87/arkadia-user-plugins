@@ -14,46 +14,46 @@ aliases in `core-plugin` change.
 
 ## Files involved
 
-| File | Role |
-|------|------|
+| File                              | Role                                               |
+| --------------------------------- | -------------------------------------------------- |
 | `src/plugins/core-plugin/help.ts` | The catalog to update — edit the `rows` array here |
-| `src/plugins/core-plugin/**/*.ts` | Source of truth for what aliases actually exist |
+| `src/plugins/core-plugin/**/*.ts` | Source of truth for what aliases actually exist    |
 
 Alias files live at the `core-plugin/` root and in subdirectories (no `aliases/`
 folder anymore). Key locations:
 
-| File | Typical content |
-|------|----------------|
-| `walka/walka_aliasy.ts` | z, z1–z4, c, c1–c4, set, set1–set4, dp |
-| `walka/walka_zaslony.ts` | Party shield grid (qq…pp, `<key>w/x/z`) |
-| `pyk.ts` | pyk+, pyk- (auto-attack leader target) |
-| `exp_bindy.ts` | b* target presets, next! |
-| `f.ts` | Functional bind (f+, f+!, f, f-) |
-| `doo.ts` | Multibind (doo, doo2–4, doo+, doo-) |
-| `dobywanie/dobywanie_aliases.ts` | Weapon draw/sheathe, shield swap, armor toggle |
-| `equipment.ts` | Bag management, item inspection, wearing gear, looting |
-| `loot.ts` | w1–w20, m1–m20, b1–b20, ww0, mx |
-| `buklak.ts` | Flask/cup commands |
-| `ziola.ts` | Herb aliases (zi, zii, zx, obz, obz!, zisort!, mana+, st+, zm+) |
-| `jens/palenie.ts` | Smoking (smoke, smokec, cyg, tytind, tytud, skod) |
-| `jens/emotes.ts` | Emote text aliases |
-| `mieszek.ts` | Coin purse aliases |
-| `lampa.ts` | Lamp aliases |
-| `poczta.ts` | Mail/post aliases |
-| `travel/travel_aliases.ts`, `travel/wsiadacz.ts` | Boarding/disembark aliases |
-| `stats.ts` | stat, stat2, pos, pos2 |
-| `team.ts` | ps, ws, pd, xx, xp and similar team commands |
-| `kondycje/kondycje_aliases.ts` | k, hp+, hp- |
-| `options.ts` | opa, przyjm, op1–3, opi, res — option toggles |
-| `map.ts` | col0–col3, ?hl |
-| `tmpk/tmpk.ts` | Mob name highlight list |
-| `mgfn.ts` | Megaphone print |
-| `karczma.ts` | siad |
-| `bramy.ts` | br, br2 (gate aliases) |
-| `misc.ts` | maketemp, szuk!, and other one-off helpers |
-| `locations.ts` | Location-specific shortcuts |
-| `debug.ts` | Debug-only — do NOT add to help |
-| `zaslony.ts` | `zas!` /fake test alias — do NOT add to help |
+| File                                             | Typical content                                                 |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| `walka/walka_aliasy.ts`                          | z, z1–z4, c, c1–c4, set, set1–set4, dp                          |
+| `walka/zaslony.ts`                               | Party shield grid (qq…pp, `<key>w/x/z`)                         |
+| `pyk.ts`                                         | pyk+, pyk- (auto-attack leader target)                          |
+| `exp_bindy.ts`                                   | b\* target presets, next!                                       |
+| `f.ts`                                           | Functional bind (f+, f+!, f, f-)                                |
+| `doo.ts`                                         | Multibind (doo, doo2–4, doo+, doo-)                             |
+| `dobywanie/dobywanie_aliases.ts`                 | Weapon draw/sheathe, shield swap, armor toggle                  |
+| `equipment.ts`                                   | Bag management, item inspection, wearing gear, looting          |
+| `loot.ts`                                        | w1–w20, m1–m20, b1–b20, ww0, mx                                 |
+| `buklak.ts`                                      | Flask/cup commands                                              |
+| `ziola.ts`                                       | Herb aliases (zi, zii, zx, obz, obz!, zisort!, mana+, st+, zm+) |
+| `jens/palenie.ts`                                | Smoking (smoke, smokec, cyg, tytind, tytud, skod)               |
+| `jens/emotes.ts`                                 | Emote text aliases                                              |
+| `mieszek.ts`                                     | Coin purse aliases                                              |
+| `lampa.ts`                                       | Lamp aliases                                                    |
+| `poczta.ts`                                      | Mail/post aliases                                               |
+| `travel/travel_aliases.ts`, `travel/wsiadacz.ts` | Boarding/disembark aliases                                      |
+| `stats.ts`                                       | stat, stat2, pos, pos2                                          |
+| `team.ts`                                        | ps, ws, pd, xx, xp and similar team commands                    |
+| `kondycje/kondycje_aliases.ts`                   | k, hp+, hp-                                                     |
+| `options.ts`                                     | opa, przyjm, op1–3, opi, res — option toggles                   |
+| `map.ts`                                         | col0–col3, ?hl                                                  |
+| `tmpk/tmpk.ts`                                   | Mob name highlight list                                         |
+| `mgfn.ts`                                        | Megaphone print                                                 |
+| `karczma.ts`                                     | siad                                                            |
+| `bramy.ts`                                       | br, br2 (gate aliases)                                          |
+| `misc.ts`                                        | maketemp, szuk!, and other one-off helpers                      |
+| `locations.ts`                                   | Location-specific shortcuts                                     |
+| `debug.ts`                                       | Debug-only — do NOT add to help                                 |
+| `zaslony.ts`                                     | `zas!` /fake test alias — do NOT add to help                    |
 
 ## Step-by-step audit
 
@@ -72,12 +72,14 @@ grep -rl "aliases.register" src/plugins/core-plugin --include="*.ts"
 ```
 
 For each registration, extract:
+
 - The alias pattern (regex or string passed to `api.aliases.register`)
 - What the alias does (from the comment or the command(s) it sends)
 
 ### 3. Compare and identify gaps
 
 For each alias found in step 2, check if it appears in the `rows` array:
+
 - **Missing**: alias exists in code but not in help → add an entry
 - **Stale**: entry in help but alias no longer exists → remove the entry
 - **Wrong description**: alias changed behaviour → update `desc`

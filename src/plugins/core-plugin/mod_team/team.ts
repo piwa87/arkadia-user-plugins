@@ -1,11 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import {
-  getMissingNames,
-  getLearnedNames,
-  forgetLearnedNames,
-  rebuildTeamState,
-  resetTeamState,
-} from './team_state';
+import { getMissingNames, getLearnedNames, forgetLearnedNames, rebuildTeamState, resetTeamState } from './team_state';
 import { startWylap, cancelWylap, printLearned } from './team_wylap';
 import { registerZaslonyTriggers } from './team_zaslony';
 import { setupLamanie, destroyLamanie } from './team_lamanie';
@@ -14,6 +8,7 @@ import { destroyTeamColors, rebuildTeamColorTokens } from './team_colors';
 import { registerCelTriggers } from './team_cel';
 import { setupAtaki, destroyAtaki } from './team_ataki';
 import { setupLider, destroyLider } from './team_lider';
+import { setupTeamCommandAliases, destroyTeamCommandAliases } from './team_aliases';
 
 /**
  * mod_team — the team module (ported from CMUD `mod_druzyna`).
@@ -102,6 +97,7 @@ let teamChangeListener: (() => void) | null = null;
 let wylapAliasId: string | undefined;
 
 export function setupTeam(api: PluginApi): void {
+  setupTeamCommandAliases(api);
   teamChangeListener = () => rebuild(api);
   api.events.on('teamChange', teamChangeListener);
 
@@ -150,6 +146,7 @@ export function destroyTeam(api: PluginApi): void {
     api.aliases.remove(wylapAliasId);
     wylapAliasId = undefined;
   }
+  destroyTeamCommandAliases(api);
   destroyAtaki(api);
   destroyLider(api);
   destroyLamanie(api); // clears the auto-attack cooldown timer + its aliases

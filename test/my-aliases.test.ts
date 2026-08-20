@@ -6,9 +6,15 @@ function makeLocalStorageMock() {
   const store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, val: string) => { store[key] = val; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { for (const k in store) delete store[k]; },
+    setItem: (key: string, val: string) => {
+      store[key] = val;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      for (const k in store) delete store[k];
+    },
   };
 }
 
@@ -149,26 +155,24 @@ describe('c / z attack aliases', () => {
     expect(api.command.send).not.toHaveBeenCalledWith('rozkaz druzynie', expect.anything());
   });
 
-  it('v without arg drops cover then breaks', async () => {
+  it('v without arg breaks', async () => {
     const { api, aliases } = createMockApi();
     await init(api);
 
     const vAlias = aliases.find((a) => a.pattern.test('v'));
     expect(vAlias).toBeDefined();
     vAlias!.callback(['v'] as unknown as RegExpMatchArray);
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('/prze');
   });
 
-  it('v <name> drops cover then breaks named target', async () => {
+  it('v1 breaks numbered target', async () => {
     const { api, aliases } = createMockApi();
     await init(api);
 
-    const vAlias = aliases.find((a) => a.pattern.test('v troll'));
+    const vAlias = aliases.find((a) => a.pattern.test('v1'));
     expect(vAlias).toBeDefined();
-    vAlias!.callback(['v troll', 'troll'] as unknown as RegExpMatchArray);
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone troll');
+    vAlias!.callback(['v1', '1'] as unknown as RegExpMatchArray);
+    expect(api.command.send).toHaveBeenCalledWith('/prze 1');
   });
 
   it('v for follower also attacks after break', async () => {
@@ -181,8 +185,7 @@ describe('c / z attack aliases', () => {
     const vAlias = aliases.find((a) => a.pattern.test('v'));
     expect(vAlias).toBeDefined();
     vAlias!.callback(['v'] as unknown as RegExpMatchArray);
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('/prze');
     // Follower also attacks the leader's target after breaking
     expect(api.command.send).toHaveBeenCalledWith('c');
   });
@@ -194,8 +197,7 @@ describe('c / z attack aliases', () => {
     const vvAlias = aliases.find((a) => a.pattern.test('vv'));
     expect(vvAlias).toBeDefined();
     vvAlias!.callback(['vv'] as unknown as RegExpMatchArray);
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('/prze');
     expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac cel ataku');
   });
 
@@ -206,8 +208,7 @@ describe('c / z attack aliases', () => {
     const vvAlias = aliases.find((a) => a.pattern.test('vv troll'));
     expect(vvAlias).toBeDefined();
     vvAlias!.callback(['vv troll', 'troll'] as unknown as RegExpMatchArray);
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone troll');
+    expect(api.command.send).toHaveBeenCalledWith('/prze troll');
     expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac troll');
   });
 
@@ -224,8 +225,7 @@ describe('c / z attack aliases', () => {
     // Follower orders team attack FIRST
     expect(api.command.send).toHaveBeenCalledWith('rozkaz druzynie zaatakowac cel ataku');
     // Then drops cover + breaks + attacks
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('/prze');
     expect(api.command.send).toHaveBeenCalledWith('c');
   });
 
@@ -236,8 +236,7 @@ describe('c / z attack aliases', () => {
     const vcAlias = aliases.find((a) => a.pattern.test('vc'));
     expect(vcAlias).toBeDefined();
     vcAlias!.callback(['vc'] as unknown as RegExpMatchArray);
-    expect(api.command.send).toHaveBeenCalledWith('przestan kryc sie za zaslona');
-    expect(api.command.send).toHaveBeenCalledWith('przelam obrone celu ataku');
+    expect(api.command.send).toHaveBeenCalledWith('/prze');
     expect(api.command.send).toHaveBeenCalledWith('zabij cel ataku');
     expect(api.command.send).toHaveBeenCalledWith('kondycja wszystkich');
   });

@@ -56,7 +56,6 @@ import {
   setupPingSounds,
   setupStatsAliases,
   setupStun,
-  setupTeamAliases,
   setupTeam,
   destroyTeam,
   setupTmpk,
@@ -107,7 +106,7 @@ const TRIGGER_TAGS = [
   'pingSounds',
   'stun',
   'tmpk',
-  'walkaAliasy',
+  'atakTriggers',
   'zmeczenie',
   // Armed-on-demand one-shot triggers that may be waiting for a match:
   'damaris',
@@ -190,7 +189,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupLootAliases(api);
   setupLootShitAliases(api);
   setupMapAliases(api);
-    setupMgfnAlias(api);
+  setupMgfnAlias(api);
   setupMieszekAliases(api);
   setupMiscAliases(api);
   setupMiscTriggers(api);
@@ -201,7 +200,6 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupPostAliases(api);
   setupStatsAliases(api);
   setupStun(api);
-  setupTeamAliases(api);
   setupTeam(api); // mod_team: declensions, shield/attack banners, leadership, wylap
   setupTmpk(api);
   setupTravelAliases(api);

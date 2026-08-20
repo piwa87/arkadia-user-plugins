@@ -9,7 +9,7 @@ export function setupPartyShieldAliases(api: PluginApi): void {
 
     // <key> [group] — zaslon member
     api.aliases.register(
-      new RegExp(`^${key}(?:\\s+(\\d+))?$`, 'i'),
+      new RegExp(`^${key}(?:\s+(\d+))?$`, 'i'),
       (matches) => {
         if (key === 'oo' && api.team.getMembers().length < 9) {
           api.command.send('otul sie plaszczem');

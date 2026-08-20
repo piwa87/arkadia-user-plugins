@@ -1,6 +1,10 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { requestPermission, notify } from '../../../lib/notifications';
+import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { getHpLabel, type KondycjeState } from '../kondycje/kondycje_triggers';
+
+const TAG = 'atakTriggers';
 
 /**
  * All-enemies-dead browser notification. The attack-detection and `enemyKilled`
@@ -22,6 +26,20 @@ export function setupAtakiTriggers(api: PluginApi, kondycjeState: KondycjeState)
     api.events.emit('allEnemiesKilled');
     return true;
   });
+
+  // Already fighting — confirm OK and cancel attack timer.
+  const c35 = getAnsiFormatState(35, api);
+  registerTokenGate(
+    api,
+    'walczysz',
+    /^Juz walczysz z .*\.$/,
+    (line) => {
+      const msg = '       OK                     ';
+      line.replace([0, line.text.length], msg, c35);
+      return line;
+    },
+    TAG,
+  );
 
   return () => api.events.off('allEnemiesKilled', onAllEnemiesKilled);
 }

@@ -7,10 +7,7 @@ import {
   getCurrentLeader,
   getMissingNames,
 } from '../../../../src/plugins/core-plugin/mod_team/team';
-import {
-  forgetLearnedNames,
-  getLearnedNames,
-} from '../../../../src/plugins/core-plugin/mod_team/team_state';
+import { forgetLearnedNames, getLearnedNames } from '../../../../src/plugins/core-plugin/mod_team/team_state';
 
 function sentCommands(mock: ReturnType<typeof createMockApi>): string[] {
   return (mock.api.command.send as any).mock.calls.map(([cmd]: [string]) => cmd);
@@ -142,9 +139,7 @@ describe('mod_team', () => {
       replyOdmien(mock, JASKO);
       vi.runAllTimers(); // completion delay + the final team rebuild
 
-      expect(getLearnedNames()).toEqual([
-        { M: 'Jasko', B: 'Jaska', C: 'Jaskowi', D: 'Jaska', N: 'Jaskiem' },
-      ]);
+      expect(getLearnedNames()).toEqual([{ M: 'Jasko', B: 'Jaska', C: 'Jaskowi', D: 'Jaska', N: 'Jaskiem' }]);
       // The rebuild resolves the name from the learned entry — no longer missing.
       expect(getMissingNames()).toEqual([]);
       expect(getCurrentTeam()[0]).toMatchObject({ M: 'Jasko', B: 'Jaska', N: 'Jaskiem' });
@@ -268,9 +263,7 @@ describe('mod_team', () => {
       // The game answers with the canonical mianownik — that is what gets stored.
       replyOdmien(mock, JASKO);
       vi.runAllTimers();
-      expect(getLearnedNames()).toEqual([
-        { M: 'Jasko', B: 'Jaska', C: 'Jaskowi', D: 'Jaska', N: 'Jaskiem' },
-      ]);
+      expect(getLearnedNames()).toEqual([{ M: 'Jasko', B: 'Jaska', C: 'Jaskowi', D: 'Jaska', N: 'Jaskiem' }]);
 
       destroyTeam(mock.api);
     });
@@ -562,19 +555,19 @@ describe('mod_team', () => {
       destroyTeam(mock.api);
     });
 
-    it('prpr <n> passes leadership using the slot celownik, prpr <name> as typed', () => {
+    it('prpr <n> uses /pro and prpr <name> uses the native command', () => {
       const mock = createMockApi();
       (mock.api.team.getMembers as any).mockReturnValue(['Vindael', 'Soroko']);
       setupTeam(mock.api);
 
       const prpr = mock.aliases.find((a) => a.pattern.test('prpr 2'))!;
       prpr.callback(['prpr 2', '2'] as unknown as RegExpMatchArray);
-      expect(sentCommands(mock)).toContain('przekaz prowadzenie soroko'); // C form of slot 2
+      expect(sentCommands(mock)).toContain('/pro soroko'); // C form of slot 2
       expect(sentCommands(mock)).toContain('druzyna');
 
-      // Out-of-range and non-numeric args fall back to the literal argument.
+      // Out-of-range numeric args still use /pro; names use the native command.
       prpr.callback(['prpr 9', '9'] as unknown as RegExpMatchArray);
-      expect(sentCommands(mock)).toContain('przekaz prowadzenie 9');
+      expect(sentCommands(mock)).toContain('/pro 9');
       prpr.callback(['prpr Obcemu', 'Obcemu'] as unknown as RegExpMatchArray);
       expect(sentCommands(mock)).toContain('przekaz prowadzenie obcemu');
 
