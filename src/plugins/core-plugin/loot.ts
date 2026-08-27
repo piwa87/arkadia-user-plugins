@@ -22,6 +22,7 @@ export function setupLootAliases(api: PluginApi): void {
 
     api.aliases.register(new RegExp(`^t${n}$`, 'i'), () => {
       api.command.send(`wez tarcze z ${n}. ciala`);
+      api.command.send('ocen tarcze');
       return true;
     });
   }

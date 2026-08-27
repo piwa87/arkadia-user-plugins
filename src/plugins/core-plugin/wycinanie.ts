@@ -4,6 +4,7 @@ import { storage } from '../../lib/storage';
 import { withDelay } from '../../lib/withDelay';
 
 const TAG = 'wycinanie';
+const WIJ_PACK_TAG = 'wycinanieWijPack';
 
 /** true if the currently selected weapon is a sword (can cut without switching) */
 function isSwordSelected(): boolean {
@@ -76,6 +77,34 @@ export function setupWycinanieAliases(api: PluginApi): void {
     for (let i = 1; i <= 4; i++) {
       api.command.send(`wez jaja z ${i}. gniazda`);
     }
+    return true;
+  });
+
+  // wytw - cut 1st body, then pack loot with short random delays
+  api.aliases.register(/^wytw$/i, () => {
+    api.triggers.removeByTag(WIJ_PACK_TAG);
+
+    registerTokenGate(
+      api,
+      ['Wycinasz', 'wija'],
+      /^Wycinasz .* z ciala .* wija\.$/,
+      (line: AnsiAwareBuffer) => {
+        api.triggers.removeByTag(WIJ_PACK_TAG);
+
+        withDelay(123, 456, () => {
+          api.command.send('napt');
+
+          withDelay(123, 456, () => {
+            api.command.send('naplam');
+          });
+        });
+
+        return line;
+      },
+      WIJ_PACK_TAG,
+    );
+
+    api.command.send('wytnij wszystko z 1. ciala');
     return true;
   });
 }
