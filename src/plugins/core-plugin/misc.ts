@@ -6,8 +6,11 @@ import { withDelay } from '../../lib/withDelay';
 import { findMatchRange } from '../../lib/findMatchRange';
 import { getMyColor } from '../../lib/colors/my-colors';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
+import { setupPrrAlias } from './misc/prr';
 
 export function setupMiscAliases(api: PluginApi): void {
+  setupPrrAlias(api);
+
   // ps - introduce yourself
   registerTextAlias(api, /^ps$/, 'przedstaw sie');
 
