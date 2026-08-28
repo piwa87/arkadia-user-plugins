@@ -398,6 +398,47 @@ describe('mod_team', () => {
 
       destroyTeam(mock.api);
     });
+
+    it('runs kol_manewr when the player successfully shields', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue([]);
+      setupTeam(mock.api);
+
+      runLine(mock, 'Zrecznie zaslaniasz Vindaela przed ciosami orka.');
+      vi.advanceTimersByTime(5000);
+
+      const printed = (mock.api.output.print as any).mock.calls.map(
+        ([value]: [any]) => value?.text ?? String(value),
+      );
+      expect(printed).toContain(
+        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
+      );
+
+      destroyTeam(mock.api);
+    });
+
+    it('runs kol_manewr when the player fails to shield', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue([]);
+      setupTeam(mock.api);
+
+      runLine(
+        mock,
+        'Probujesz zaslonic Vindaela przed ciosami orka, jednak nie jestes w stanie tego uczynic.',
+      );
+      vi.advanceTimersByTime(5000);
+
+      const printed = (mock.api.output.print as any).mock.calls.map(
+        ([value]: [any]) => value?.text ?? String(value),
+      );
+      expect(printed).toContain(
+        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
+      );
+
+      destroyTeam(mock.api);
+    });
   });
 
   describe('atak triggers', () => {

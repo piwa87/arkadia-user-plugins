@@ -9,6 +9,7 @@ import { registerCelTriggers } from './team_cel';
 import { setupAtaki, destroyAtaki } from './team_ataki';
 import { setupLider, destroyLider } from './team_lider';
 import { setupTeamCommandAliases, destroyTeamCommandAliases } from './team_aliases';
+import { destroyManewr, setupManewr } from './manewr';
 
 /**
  * mod_team — the team module (ported from CMUD `mod_druzyna`).
@@ -127,6 +128,7 @@ export function setupTeam(api: PluginApi): void {
   });
 
   registerZaslonyTriggers(api, TAG);
+  setupManewr(api, TAG);
   setupLamanie(api, TAG);
   setupBlok(api, TAG);
   registerCelTriggers(api, TAG);
@@ -150,6 +152,7 @@ export function destroyTeam(api: PluginApi): void {
   destroyAtaki(api);
   destroyLider(api);
   destroyLamanie(api); // clears the auto-attack cooldown timer + its aliases
+  destroyManewr(api); // clears the CMUD maneuver/order alarms + aliases
   destroyBlok(api); // clears the countdown timer, footer and mapMove listener
   cancelWylap(api); // drops the wylap parsers + watchdog if a capture is mid-flight
   api.bind.clear();

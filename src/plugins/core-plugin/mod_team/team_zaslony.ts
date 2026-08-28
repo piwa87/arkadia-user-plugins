@@ -3,6 +3,7 @@ import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../../lib/colors/my-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { rewrite } from './banner';
+import { runKolManewrAlias } from './manewr';
 import {
   teamGenitiveForms,
   teamNominativeForms,
@@ -229,6 +230,7 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
     'zaslaniasz',
     /^Zrecznie zaslaniasz (.*) przed ciosami (.*)\./,
     (line, matches) => {
+      runKolManewrAlias();
       rewrite(line, [
         ['     z a s l a n i a s z      ', c35],
         [`     ${matches[1]}     przed     ${matches[2]}`, c0],
@@ -244,6 +246,7 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
     'zaslonic',
     /^Probujesz zaslonic (.*) przed ciosami (.*), jednak nie jestes w stanie tego uczynic\./,
     (line, matches) => {
+      runKolManewrAlias();
       rewrite(line, [
         ['     n i e   z a s l a n i a s z     ', c38],
         [`     ${matches[1]}     przed     ${matches[2]}`, c0],

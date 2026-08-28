@@ -19,29 +19,11 @@ function printedText(mock: MockApi): string[] {
   );
 }
 
-/**
- * Every banner the module printed. Deliberately re-implements the shared format
- * from `team_lamanie.ts` rather than importing its helper, so a change to the
- * spacing or the padding has to be made in both places on purpose.
- */
-const VERB_WIDTH = 35;
-
-function letterspace(text: string): string {
-  return text
-    .split(' ')
-    .map((w) => w.split('').join(' '))
-    .join('   ');
-}
-
-function bars(mock: MockApi): string[] {
-  return printedText(mock).filter((t) => /^ {2}(?:---|\+\+\+|\.\.\.) {2}/.test(t));
-}
-
-/** Assert exactly one bar with this polarity mark, verb and detail was printed. */
-function expectBar(mock: MockApi, mark: string, verb: string, detail: string): void {
-  const want = `  ${mark}  ${letterspace(verb).padEnd(VERB_WIDTH)}  ${mark}   ${detail}`;
-  expect(bars(mock)).toContain(want);
-}
+const TEAM_BREAK = '      PRZELAMUJA DRUZYNE      ';
+const ME_BROKEN = '   ---   przelamali  cie      ';
+const TEAM_WON = '   +++   druzyna przelamala   ';
+const I_WON = '   +++   przelamales          ';
+const ARLEKIN_BREAK = '[--- PRZELAMUJE DRUZYNE]';
 
 /** Turn automatic attacking on (`pyk+`); returns the pyk teardown. */
 function enablePyk(mock: MockApi): () => void {
@@ -90,10 +72,12 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll rzuca sie na Soroko przebijajac sie przez jego ochrone.';
     const line = runLine(mock, text);
 
-    // The game line is suppressed; only the bar is printed. Soroko is team slot
-    // 2 → bind label "WW".
+    // CMUD #GAG + two #SAYs: the game line is suppressed and two bars are printed.
     expect(line).toBeNull();
-    expectBar(mock, '---', 'PRZELAMUJA DRUZYNE', 'Glupi troll -> Soroko  [WW]');
+    expect(printedText(mock)).toEqual([
+      TEAM_BREAK,
+      `${TEAM_BREAK}      Glupi troll     UWAGA!!!   PRZELAMUJE DRUZYNE     [WW] Soroko`,
+    ]);
     expect(sentCommands(mock)).toContain('play_basso');
     expect(mock.api.bind.set).toHaveBeenCalledWith('WW', undefined, undefined);
 
@@ -108,8 +92,12 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll wykorzystujac zaskoczenie przebija sie przez ochrone Vindaela.';
     const line = runLine(mock, text);
 
-    expect(line).toBeNull();
-    expectBar(mock, '---', 'PRZELAMUJA DRUZYNE', 'Glupi troll -> Vindaela  [QQ]'); // slot 1
+    // This CMUD variant has no #GAG/#SUB, so the original plus two #SAYs remain.
+    expect(line?.text).toBe(text);
+    expect(printedText(mock)).toEqual([
+      TEAM_BREAK,
+      `${TEAM_BREAK}      Glupi troll     UWAGA!!!   PRZELAMUJE DRUZYNE     [QQ] Vindaela`,
+    ]);
     expect(sentCommands(mock)).toContain('play_basso');
 
     destroyTeam(mock.api);
@@ -138,9 +126,9 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll rzuca sie na ciebie przebijajac sie przez twoja ochrone.';
     const line = runLine(mock, text);
 
-    // The game line is suppressed; only the bar is printed.
-    expect(line).toBeNull();
-    expectBar(mock, '---', 'PRZELAMALI CIE', 'Glupi troll');
+    // CMUD #SUB supplies the heading and #SAY supplies the detailed second line.
+    expect(line?.text).toBe(ME_BROKEN);
+    expect(printedText(mock)).toEqual([`${ME_BROKEN}      Glupi troll`]);
     expect(sentCommands(mock)).toContain('play_basso');
     expect(mock.api.bind.set).toHaveBeenCalledWith('rz', undefined, undefined);
 
@@ -154,8 +142,9 @@ describe('mod_team — lamanie zaslony', () => {
     const text = 'Glupi troll wykorzystujac zaskoczenie przebija sie przez twoja ochrone.';
     const line = runLine(mock, text);
 
-    expect(line).toBeNull();
-    expectBar(mock, '---', 'PRZELAMALI CIE', 'Glupi troll');
+    // No #SUB/#GAG here: retain the original and print both #SAY lines.
+    expect(line?.text).toBe(text);
+    expect(printedText(mock)).toEqual([ME_BROKEN, `${ME_BROKEN}      Glupi troll`]);
     expect(mock.api.bind.set).toHaveBeenCalledWith('rz', undefined, undefined);
 
     destroyTeam(mock.api);
@@ -176,9 +165,10 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Vindael rzuca sie na zielonego trolla przebijajac sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      // The game line is suppressed; only the bar and bind are printed.
-      expect(line).toBeNull();
-      expectBar(mock, '+++', 'DRUZYNA PRZELAMALA', 'Vindael -> zielonego trolla');
+      // CMUD #SUB + #SAY intentionally produces the same warning twice.
+      const output = `${TEAM_WON}      Vindael     zielonego trolla`;
+      expect(line?.text).toBe(output);
+      expect(printedText(mock).filter((text) => text === output)).toHaveLength(1);
       expect(sentCommands(mock)).toContain('play_morse');
       expect(mock.api.bind.set).toHaveBeenCalledWith('c zielonego trolla', undefined, undefined);
 
@@ -202,6 +192,11 @@ describe('mod_team — lamanie zaslony', () => {
 
       expect(sentCommands(mock)).toContain('play_morse');
       expect(sentCommands(mock)).not.toContain('c');
+
+      vi.advanceTimersByTime(4300);
+      expect(printedText(mock)).not.toContain(
+        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
+      );
 
       cleanupPyk();
       destroyTeam(mock.api);
@@ -282,12 +277,18 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Rzucasz sie na glupiego trolla przebijajac sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      expect(line).toBeNull();
-      expectBar(mock, '+++', 'przelamales', 'glupiego trolla');
+      const output = `${I_WON}          glupiego trolla`;
+      expect(line?.text).toBe(output);
+      expect(printedText(mock).filter((text) => text === output)).toHaveLength(1);
       expect(sentCommands(mock)).toContain('play_morse');
 
       vi.advanceTimersByTime(250);
       expect(sentCommands(mock)).toContain('c cel ataku');
+
+      vi.advanceTimersByTime(4750);
+      expect(printedText(mock)).toContain(
+        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
+      );
 
       cleanupPyk();
       destroyTeam(mock.api);
@@ -325,6 +326,7 @@ describe('mod_team — lamanie zaslony', () => {
     });
 
     it('banners a failed break attempt', () => {
+      vi.useFakeTimers();
       const mock = createMockApi();
       setupTeam(mock.api);
 
@@ -332,8 +334,16 @@ describe('mod_team — lamanie zaslony', () => {
         'Bezskutecznie rzucasz sie na glupiego trolla, probujac przebic sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      expect(line).toBeNull();
-      expectBar(mock, '---', 'nie przelamales', 'glupiego trolla');
+      expect(line?.text).toBe(
+        '     n i e   p r z e l a m a l e s               glupiego trolla',
+      );
+      expect(printedText(mock)).toHaveLength(0);
+      expect(sentCommands(mock)).not.toContain('play_basso');
+
+      vi.advanceTimersByTime(5000);
+      expect(printedText(mock)).toEqual([
+        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
+      ]);
 
       destroyTeam(mock.api);
     });
@@ -349,7 +359,10 @@ describe('mod_team — lamanie zaslony', () => {
       const line = runLine(mock, text);
 
       expect(line).toBeNull();
-      expectBar(mock, '---', 'ARLEKIN OMIJA', 'Arlekin -> Vindaela  [QQ]');
+      expect(printedText(mock)).toEqual([
+        ARLEKIN_BREAK,
+        `${ARLEKIN_BREAK}      Arlekin     UWAGA!!!   ARLEKIN SOBIE TANCZY I OMIJA     [QQ] Vindaela`,
+      ]);
       expect(sentCommands(mock)).toContain('play_basso');
 
       destroyTeam(mock.api);
@@ -366,7 +379,10 @@ describe('mod_team — lamanie zaslony', () => {
       const line = runLine(mock, text);
 
       expect(line).toBeNull();
-      expectBar(mock, '---', 'PRZELAMUJA DRUZYNE', 'Blaviken -> Vindaela  [QQ]');
+      expect(printedText(mock)).toEqual([
+        TEAM_BREAK,
+        `${TEAM_BREAK}      Blaviken     UWAGA!!!   PRZELAMUJE DRUZYNE     [QQ] Vindaela`,
+      ]);
       expect(sentCommands(mock)).toContain('play_basso');
 
       destroyTeam(mock.api);
@@ -374,21 +390,20 @@ describe('mod_team — lamanie zaslony', () => {
   });
 
   describe('target shielding state', () => {
-    it('flags a shielded target and notes who is in the way', () => {
+    it('flags a shielded target and prefixes the original line', () => {
       const mock = createMockApi();
       setupTeam(mock.api);
 
       const text = 'Atakujesz glupiego trolla, lecz goblin zagradza ci droge.';
       const line = runLine(mock, text);
 
-      expect(line).toBeNull();
-      expectBar(mock, '...', 'cel zasloniety', 'goblin -> glupiego trolla');
+      expect(line?.text).toBe(`        cel zasloniety         ${text}`);
       expect(isShieldedAgainstMe()).toBe(true);
 
       destroyTeam(mock.api);
     });
 
-    it('clears the flag and names the enemy that opened up', () => {
+    it('clears the flag and substitutes the line with czysty', () => {
       const mock = createMockApi();
       setupTeam(mock.api);
       setShieldedAgainstMe(true);
@@ -396,27 +411,12 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Nikt nie zaslania glupiego trolla.';
       const line = runLine(mock, text);
 
-      // The line is suppressed; only the bar with the target name is shown.
-      expect(line).toBeNull();
-      expectBar(mock, '...', 'czysty', 'glupiego trolla');
+      expect(line?.text).toBe('            czysty            ');
+      expect(printedText(mock)).toHaveLength(0);
       expect(isShieldedAgainstMe()).toBe(false);
 
       destroyTeam(mock.api);
     });
-  });
-
-  it('aligns the detail column across banners of very different verb lengths', () => {
-    const mock = createMockApi();
-    teamOf(mock, ['Vindael']);
-    setupTeam(mock.api);
-
-    runLine(mock, 'Nikt nie zaslania glupiego trolla.'); // shortest verb
-    runLine(mock, 'Vindael rzuca sie na orka przebijajac sie przez jego ochrone.'); // longest
-
-    const [short, long] = bars(mock);
-    expect(short.indexOf('glupiego trolla')).toBe(long.indexOf('Vindael -> orka'));
-
-    destroyTeam(mock.api);
   });
 
   describe('antyflood', () => {
@@ -478,18 +478,17 @@ describe('mod_team — lamanie zaslony', () => {
       runAlias(mock, 'lamanietest!');
       const out = printedText(mock).join('\n');
 
-      // Every banner shows up, all in the shared letterspaced form...
-      for (const verb of [
-        'cel zasloniety',
-        'czysty',
-        'PRZELAMUJA DRUZYNE',
-        'PRZELAMALI CIE',
-        'DRUZYNA PRZELAMALA',
-        'przelamales',
-        'nie przelamales',
-        'ARLEKIN OMIJA',
+      // Every exact CMUD label is exercised by the replay.
+      for (const label of [
+        '            czysty            ',
+        TEAM_BREAK,
+        ME_BROKEN,
+        TEAM_WON,
+        I_WON,
+        '     n i e   p r z e l a m a l e s     ',
+        ARLEKIN_BREAK,
       ]) {
-        expect(out).toContain(letterspace(verb));
+        expect(out).toContain(label);
       }
       // ...the antyflood line is reported as gagged...
       expect(out).toContain('[gag]');

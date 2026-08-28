@@ -1,12 +1,11 @@
-import type { AnsiAwareBuffer, PluginApi } from '@arkadia/plugin-types';
+import type { AnsiAwareBuffer, FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
-import { getMyColor } from '../../../lib/colors/my-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { withDelay } from '../../../lib/withDelay';
 import { getAntyfloodLevel } from '../antyflood';
 import { setBind } from '../f';
 import { isPykEnabled } from '../pyk';
-import { spread } from './banner';
+import { runKolManewrAlias } from './manewr';
 import {
   getCurrentTeam,
   isShieldedAgainstMe,
@@ -33,9 +32,10 @@ import {
  *     re-shields them), or on `rz` when the player themselves was broken
  *   - two conditional auto-attacks, both gated on `pyk+` (see AUTO_* below)
  *
- * PRESENTATION: every handler suppresses the game line (returns null) and prints
- * a `bar()` instead. Unrecognised variants pass through so the web-client's
- * built-in triggers still fire as a fallback.
+ * PRESENTATION follows CMUD's output operations: `#SUB` replaces the incoming
+ * line, `#SAY` prints an additional line, and `#GAG` suppresses the incoming
+ * line. Consequently, triggers containing both `#SUB` and `#SAY` intentionally
+ * display two bars. Unrecognised variants pass through unchanged.
  *
  * The triggers are declared as data (`definitions`) so `lamanietest!` can replay
  * sample lines through the very same handlers.
@@ -44,11 +44,7 @@ import {
 type LineBuffer = AnsiAwareBuffer;
 type Handler = (line: LineBuffer, matches: RegExpMatchArray) => LineBuffer | null;
 
-/** Banner polarity: bad for us / good for us / a shield-state note. */
-type Mark = '---' | '+++' | '...';
-
-/** Width of `spread('DRUZYNA PRZELAMALA')`, the longest verb — aligns details. */
-const VERB_WIDTH = 35;
+type Segment = [text: string, state: FormatStateSnapshot];
 
 interface LamanieTrigger {
   /** Gate word(s) — see registerTokenGate / TRIGGERS_REFERENCE RULE #1. */
@@ -108,14 +104,15 @@ function resetLamanieState(): void {
 export function setupLamanie(api: PluginApi, tag: string): void {
   active = true;
 
-  // Colors are built once here — never inside a trigger callback. They form a
-  // severity ladder, so the same color never means two different things:
+  // Colors are built once here — never inside a trigger callback.
+  const c0 = getAnsiFormatState(0, api); // %ansi(0) / %ansi(reset)
+  const c4 = getAnsiFormatState(4, api); // %ansi(4) — bind label
+  const c6 = getAnsiFormatState(6, api); // %ansi(6) — warning text
   const c79 = getAnsiFormatState(79, api); // white on maroon — YOU were broken
   const c38 = getAnsiFormatState(38, api); // red on grey — bad for us
+  const c38Blink: FormatStateSnapshot = { ...c38, slowBlink: true };
   const c34 = getAnsiFormatState(34, api); // green on grey — good for us
   const c35 = getAnsiFormatState(35, api); // grey on grey — low-urgency note
-  const c4 = getMyColor(4, api); // %ansi(4) — bind label
-  const reset = getMyColor(0, api); // %ansi(0)
   const info = api.colors.fromHex('#888888');
 
   const say = (text: string) => {
@@ -142,55 +139,72 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     setBind(api, cmd);
   };
 
-  /**
-   * The one banner shape every event in this module uses:
-   *
-   *     {mark}  {L E T T E R S P A C E D   V E R B}  {mark}   {detail}  [bind]
-   *
-   * `mark` is the polarity — `---` bad, `+++` good, `...` a shield-state note.
-   * The verb field is padded to VERB_WIDTH so the detail column lines up across
-   * every event. The game line is suppressed (the handler returns null) so only
-   * the bar is visible; output from a trigger callback is batched with the rest
-   * of the cycle, so the bar lands right where the game line would have been.
-   */
-  const bar = (
-    mark: Mark,
-    verb: string,
-    detail: string,
-    color: ReturnType<typeof getAnsiFormatState>,
-    bindLabel = '',
-  ) => {
+  const makeOutput = (segments: Segment[]): LineBuffer => {
     const buf = new api.AnsiAwareBuffer();
-    buf.append(`  ${mark}  ${spread(verb).padEnd(VERB_WIDTH)}  ${mark}   ${detail}`, color);
-    if (bindLabel) {
-      buf.append('  [', reset);
-      buf.append(bindLabel, c4);
-      buf.append(']', reset);
-    }
-    api.output.print(buf);
+    for (const [text, state] of segments) buf.append(text, state);
+    return buf;
+  };
+
+  /** CMUD `#SAY`: emit a new output line. */
+  const printOutput = (segments: Segment[]) => api.output.print(makeOutput(segments));
+
+  /** CMUD `#SUB`: replace the matched incoming line and keep its output slot. */
+  const substituteOutput = (line: LineBuffer, segments: Segment[]): LineBuffer => {
+    line.clear();
+    line.prependBuffer(makeOutput(segments));
+    return line;
   };
 
   /**
-   * Shared "an enemy broke through a teammate's shield" reaction: alarm bar
-   * carrying the victim's bind label, basso, and the F-bind armed on that team
-   * slot so one key press re-shields them.
+   * Shared teammate-break reaction. The exact CMUD strings differ for Arlekin;
+   * all variants have two #SAY lines. Surprise variants retain the game line.
    */
-  const teamBroken = (attacker: string, victim: string, idx: number, verb: string) => {
+  const teamBroken = (
+    line: LineBuffer,
+    attacker: string,
+    victim: string,
+    idx: number,
+    arlekin: boolean,
+    keepOriginal = false,
+  ) => {
     teamZlamany = victim.toLowerCase();
     const bindLabel = teamBindLabel(idx);
+    const heading = arlekin
+      ? '[--- PRZELAMUJE DRUZYNE]'
+      : '      PRZELAMUJA DRUZYNE      ';
+    const warning = arlekin
+      ? 'UWAGA!!!   ARLEKIN SOBIE TANCZY I OMIJA'
+      : 'UWAGA!!!   PRZELAMUJE DRUZYNE';
 
-    bar('---', verb, `${attacker.trim()} -> ${victim}`, c38, bindLabel);
+    printOutput([[heading, c38Blink]]);
+    printOutput([
+      [heading, c38Blink],
+      ['      ', c0],
+      [attacker.trim(), c0],
+      ['     ', c0],
+      [warning, c6],
+      ['     [', c0],
+      [bindLabel, c4],
+      [`] ${victim}`, c0],
+    ]);
     send('play_basso');
     if (bindLabel) bind(bindLabel); // CMUD `alias_f=%item(@lista_bindow, ...)`
-    return null;
+    return keepOriginal ? line : null;
   };
 
   /** Shared "an enemy broke through MY shield" reaction — the worst of the set. */
-  const meBroken = (attacker: string) => {
-    bar('---', 'PRZELAMALI CIE', attacker.trim(), c79);
+  const meBroken = (line: LineBuffer, attacker: string, substitute: boolean) => {
+    const heading = '   ---   przelamali  cie      ';
+    if (substitute) substituteOutput(line, [[heading, c79]]);
+    else printOutput([[heading, c79]]);
+    printOutput([
+      [heading, c79],
+      ['      ', c0],
+      [attacker.trim(), c0],
+    ]);
     send('play_basso');
     bind('rz'); // CMUD `f+ rz` — order the team to shield us again
-    return null;
+    return line;
   };
 
   /**
@@ -206,14 +220,16 @@ export function setupLamanie(api: PluginApi, tag: string): void {
 
   // ---- The triggers, in CMUD priority order --------------------------------
   definitions = [
-    // lamanie_celoslaniany: our target is behind someone else.
+    // lamanie_celoslaniany: our target is behind someone else. CMUD uses #SUB
+    // to prefix the original game line rather than gagging it.
     {
       tokens: 'zagradza',
       pattern: /^Atakujesz (.*), lecz (.*) zagradza ci droge\./,
-      handler: (_line, m) => {
+      handler: (line) => {
         setShieldedAgainstMe(true);
-        bar('...', 'cel zasloniety', `${(m[2] ?? '').trim()} -> ${(m[1] ?? '').trim()}`, c35);
-        return null;
+        line.prepend(' ', c0);
+        line.prepend('        cel zasloniety        ', c38);
+        return line;
       },
     },
 
@@ -224,7 +240,13 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line; // victim not on the team — pass through
-        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
+        return teamBroken(
+          line,
+          m[1] ?? '',
+          (m[2] ?? '').trim(),
+          idx,
+          false,
+        );
       },
     },
 
@@ -232,7 +254,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebijajac',
       pattern: /^(.*) rzuca sie na ciebie przebijajac sie przez twoja ochrone\./,
-      handler: (_line, m) => meBroken(m[1] ?? ''),
+      handler: (line, m) => meBroken(line, m[1] ?? '', true),
     },
 
     // lamanie_udane_team: a teammate breaks an enemy's shield.
@@ -245,7 +267,15 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         const target = (m[2] ?? '').trim();
         wrogZlamany = target.toLowerCase();
 
-        bar('+++', 'DRUZYNA PRZELAMALA', `${(m[1] ?? '').trim()} -> ${target}`, c34);
+        const output: Segment[] = [
+          ['   +++   druzyna przelamala   ', c34],
+          ['      ', c0],
+          [(m[1] ?? '').trim(), c0],
+          ['     ', c0],
+          [target, c0],
+        ];
+        substituteOutput(line, output);
+        printOutput(output);
         send('play_morse');
         bind(`c ${target}`); // one key press to swing at the now-open enemy
 
@@ -265,18 +295,23 @@ export function setupLamanie(api: PluginApi, tag: string): void {
             cooldownTimer = null;
           }, 3000); // CMUD `#ALARM pyk +3`
         }
-        return null;
+        return line;
       },
     },
 
-    // lamanie_zonk_ja: the player fails to break a shield. (CMUD also ran
-    // `kol_manewr` here — that helper has no counterpart in this repo.)
+    // lamanie_zonk_ja: the player fails to break a shield. CMUD substitutes the
+    // incoming line once; its `play_basso` is commented out, then it arms the
+    // named `kol_manewr` alarm.
     {
       tokens: 'przebic',
       pattern: /^Bezskutecznie rzucasz sie na (.*), probujac przebic sie przez .* ochrone\./,
-      handler: (_line, m) => {
-        bar('---', 'nie przelamales', (m[1] ?? '').trim(), c38);
-        return null;
+      handler: (line, m) => {
+        line.clear();
+        line.prepend((m[1] ?? '').trim(), c0);
+        line.prepend('          ', c0);
+        line.prepend('     n i e   p r z e l a m a l e s     ', c38);
+        if (!simulating) runKolManewrAlias();
+        return line;
       },
     },
 
@@ -284,8 +319,16 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebijajac',
       pattern: /^Rzucasz sie na (.*) przebijajac sie przez .* ochrone\./,
-      handler: (_line, m) => {
-        bar('+++', 'przelamales', (m[1] ?? '').trim(), c34);
+      handler: (line, m) => {
+        const target = (m[1] ?? '').trim();
+        const output: Segment[] = [
+          ['   +++   przelamales          ', c34],
+          ['          ', c0],
+          [target, c0],
+        ];
+        substituteOutput(line, output);
+        printOutput(output);
+        if (!simulating) runKolManewrAlias();
         send('play_morse');
 
         // AUTO-ATTACK B: back on the team's target now that the shield is gone.
@@ -297,7 +340,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
             if (active) send('c cel ataku');
           });
         }
-        return null;
+        return line;
       },
     },
 
@@ -321,7 +364,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         // so the label always came out empty — teamSlot tries both forms.
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'ARLEKIN OMIJA');
+        return teamBroken(line, m[1] ?? '', (m[2] ?? '').trim(), idx, true);
       },
     },
 
@@ -333,7 +376,13 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
+        return teamBroken(
+          line,
+          m[1] ?? '',
+          (m[2] ?? '').trim(),
+          idx,
+          false,
+        );
       },
     },
 
@@ -341,7 +390,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'przebija',
       pattern: /^(.*) wykorzystujac zaskoczenie przebija sie przez twoja ochrone\./,
-      handler: (_line, m) => meBroken(m[1] ?? ''),
+      handler: (line, m) => meBroken(line, m[1] ?? '', false),
     },
 
     // lamanie_mi_team_zaskok: teammate broken through by surprise.
@@ -351,7 +400,14 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const idx = teamSlot(m[2] ?? '');
         if (idx < 0) return line;
-        return teamBroken(m[1] ?? '', (m[2] ?? '').trim(), idx, 'PRZELAMUJA DRUZYNE');
+        return teamBroken(
+          line,
+          m[1] ?? '',
+          (m[2] ?? '').trim(),
+          idx,
+          false,
+          true,
+        );
       },
     },
 
@@ -359,10 +415,9 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     {
       tokens: 'zaslania',
       pattern: /^Nikt nie zaslania (.*)\./,
-      handler: (_line, m) => {
+      handler: (line) => {
         setShieldedAgainstMe(false);
-        bar('...', 'czysty', (m[1] ?? '').trim(), c35);
-        return null;
+        return substituteOutput(line, [['            czysty            ', c35]]);
       },
     },
   ];
