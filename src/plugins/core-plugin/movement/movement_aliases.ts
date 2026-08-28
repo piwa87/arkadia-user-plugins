@@ -25,4 +25,11 @@ export function setupMovementAliases(api: PluginApi): void {
     api.command.send('/post_walk-');
     return true;
   });
+
+  api.aliases.register(/^vid$/i, () => {
+    api.output.print('--> ruszam');
+    void api.command.send('/dalej 2');
+    void api.command.send('/walkerw');
+    return true;
+  });
 }

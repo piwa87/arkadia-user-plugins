@@ -35,6 +35,7 @@ export { setupLootAliases } from './loot';
 export { setupLootShitAliases } from './loot-shit';
 export { setupMapAliases } from './map';
 export { setupMorze } from './morze';
+export { setupPok } from './mod_pok';
 export { megaphone, setupMgfnAlias } from './mgfn';
 export { setupMieszekAliases } from './mieszek';
 export { setupMiscAliases } from './misc';

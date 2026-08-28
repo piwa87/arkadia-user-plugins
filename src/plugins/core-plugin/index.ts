@@ -41,6 +41,7 @@ import {
   setupLootShitAliases,
   setupMapAliases,
   setupMorze,
+  setupPok,
   megaphone,
   setupMgfnAlias,
   setupMieszekAliases,
@@ -103,7 +104,9 @@ const TRIGGER_TAGS = [
   'kompas',
   'miscTriggers',
   'morze',
+  'mod_pok',
   'pingSounds',
+  'pakujZiolaWoreczekGag',
   'stun',
   'tmpk',
   'atakTriggers',
@@ -126,6 +129,7 @@ let cleanupAtakPyk: (() => void) | null = null;
 let cleanupAntyflood: (() => void) | null = null;
 let cleanupGhoule: (() => void) | null = null;
 let cleanupMorze: (() => void) | null = null;
+let cleanupPok: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
 let cleanupHpBar: (() => void) | null = null;
@@ -183,6 +187,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupKondycjeTriggers(api, kondycjeState);
   cleanupHpBar = setupHpBar(api);
   cleanupMorze = setupMorze(api);
+  cleanupPok = setupPok(api);
   setupLampAliases(api);
   cleanupLocationTriggers = setupLocationTriggers(api);
   setupLocationsAliases(api);
@@ -256,6 +261,8 @@ export async function destroy(): Promise<void> {
   cleanupGhoule = null;
   cleanupMorze?.();
   cleanupMorze = null;
+  cleanupPok?.();
+  cleanupPok = null;
   cleanupWalker?.();
   cleanupWalker = null;
   cleanupZiola?.();
