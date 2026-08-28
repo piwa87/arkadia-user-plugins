@@ -3,20 +3,6 @@ import { withDelay } from '../../../lib/withDelay';
 import { notify } from '../../../lib/notifications';
 import { pakujZiola } from './pakuj';
 
-const GAG_TAG = 'zxWoreczekGag';
-let gagTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function startGagWoreczki(api: PluginApi): void {
-  if (gagTimeout) clearTimeout(gagTimeout);
-  api.triggers.registerToken('woreczek', () => null, GAG_TAG, {
-    caseInsensitive: true,
-  });
-  gagTimeout = setTimeout(() => {
-    api.triggers.removeByTag(GAG_TAG);
-    gagTimeout = null;
-  }, 4000);
-}
-
 const DELAY_MIN = 6123;
 const DELAY_MAX = 6650;
 
@@ -302,7 +288,6 @@ export function setupGatherAliases(api: PluginApi): string[] {
   ids.push(
     api.aliases.register(/^zx(\d+)?$/i, (matches) => {
       api.output.print('--> pakuje zielsko');
-      startGagWoreczki(api);
       const n = matches?.[1] ? parseInt(matches[1], 10) : undefined;
       pakujZiola(api, n, 3);
       return true;

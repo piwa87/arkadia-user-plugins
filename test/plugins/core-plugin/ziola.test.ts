@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { HerbsData, PluginApi } from '@arkadia/plugin-types';
 import { setupGatherAliases, sellJunkHerbs } from '../../../src/plugins/core-plugin/ziola/aliases';
-import { createMockApi } from '../../helpers/mockApi';
+import { cleanupPakujZiola, pakujZiola } from '../../../src/plugins/core-plugin/ziola/pakuj';
+import { createMockApi, runLine } from '../../helpers/mockApi';
 
 const herbData: HerbsData = {
   version: 1,
@@ -34,6 +35,22 @@ function withHerbs(api: PluginApi, data: HerbsData | null = herbData): {
 }
 
 describe('ziola aliases', () => {
+  it('gags bag output for every shared packing call', () => {
+    const mock = createMockApi();
+
+    pakujZiola(mock.api, 2, 3);
+
+    expect(runLine(mock, 'Otwierasz woreczek.')).toBeNull();
+    expect(runLine(mock, 'Zamykasz woreczek.')).toBeNull();
+    expect(mock.api.command.send).toHaveBeenCalledWith('otworz woreczki', false);
+    expect(mock.api.command.send).toHaveBeenCalledWith('wloz ziola do 3. woreczka', false);
+    expect(mock.api.command.send).toHaveBeenCalledWith('wloz ziola do 4. woreczka', false);
+    expect(mock.api.command.send).toHaveBeenCalledWith('zamknij woreczki', false);
+
+    cleanupPakujZiola(mock.api);
+    expect(mock.tokenTriggers).toHaveLength(0);
+  });
+
   it('takes all junk herbs before selling them together', async () => {
     const { api } = createMockApi();
     const herbs = withHerbs(api);

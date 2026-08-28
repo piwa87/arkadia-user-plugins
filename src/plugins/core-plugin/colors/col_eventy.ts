@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { getMyColor } from '../../../lib/colors/my-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { megaphone } from '../mgfn';
 
@@ -11,8 +12,11 @@ const TAG = 'colEventy';
 // be whole words present in every line the pattern can match.
 
 export function setupColEventy(api: PluginApi): void {
+  const orange = getMyColor(5, api);
+  const c3 = getAnsiFormatState(3, api);
   const c4 = getAnsiFormatState(4, api);
   const c6 = getAnsiFormatState(6, api);
+  const c11 = getAnsiFormatState(11, api);
   const c34 = getAnsiFormatState(34, api);
   const c35 = getAnsiFormatState(35, api); // %ansi(3,2) = fg3 bg2 → idx 35; also %ansi(35)
   const c38 = getAnsiFormatState(38, api);
@@ -39,6 +43,21 @@ export function setupColEventy(api: PluginApi): void {
     // Prepend the space onto the line (not into the colored buffer) so it
     // renders with default terminal color rather than inheriting labelColor's background.
     line.prepend(' ');
+    return line.prependBuffer(buf);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prependLabelWithColoredGap = (
+    line: any,
+    label: string,
+    labelColor: any,
+    lineColor: any,
+    gap = '     ',
+  ) => {
+    line.color([0, line.text.length], lineColor);
+    line.prepend(gap, lineColor);
+    const buf = new api.AnsiAwareBuffer(label);
+    buf.color([0, label.length], labelColor);
     return line.prependBuffer(buf);
   };
 
@@ -261,6 +280,71 @@ export function setupColEventy(api: PluginApi): void {
   );
 
   // --- Line substitutions / colorings ---
+
+  // Lamp is nearly burned out; its description varies by lamp type
+  registerTokenGate(
+    api,
+    'wypalona',
+    /^.+ jest prawie calkiem wypalona, wiec niedlugo moze do niczego sie juz nie nadawac\.$/,
+    (line) => prependLabel(line, '[UWAGA]', orange),
+    TAG,
+  );
+
+  // Blacksmith takes an item for repair or sharpening
+  registerTokenGate(
+    api,
+    'bierze',
+    /.* bierze .* do (?:naprawy|ostrzenia)\./,
+    (line) => prependLabel(line, '[naprawa]', c34),
+    TAG,
+  );
+
+  // Someone shakes off an effect
+  registerTokenGate(
+    api,
+    'otrzasa',
+    /^(.*) otrzasa sie\.$/,
+    (line, matches) => {
+      const msg = `  ${matches[1]}    OTRZASA SIE!!!!    `;
+      line.replace([0, line.text.length], msg);
+      return line.color([0, msg.length], c43);
+    },
+    TAG,
+  );
+
+  // Successful harvesting and escaping swamp slime
+  registerTokenGate(
+    api,
+    'Wycinasz',
+    /^Wycinasz .* z ciala .*\./,
+    (line) => col(line, c11),
+    TAG,
+  );
+  registerTokenGate(
+    api,
+    'blotnistej',
+    /^Wydobywasz swoje cialo z blotnistej mazi\.$/,
+    (line) => prependLabelWithColoredGap(line, '[dobrze]', c34, c11),
+    TAG,
+  );
+
+  // Combat action is temporarily unavailable
+  registerTokenGate(
+    api,
+    ['walki', 'Skup'],
+    [/^Ochlon (?:troche|chociaz chwile) od walki\./, /^Skup sie lepiej na walce\./],
+    (line) => prependLabelWithColoredGap(line, '[ zle ]', c38, c3),
+    TAG,
+  );
+
+  // Poisoned entity
+  registerTokenGate(
+    api,
+    ['zatruty', 'zatruta', 'zatrute'],
+    /^Zostal.* zatrut.*/,
+    (line) => prependLabelWithColoredGap(line, '[trucizna]', c38, c3, ' '),
+    TAG,
+  );
 
   // Stunned
   registerTokenGate(

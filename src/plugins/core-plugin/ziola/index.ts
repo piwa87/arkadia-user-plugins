@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { setupGatherAliases } from './aliases';
+import { cleanupPakujZiola } from './pakuj';
 import { setupShortcutAliases } from './shortcuts';
 import { setupZielarz } from './zielarz';
 
@@ -15,6 +16,7 @@ export function setupZiolaAliases(api: PluginApi): () => void {
 
   return () => {
     cleanupZielarz();
+    cleanupPakujZiola(api);
     ids.forEach((id) => api.aliases.remove(id));
   };
 }

@@ -76,6 +76,79 @@ describe('col_eventy', () => {
     expect(line!.text).toBe('[ zle ] Jestes ogluszony i nie mozesz nic zrobic.');
   });
 
+  it.each([
+    'Mosiezna lampa z uchwytem',
+    'Stara zelazna lampa',
+  ])('prepends an orange warning when %s is nearly burned out', (description) => {
+    const mock = setup();
+    const text = `${description} jest prawie calkiem wypalona, wiec niedlugo moze do niczego sie juz nie nadawac.`;
+    const line = runLine(mock, text);
+
+    expect(line!.text).toBe(`[UWAGA] ${text}`);
+    const label = (line!.prependBuffer as any).mock.calls[0][0] as MockAnsiAwareBuffer;
+    expect(label.segments).toContainEqual({
+      text: '[UWAGA]',
+      state: { type: 'hex', value: '#bd7304' },
+    });
+  });
+
+  it('labels items taken for repair or sharpening', () => {
+    const mock = setup();
+    const repair = runLine(mock, 'Kowal bierze twoj miecz do naprawy.');
+    const sharpening = runLine(mock, 'Kowal bierze twoj topor do ostrzenia.');
+
+    expect(repair!.text).toBe('[naprawa] Kowal bierze twoj miecz do naprawy.');
+    expect(sharpening!.text).toBe('[naprawa] Kowal bierze twoj topor do ostrzenia.');
+  });
+
+  it('rewrites shaking-off lines as a prominent alert', () => {
+    const mock = setup();
+    const line = runLine(mock, 'Wielki ork otrzasa sie.');
+
+    expect(line!.text).toBe('  Wielki ork    OTRZASA SIE!!!!    ');
+    expect(line!.color).toHaveBeenCalled();
+  });
+
+  it('colors successful harvesting lines', () => {
+    const mock = setup();
+    const line = runLine(mock, 'Wycinasz skore z ciala wielkiego wilka.');
+
+    expect(line!.text).toBe('Wycinasz skore z ciala wielkiego wilka.');
+    expect(line!.color).toHaveBeenCalled();
+  });
+
+  it('labels escaping swamp slime as good', () => {
+    const mock = setup();
+    const line = runLine(mock, 'Wydobywasz swoje cialo z blotnistej mazi.');
+
+    expect(line!.text).toBe('[dobrze]     Wydobywasz swoje cialo z blotnistej mazi.');
+    expect(line!.color).toHaveBeenCalled();
+  });
+
+  it.each([
+    'Ochlon troche od walki.',
+    'Ochlon chociaz chwile od walki.',
+    'Skup sie lepiej na walce.',
+  ])('labels combat cooldown as bad: %s', (text) => {
+    const mock = setup();
+    const line = runLine(mock, text);
+
+    expect(line!.text).toBe(`[ zle ]     ${text}`);
+    expect(line!.color).toHaveBeenCalled();
+  });
+
+  it.each([
+    'Zostales zatruty silna trucizna.',
+    'Zostala zatruta silna trucizna.',
+    'Zostalo zatrute silna trucizna.',
+  ])('labels poisoning using the CMUD pattern: %s', (text) => {
+    const mock = setup();
+    const line = runLine(mock, text);
+
+    expect(line!.text).toBe(`[trucizna] ${text}`);
+    expect(line!.color).toHaveBeenCalled();
+  });
+
   it('prepends [ zle ] and tints line for empty container', () => {
     const mock = setup();
     const line = runLine(mock, 'Skorzana sakwa jest zupelnie pusta.');
