@@ -114,6 +114,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'm1–m20', desc: 'take coins from body N' },
       { cmd: 'b1–b20', desc: 'take weapon from body N' },
       { cmd: 'wyt1–wyt99', desc: 'cut everything from body N' },
+      { cmd: 'wytw', desc: 'cut first body, then pack the remains' },
       { cmd: 'ww0', desc: 'strip weapons and armor from 8 bodies' },
       { cmd: 'mx[N]', desc: 'take coins from location + N bodies (default 5)' },
 
@@ -129,8 +130,10 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'zi', desc: 'search for herbs (with repeat, /zio_szukaj)' },
       { cmd: 'zii [dir] [N]', desc: 'walk N times searching herbs, then pack (default idz, 4×)' },
       { cmd: 'zx[N]', desc: 'pack herbs into pouches (/zio_pakuj)' },
+      { cmd: 'ziel [N] / ziel!', desc: 'auto-gather across N rooms / stop route' },
       { cmd: 'obz / obz!', desc: 'herb reserve (/ziola_pokaz) / herb UI (/ziola)' },
-      { cmd: 'zisort!', desc: 'rebuild herbs and pouches' },
+      { cmd: 'zisort!', desc: 'sort all herbs into category pouches' },
+      { cmd: 'spziola', desc: 'take junk herbs from pouches and sell them' },
       { cmd: 'mana+ / st+ / zm+', desc: 'load herb set: mana / steroids / zm' },
 
       { section: 'SMOKING' },
@@ -194,6 +197,8 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'wylap zapomnij', desc: 'forget remembered declensions' },
       { cmd: 'lamanieres!', desc: 'reset shield-break state' },
       { cmd: 'lamanietest!', desc: 'replay fake shield-break lines (no commands sent)' },
+      { cmd: 'kol_manewr / kol_rozkaz', desc: 'arm maneuver / order readiness timer' },
+      { cmd: 'man!', desc: 'print the maneuver-ready reminder immediately' },
       { cmd: 'bp', desc: 'zablokuj przeciwnika (block enemy escape)' },
       { cmd: 'bloktest!', desc: 'replay fake block lines (no commands sent)' },
 
@@ -230,6 +235,11 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'col1 / col2 / col3', desc: 'highlight current room pink / green / orange' },
       { cmd: 'col0', desc: 'remove current room highlight' },
       { cmd: 'mran', desc: 'move in a random direction from current room' },
+
+      { section: 'POK SEARCH' },
+      { cmd: 'pok+ / pok-', desc: 'enable / disable creature search' },
+      { cmd: 'pok! / pok_lista', desc: 'show saved findings with live distance' },
+      { cmd: 'pok_reset', desc: 'clear all saved findings' },
 
       { section: 'LOCATIONS' },
       { cmd: 'pcg', desc: 'pry up the black stone' },
@@ -268,6 +278,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'siad', desc: 'sit down (random spot from the prompt)' },
       { cmd: 'tab', desc: 'read notice board / tablets' },
       { cmd: 'i1–5', desc: 'movement speed (leisurely → fast sprint)' },
+      { cmd: 'vid', desc: 'print ruszam, then /dalej 2 and /walkerw' },
       { cmd: 'ooo', desc: 'pull down hood' },
       { cmd: 'pile <target>', desc: 'throw ball at target, auto-retrieve after delay' },
       { cmd: 'wj [target]', desc: 'wskaz (point at)' },
@@ -276,6 +287,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'napwsz', desc: 'sharpen all weapons and repair all armor' },
       { cmd: 'ti!', desc: 'stopwatch toggle (start/stop)' },
       { cmd: 'ti!+', desc: 'stopwatch force reset' },
+      { cmd: 'prr', desc: 'stop current action and automatic herb route' },
       { cmd: 'zakrec!', desc: 'spin the wheel (random result)' },
       { cmd: 'gale!', desc: 'navigate through galeon with random delays' },
       { cmd: 'hide+ / hide-', desc: 'toggle association listing + signet ring' },
