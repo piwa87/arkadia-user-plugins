@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { storage } from '../../../src/lib/storage';
 import {
+  POK_SHORTS,
   POK_STORAGE_KEY,
   createPokState,
   setupPok,
@@ -36,6 +37,10 @@ afterEach(() => {
 });
 
 describe('pokoniuchy', () => {
+  it('keeps creature shorts in alphabetical order', () => {
+    expect([...POK_SHORTS]).toEqual([...POK_SHORTS].sort());
+  });
+
   it('registers only token-gated creature triggers', () => {
     const mock = createMockApi();
     setupPok(mock.api);
@@ -82,6 +87,22 @@ describe('pokoniuchy', () => {
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toContainEqual({
       roomId: 12345,
       short: 'Omszala jadowita kergulena',
+      areaId: 8,
+      areaName: 'Testowy obszar',
+    });
+  });
+
+  it('recognizes Drapiezny wezowaty wipper with trailing punctuation', () => {
+    const mock = createMockApi({ room: { id: 12346, area: 8 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Drapiezny wezowaty wipper.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toContainEqual({
+      roomId: 12346,
+      short: 'Drapiezny wezowaty wipper',
       areaId: 8,
       areaName: 'Testowy obszar',
     });

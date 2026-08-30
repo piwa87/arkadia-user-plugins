@@ -9,19 +9,20 @@ const LEGACY_POK_STORAGE_KEY = 'mod_pok:findings';
 
 // Shorty widoczne w dostarczonej tabeli. Kolejne odmiany mozna dopisywac tutaj.
 export const POK_SHORTS = [
-  'Galezowaty pokoniunkcyjny klabart',
-  'Pokoniunkcyjny glazowy stwor',
-  'Wezowaty grozny stwor',
-  'Pospolita wezowata wiwerna',
-  'Szybki agresywny wildogon',
+  'Drapiezny wezowaty wipper',
   'Duza drapiezna endriaga',
   'Duza zwinna endriaga',
-  'Wielki skrzydlaty oszluzg',
-  'Potezna skrzydlata bestia',
+  'Galezowaty pokoniunkcyjny klabart',
   'Omszala jadowita kergulena',
+  'Pokoniunkcyjny glazowy stwor',
+  'Pospolita wezowata wiwerna',
+  'Potezna skrzydlata bestia',
+  'Szybki agresywny wildogon',
+  'Wezowaty grozny stwor',
+  'Wielki skrzydlaty oszluzg',
 ] as const;
 
-const GATE_WORDS = ['klabart', 'stwor', 'wiwerna', 'wildogon', 'endriaga', 'oszluzg', 'bestia', 'kergulena'];
+const GATE_WORDS = ['bestia', 'endriaga', 'kergulena', 'klabart', 'oszluzg', 'stwor', 'wildogon', 'wipper', 'wiwerna'];
 const SHORT_PATTERN = new RegExp(`\\b(?:${POK_SHORTS.map(escapeRegex).join('|')})\\b`, 'i');
 const SHORT_SCAN_PATTERN = new RegExp(`\\b(?:${POK_SHORTS.map(escapeRegex).join('|')})\\b`, 'gi');
 

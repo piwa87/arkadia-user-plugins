@@ -312,7 +312,7 @@ export function setupColEventy(api: PluginApi): void {
     TAG,
   );
 
-  // Successful harvesting and escaping swamp slime
+  // Successful harvesting and positive recovery messages
   registerTokenGate(
     api,
     'Wycinasz',
@@ -322,8 +322,11 @@ export function setupColEventy(api: PluginApi): void {
   );
   registerTokenGate(
     api,
-    'blotnistej',
-    /^Wydobywasz swoje cialo z blotnistej mazi\.$/,
+    ['blotnistej', 'znacznie'],
+    [
+      /^Wydobywasz swoje cialo z blotnistej mazi\.$/,
+      /^Czujesz sie znacznie lepiej\.$/,
+    ],
     (line) => prependLabelWithColoredGap(line, '[dobrze]', c34, c11),
     TAG,
   );

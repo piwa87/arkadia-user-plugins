@@ -117,11 +117,14 @@ describe('col_eventy', () => {
     expect(line!.color).toHaveBeenCalled();
   });
 
-  it('labels escaping swamp slime as good', () => {
+  it.each([
+    'Wydobywasz swoje cialo z blotnistej mazi.',
+    'Czujesz sie znacznie lepiej.',
+  ])('labels positive information as good: %s', (text) => {
     const mock = setup();
-    const line = runLine(mock, 'Wydobywasz swoje cialo z blotnistej mazi.');
+    const line = runLine(mock, text);
 
-    expect(line!.text).toBe('[dobrze]     Wydobywasz swoje cialo z blotnistej mazi.');
+    expect(line!.text).toBe(`[dobrze]     ${text}`);
     expect(line!.color).toHaveBeenCalled();
   });
 
