@@ -104,7 +104,7 @@ const TRIGGER_TAGS = [
   'kompas',
   'miscTriggers',
   'morze',
-  'mod_pok',
+  'pokoniuchy',
   'pingSounds',
   'pakujZiolaWoreczekGag',
   'stun',

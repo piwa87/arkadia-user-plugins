@@ -236,10 +236,10 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'col0', desc: 'remove current room highlight' },
       { cmd: 'mran', desc: 'move in a random direction from current room' },
 
-      { section: 'POK SEARCH' },
-      { cmd: 'pok+ / pok-', desc: 'enable / disable creature search' },
-      { cmd: 'pok! / pok_lista', desc: 'show saved findings with live distance' },
-      { cmd: 'pok_reset', desc: 'clear all saved findings' },
+      { section: 'POKONIUCHY' },
+      { cmd: 'poko+ / poko-', desc: 'enable / disable creature search' },
+      { cmd: 'poko / poko_lista', desc: 'show saved findings with live distance' },
+      { cmd: 'poko_reset', desc: 'clear all saved findings' },
 
       { section: 'LOCATIONS' },
       { cmd: 'pcg', desc: 'pry up the black stone' },

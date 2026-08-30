@@ -3,8 +3,9 @@ import { escapeRegex } from '../../../lib/escapeRegex';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { storage } from '../../../lib/storage';
 
-export const POK_TAG = 'mod_pok';
-export const POK_STORAGE_KEY = 'mod_pok:findings';
+export const POK_TAG = 'pokoniuchy';
+export const POK_STORAGE_KEY = 'pokoniuchy:findings';
+const LEGACY_POK_STORAGE_KEY = 'mod_pok:findings';
 
 // Shorty widoczne w dostarczonej tabeli. Kolejne odmiany mozna dopisywac tutaj.
 export const POK_SHORTS = [
@@ -38,10 +39,12 @@ export interface PokState {
 }
 
 function loadFindings(): PokFinding[] {
-  const stored = storage.get<unknown>(POK_STORAGE_KEY);
+  const current = storage.get<unknown>(POK_STORAGE_KEY);
+  const legacy = current === null ? storage.get<unknown>(LEGACY_POK_STORAGE_KEY) : null;
+  const stored = current ?? legacy;
   if (!Array.isArray(stored)) return [];
 
-  return stored.filter((entry): entry is PokFinding => {
+  const findings = stored.filter((entry): entry is PokFinding => {
     if (!entry || typeof entry !== 'object') return false;
     const finding = entry as Partial<PokFinding>;
     return (
@@ -52,6 +55,17 @@ function loadFindings(): PokFinding[] {
       (finding.slain === undefined || typeof finding.slain === 'boolean')
     );
   });
+
+  if (current === null && legacy !== null) {
+    try {
+      storage.set(POK_STORAGE_KEY, findings);
+      storage.remove(LEGACY_POK_STORAGE_KEY);
+    } catch {
+      // Keep the loaded legacy data in memory if localStorage is unavailable.
+    }
+  }
+
+  return findings;
 }
 
 export function createPokState(): PokState {
@@ -93,7 +107,7 @@ function toggleSlain(api: PluginApi, state: PokState, finding: PokFinding, previ
     state.findings.splice(0, state.findings.length, ...next);
     printList(api, state, preview);
   } catch {
-    api.output.print('[pok] Nie udalo sie zmienic statusu znaleziska.');
+    api.output.print('[poko] Nie udalo sie zmienic statusu znaleziska.');
   }
 }
 
@@ -105,16 +119,16 @@ function removeFinding(api: PluginApi, state: PokState, finding: PokFinding, pre
     const next = state.findings.filter((_, findingIndex) => findingIndex !== index);
     storage.set(POK_STORAGE_KEY, next);
     state.findings.splice(0, state.findings.length, ...next);
-    api.output.print(`[pok] Usunieto #${index + 1}: ${finding.short} (${finding.roomId}).`);
+    api.output.print(`[poko] Usunieto #${index + 1}: ${finding.short} (${finding.roomId}).`);
     printList(api, state, preview);
   } catch {
-    api.output.print('[pok] Nie udalo sie usunac znaleziska.');
+    api.output.print('[poko] Nie udalo sie usunac znaleziska.');
   }
 }
 
 function printList(api: PluginApi, state: PokState, preview: PreviewHandler): void {
   if (state.findings.length === 0) {
-    api.output.print('[pok] Brak zapisanych stworow.');
+    api.output.print('[poko] Brak zapisanych stworow.');
     return;
   }
 
@@ -224,15 +238,12 @@ function printList(api: PluginApi, state: PokState, preview: PreviewHandler): vo
   });
 
   printColored(border, borderColor);
-  api.output.print(
-    `Lacznie zapisano: ${findings.length} stworow. ID: /prowadz; [ ]/[✓]: status; 👁: podglad 3 s; 🗑: usun.`,
-  );
 }
 
 function saveFinding(api: PluginApi, state: PokState, short: string): void {
   const room = api.map.getRoom();
   if (!room) {
-    api.output.print(`[pok] Znaleziono: ${short}, ale mapa nie zna biezacej lokacji.`);
+    api.output.print(`[poko] Znaleziono: ${short}, ale mapa nie zna biezacej lokacji.`);
     return;
   }
 
@@ -249,7 +260,7 @@ function saveFinding(api: PluginApi, state: PokState, short: string): void {
   };
   state.findings.push(finding);
   storage.set(POK_STORAGE_KEY, state.findings);
-  api.output.print(`[pok] #${state.findings.length}: ${short} (${room.id}, ${finding.areaName})`);
+  api.output.print(`[poko] #${state.findings.length}: ${short} (${room.id}, ${finding.areaName})`);
 }
 
 export function setupPok(api: PluginApi): () => void {
@@ -268,7 +279,7 @@ export function setupPok(api: PluginApi): () => void {
     if (previewTimer === null) {
       const currentId = api.map.getRoom()?.id;
       if (currentId === undefined) {
-        api.output.print('[pok] Nie mozna uruchomic podgladu: mapa nie zna biezacej lokacji.');
+        api.output.print('[poko] Nie mozna uruchomic podgladu: mapa nie zna biezacej lokacji.');
         return;
       }
       previewOriginId = currentId;
@@ -304,27 +315,27 @@ export function setupPok(api: PluginApi): () => void {
     POK_TAG,
   );
 
-  api.aliases.register(/^pok\+$/i, () => {
+  api.aliases.register(/^poko\+$/i, () => {
     state.active = true;
-    api.output.print(`[pok] Szukanie wlaczone. Zapisano dotad: ${state.findings.length}.`);
+    api.output.print(`[poko] Szukanie wlaczone. Zapisano dotad: ${state.findings.length}.`);
     return true;
   });
 
-  api.aliases.register(/^pok-$/i, () => {
+  api.aliases.register(/^poko-$/i, () => {
     state.active = false;
-    api.output.print('[pok] Szukanie wylaczone.');
+    api.output.print('[poko] Szukanie wylaczone.');
     return true;
   });
 
-  api.aliases.register(/^(?:pok_lista|pok!)$/i, () => {
+  api.aliases.register(/^(?:poko_lista|poko)$/i, () => {
     printList(api, state, preview);
     return true;
   });
 
-  api.aliases.register(/^pok_reset$/i, () => {
+  api.aliases.register(/^poko_reset$/i, () => {
     storage.remove(POK_STORAGE_KEY);
     state.findings.splice(0, state.findings.length);
-    api.output.print('[pok] Lista zostala wyzerowana.');
+    api.output.print('[poko] Lista zostala wyzerowana.');
     return true;
   });
 

@@ -5,7 +5,7 @@ import {
   createPokState,
   setupPok,
   type PokFinding,
-} from '../../../src/plugins/core-plugin/mod_pok';
+} from '../../../src/plugins/core-plugin/pokoniuchy';
 import { createMockApi, MockAnsiAwareBuffer, runLine } from '../../helpers/mockApi';
 
 function makeLocalStorageMock() {
@@ -35,13 +35,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('mod_pok', () => {
+describe('pokoniuchy', () => {
   it('registers only token-gated creature triggers', () => {
     const mock = createMockApi();
     setupPok(mock.api);
 
-    expect(mock.triggers.filter((trigger) => trigger.tag === 'mod_pok')).toHaveLength(0);
-    expect(mock.tokenTriggers.some((trigger) => trigger.tag === 'mod_pok' && trigger.token === 'wiwerna')).toBe(true);
+    expect(mock.triggers.filter((trigger) => trigger.tag === 'pokoniuchy')).toHaveLength(0);
+    expect(mock.tokenTriggers.some((trigger) => trigger.tag === 'pokoniuchy' && trigger.token === 'wiwerna')).toBe(true);
   });
 
   it('does not save findings until searching is enabled', () => {
@@ -58,7 +58,7 @@ describe('mod_pok', () => {
     const mock = createMockApi({ room: { id: 10276, area: 7 } });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 7, areaName: 'Poludniowe Kaedwen', rooms: [] }]) as any;
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok+');
+    runAlias(mock.aliases, 'poko+');
 
     runLine(mock, 'Galezowaty pokoniunkcyjny klabart stoi tutaj.');
     runLine(mock, 'Galezowaty pokoniunkcyjny klabart rozglada sie.');
@@ -75,7 +75,7 @@ describe('mod_pok', () => {
     const mock = createMockApi({ room: { id: 12345, area: 8 } });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok+');
+    runAlias(mock.aliases, 'poko+');
 
     runLine(mock, 'Omszala jadowita kergulena.');
 
@@ -100,6 +100,20 @@ describe('mod_pok', () => {
     expect(createPokState().active).toBe(false);
   });
 
+  it('migrates findings saved under the old mod_pok storage key', () => {
+    const findings: PokFinding[] = [{
+      roomId: 21171,
+      short: 'Duza drapiezna endriaga',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }];
+    storage.set('mod_pok:findings', findings);
+
+    expect(createPokState().findings).toEqual(findings);
+    expect(storage.get(POK_STORAGE_KEY)).toEqual(findings);
+    expect(storage.get('mod_pok:findings')).toBeNull();
+  });
+
   it('prints live distances and makes each room ID run /prowadz', () => {
     storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
       roomId: 10276,
@@ -111,7 +125,7 @@ describe('mod_pok', () => {
     mock.api.map.findPath = vi.fn(() => [10000, 10001, 10276]);
     setupPok(mock.api);
 
-    runAlias(mock.aliases, 'pok_lista');
+    runAlias(mock.aliases, 'poko_lista');
 
     const rows = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
       .map(([value]) => value)
@@ -135,9 +149,9 @@ describe('mod_pok', () => {
     findingRow.klik('🗑');
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toEqual([]);
     expect(mock.api.output.print).toHaveBeenCalledWith(
-      '[pok] Usunieto #1: Galezowaty pokoniunkcyjny klabart (10276).',
+      '[poko] Usunieto #1: Galezowaty pokoniunkcyjny klabart (10276).',
     );
-    expect(mock.api.output.print).toHaveBeenCalledWith('[pok] Brak zapisanych stworow.');
+    expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Brak zapisanych stworow.');
   });
 
   it('persists and toggles the slain/visited checkbox', () => {
@@ -149,7 +163,7 @@ describe('mod_pok', () => {
     }]);
     const mock = createMockApi({ room: { id: 10000, area: 7 } });
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok!');
+    runAlias(mock.aliases, 'poko');
 
     const printedRows = () => (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
       .map(([value]) => value)
@@ -179,7 +193,7 @@ describe('mod_pok', () => {
     }]);
     const mock = createMockApi({ room: { id: 10276, area: 7 } });
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok!');
+    runAlias(mock.aliases, 'poko');
 
     const row = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
       .map(([value]) => value)
@@ -206,7 +220,7 @@ describe('mod_pok', () => {
       return null;
     });
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok!');
+    runAlias(mock.aliases, 'poko');
 
     const displayedShorts = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
       .map(([value]) => value)
@@ -230,7 +244,7 @@ describe('mod_pok', () => {
     }]);
     const mock = createMockApi({ room: { id: 10000, area: 7 } });
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok!');
+    runAlias(mock.aliases, 'poko');
 
     const row = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
       .map(([value]) => value)
@@ -246,25 +260,28 @@ describe('mod_pok', () => {
     expect(mock.api.command.send).toHaveBeenLastCalledWith('/ustaw 10000');
   });
 
-  it('supports pok! as a shortcut for the findings list', () => {
+  it('supports poko as a shortcut for the findings list', () => {
     const mock = createMockApi();
     setupPok(mock.api);
 
-    runAlias(mock.aliases, 'pok!');
+    runAlias(mock.aliases, 'poko');
 
-    expect(mock.api.output.print).toHaveBeenCalledWith('[pok] Brak zapisanych stworow.');
+    expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Brak zapisanych stworow.');
   });
 
-  it('supports pok_lista but no longer handles /pok_lista or pok_import', () => {
+  it('supports poko_lista but no longer handles old pok aliases', () => {
     const mock = createMockApi();
     setupPok(mock.api);
 
-    runAlias(mock.aliases, 'pok_lista');
-    expect(mock.aliases.some((alias) => alias.pattern.test('/pok_lista'))).toBe(false);
-    expect(mock.aliases.some((alias) => alias.pattern.test('pok_import'))).toBe(false);
+    runAlias(mock.aliases, 'poko_lista');
+    expect(mock.aliases.some((alias) => alias.pattern.test('pok!'))).toBe(false);
+    expect(mock.aliases.some((alias) => alias.pattern.test('pok_lista'))).toBe(false);
+    expect(mock.aliases.some((alias) => alias.pattern.test('pok_reset'))).toBe(false);
+    expect(mock.aliases.some((alias) => alias.pattern.test('pok+'))).toBe(false);
+    expect(mock.aliases.some((alias) => alias.pattern.test('pok-'))).toBe(false);
   });
 
-  it('clears all saved findings with pok_reset', () => {
+  it('clears all saved findings with poko_reset', () => {
     storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
       roomId: 10276,
       short: 'Galezowaty pokoniunkcyjny klabart',
@@ -274,18 +291,18 @@ describe('mod_pok', () => {
     const mock = createMockApi();
     setupPok(mock.api);
 
-    runAlias(mock.aliases, 'pok_reset');
+    runAlias(mock.aliases, 'poko_reset');
 
     expect(storage.get(POK_STORAGE_KEY)).toBeNull();
-    expect(mock.api.output.print).toHaveBeenCalledWith('[pok] Lista zostala wyzerowana.');
-    runAlias(mock.aliases, 'pok!');
-    expect(mock.api.output.print).toHaveBeenLastCalledWith('[pok] Brak zapisanych stworow.');
+    expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Lista zostala wyzerowana.');
+    runAlias(mock.aliases, 'poko');
+    expect(mock.api.output.print).toHaveBeenLastCalledWith('[poko] Brak zapisanych stworow.');
   });
 
   it('does not save when the current map room is unavailable', () => {
     const mock = createMockApi();
     setupPok(mock.api);
-    runAlias(mock.aliases, 'pok+');
+    runAlias(mock.aliases, 'poko+');
 
     expect(() => runLine(mock, 'Potezna skrzydlata bestia warczy.')).not.toThrow();
     expect(storage.get(POK_STORAGE_KEY)).toBeNull();

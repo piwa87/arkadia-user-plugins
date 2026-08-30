@@ -20,6 +20,12 @@ function isSwordSelected(): boolean {
 }
 
 export function setupWycinanieAliases(api: PluginApi): void {
+  // wyt — send /wyc to muda
+  api.aliases.register(/^wyt$/i, () => {
+    api.command.send('/wyc');
+    return true;
+  });
+
   // wyt <n> — wytnij wszystko z 1..N ciala, one at a time via trigger
   api.aliases.register(/^wyt (\d+)$/i, (matches) => {
     const total = parseInt(matches?.[1] ?? '0', 10);
