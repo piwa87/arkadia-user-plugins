@@ -239,6 +239,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { section: 'POKONIUCHY' },
       { cmd: 'poko+ / poko-', desc: 'enable / disable creature search' },
       { cmd: 'poko / poko_lista', desc: 'show saved findings with live distance' },
+      { cmd: 'poko_tu', desc: 'look and update the saved creature in this room' },
       { cmd: 'poko_reset', desc: 'clear all saved findings' },
 
       { section: 'LOCATIONS' },

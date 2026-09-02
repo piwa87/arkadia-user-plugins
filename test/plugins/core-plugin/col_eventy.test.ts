@@ -132,6 +132,8 @@ describe('col_eventy', () => {
     'Ochlon troche od walki.',
     'Ochlon chociaz chwile od walki.',
     'Skup sie lepiej na walce.',
+    'Nie mozesz tego zrobic, gdyz masz obolala prawa dlon.',
+    'Nie mozesz tego zrobic, gdyz masz obolala lewa dlon.',
   ])('labels combat cooldown as bad: %s', (text) => {
     const mock = setup();
     const line = runLine(mock, text);

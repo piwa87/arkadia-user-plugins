@@ -51,7 +51,7 @@ describe('glass_sound triggers', () => {
     const mock = setup();
     runLine(mock, 'Wysaczasz ostatnie krople, oprozniajac zupelnie butelke oleju.');
     expect(sentCommands(mock)).toContain('play_glass');
-    expect(sentCommands(mock)).toContain('f+ odloz butelke|ot|wyj butelke|naplam');
+    expect(sentCommands(mock)).toEqual(['play_glass']);
   });
 
   it('plays glass on new mail', () => {

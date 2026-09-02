@@ -331,11 +331,15 @@ export function setupColEventy(api: PluginApi): void {
     TAG,
   );
 
-  // Combat action is temporarily unavailable
+  // Combat action is temporarily unavailable or blocked by an injury
   registerTokenGate(
     api,
-    ['walki', 'Skup'],
-    [/^Ochlon (?:troche|chociaz chwile) od walki\./, /^Skup sie lepiej na walce\./],
+    ['walki', 'Skup', 'obolala'],
+    [
+      /^Ochlon (?:troche|chociaz chwile) od walki\./,
+      /^Skup sie lepiej na walce\./,
+      /^Nie mozesz tego zrobic, gdyz masz obolala (?:prawa|lewa) dlon\.$/,
+    ],
     (line) => prependLabelWithColoredGap(line, '[ zle ]', c38, c3),
     TAG,
   );

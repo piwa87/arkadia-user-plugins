@@ -94,7 +94,6 @@ export function setupGlassSounds(api: PluginApi): void {
     /oprozniajac zupelnie .* oleju/,
     (line) => {
       playGlass();
-      api.command.send('f+ odloz butelke|ot|wyj butelke|naplam');
       return line;
     },
     TAG,

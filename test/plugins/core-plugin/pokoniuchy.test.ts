@@ -108,6 +108,22 @@ describe('pokoniuchy', () => {
     });
   });
 
+  it('recognizes Rdzawofutra masywna mantikora with trailing punctuation', () => {
+    const mock = createMockApi({ room: { id: 12347, area: 10 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 10, areaName: 'Puszcza', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Rdzawofutra masywna mantikora.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toContainEqual({
+      roomId: 12347,
+      short: 'Rdzawofutra masywna mantikora',
+      areaId: 10,
+      areaName: 'Puszcza',
+    });
+  });
+
   it('loads persisted findings in a fresh state', () => {
     const findings: PokFinding[] = [{
       roomId: 21171,
@@ -135,6 +151,18 @@ describe('pokoniuchy', () => {
     expect(storage.get('mod_pok:findings')).toBeNull();
   });
 
+  it('corrects the old wildogon spelling in saved findings', () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 22468,
+      short: 'Szybki agresywny wildogon',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }]);
+
+    expect(createPokState().findings[0].short).toBe('Szybki agresywny widlogon');
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].short).toBe('Szybki agresywny widlogon');
+  });
+
   it('prints live distances and makes each room ID run /prowadz', () => {
     storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
       roomId: 10276,
@@ -152,7 +180,7 @@ describe('pokoniuchy', () => {
       .map(([value]) => value)
       .filter((value): value is MockAnsiAwareBuffer => value instanceof MockAnsiAwareBuffer);
     const findingRow = rows.find((row) => row.text.includes('Galezowaty'))!;
-    expect(findingRow.text).toContain(' 2 |');
+    expect(findingRow.text).toMatch(/^\| 10276 \| 2 lok\. \|/);
     const idSegment = findingRow.segments.find((segment) => segment.text === '10276')!;
     expect(idSegment.state).toMatchObject({
       value: '#2f855a',
@@ -160,11 +188,11 @@ describe('pokoniuchy', () => {
       hyperlink: expect.any(Object),
     });
     const afterId = findingRow.segments.slice(findingRow.segments.indexOf(idSegment) + 1);
-    expect(afterId.filter((segment) => segment.state?.hyperlink).map((segment) => segment.text)).toEqual(['[ ]', '👁', '🗑']);
+    expect(afterId.filter((segment) => segment.state?.hyperlink).map((segment) => segment.text)).toEqual([
+      '2 lok.', '[ ]', '👁', '🗑',
+    ]);
     expect(afterId[0].state).toMatchObject({ value: '#929292' });
-    const header = rows.find((row) => row.text.includes('| LOC') && row.text.includes('| DIS'))!;
-    expect(header.text).not.toContain('PODG');
-    expect(header.text).not.toContain('USUN');
+    expect(rows.some((row) => /\b(?:NR|LOC|DIS|SHORT)\b/.test(row.text))).toBe(false);
     findingRow.klik('10276');
     expect(mock.api.command.send).toHaveBeenCalledWith('/prowadz 10276');
     findingRow.klik('🗑');
@@ -173,6 +201,38 @@ describe('pokoniuchy', () => {
       '[poko] Usunieto #1: Galezowaty pokoniunkcyjny klabart (10276).',
     );
     expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Brak zapisanych stworow.');
+  });
+
+  it('starts /prowadz and runs vid after 500 ms when the distance is clicked', async () => {
+    vi.useFakeTimers();
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 10276,
+      short: 'Galezowaty pokoniunkcyjny klabart',
+      areaId: 7,
+      areaName: 'Poludniowe Kaedwen',
+    }]);
+    const mock = createMockApi({ room: { id: 10000, area: 7 } });
+    mock.api.map.findPath = vi.fn(() => [10000, 10001, 10276]);
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko');
+
+    const row = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
+      .map(([value]) => value)
+      .find((value): value is MockAnsiAwareBuffer => (
+        value instanceof MockAnsiAwareBuffer && value.text.includes('Galezowaty')
+      ))!;
+    row.klik('2 lok.');
+
+    expect(mock.api.command.send).toHaveBeenCalledWith('/prowadz 10276');
+    await vi.advanceTimersByTimeAsync(499);
+    expect(mock.api.output.print).not.toHaveBeenCalledWith('--> ruszam');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mock.api.output.print).toHaveBeenCalledWith('--> ruszam');
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/prowadz 10276',
+      '/dalej 2',
+      '/walkerw',
+    ]);
   });
 
   it('persists and toggles the slain/visited checkbox', () => {
@@ -205,6 +265,39 @@ describe('pokoniuchy', () => {
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].slain).toBe(false);
   });
 
+  it('clears every slain status with the table button', () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [
+      {
+        roomId: 10276,
+        short: 'Galezowaty pokoniunkcyjny klabart',
+        areaId: 7,
+        areaName: 'Poludniowe Kaedwen',
+        slain: true,
+      },
+      {
+        roomId: 10272,
+        short: 'Pokoniunkcyjny glazowy stwor',
+        areaId: 7,
+        areaName: 'Poludniowe Kaedwen',
+        slain: true,
+      },
+    ]);
+    const mock = createMockApi({ room: { id: 10000, area: 7 } });
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko');
+
+    const button = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
+      .map(([value]) => value)
+      .find((value): value is MockAnsiAwareBuffer => (
+        value instanceof MockAnsiAwareBuffer && value.text === '[CLEAR]'
+      ))!;
+    const printCalls = vi.mocked(mock.api.output.print).mock.calls;
+    expect(printCalls[printCalls.length - 1]?.[0]).toBe(button);
+    button.klik('[CLEAR]');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.every((finding) => finding.slain === false)).toBe(true);
+  });
+
   it('tints the current room row green when its distance is zero', () => {
     storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
       roomId: 10276,
@@ -223,7 +316,7 @@ describe('pokoniuchy', () => {
       ))!;
 
     expect(row.segments[0].state).toMatchObject({ value: '#6f8f78' });
-    expect(row.text).toContain(' 0 |');
+    expect(row.text).toContain(' 0 lok. |');
   });
 
   it('sorts displayed rows by live distance and leaves unreachable rooms last', () => {
@@ -300,6 +393,93 @@ describe('pokoniuchy', () => {
     expect(mock.aliases.some((alias) => alias.pattern.test('pok_reset'))).toBe(false);
     expect(mock.aliases.some((alias) => alias.pattern.test('pok+'))).toBe(false);
     expect(mock.aliases.some((alias) => alias.pattern.test('pok-'))).toBe(false);
+  });
+
+  it('uses poko_tu to look and replace a manual description with the current creature short', () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 22259,
+      short: 'Wiwerna (padla wiec bez shorta)',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }]);
+    const mock = createMockApi({ room: { id: 22259, area: 9 } });
+    (mock.api as any).objects = {
+      getObjectsOnLocation: vi.fn(() => [
+        { num: 1, desc: 'Ponury mahakamski kupiec', __category: 'rest-noncombat' },
+        { num: 2, desc: 'pospolita wezowata wiwerna', __category: 'rest' },
+      ]),
+    };
+    const cleanup = setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_tu');
+    expect(mock.api.command.send).toHaveBeenCalledWith('zerknij');
+    mock.api.events.emit('parsedObjects');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].short).toBe('Pospolita wezowata wiwerna');
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      '[poko] Wpis zostal nadpisany: Wiwerna (padla wiec bez shorta) -> Pospolita wezowata wiwerna.',
+    );
+    const printCalls = vi.mocked(mock.api.output.print).mock.calls;
+    expect(printCalls[printCalls.length - 1]?.[0]).toBe(
+      '[poko] Wpis zostal nadpisany: Wiwerna (padla wiec bez shorta) -> Pospolita wezowata wiwerna.',
+    );
+
+    cleanup();
+    expect(mock.eventListeners.get('parsedObjects')).toEqual([]);
+  });
+
+  it('captures a known short directly from zerknij output when parsedObjects is not emitted', async () => {
+    vi.useFakeTimers();
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 22259,
+      short: 'Wipper (padl wiec bez shorta)',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }]);
+    const mock = createMockApi({ room: { id: 22259, area: 9 } });
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_tu');
+    runLine(mock, 'W gorach.');
+    runLine(mock, 'Drapiezny wezowaty wipper.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].short).toBe('Drapiezny wezowaty wipper');
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      '[poko] Wpis zostal nadpisany: Wipper (padl wiec bez shorta) -> Drapiezny wezowaty wipper.',
+    );
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mock.api.output.print).not.toHaveBeenCalledWith(
+      '[poko] Nie otrzymano listy stworow po komendzie zerknij.',
+    );
+  });
+
+  it('captures Szybki agresywny widlogon directly from zerknij output', () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 21982,
+      short: 'Widlogon (reczny opis)',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }]);
+    const mock = createMockApi({ room: { id: 21982, area: 9 } });
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_tu');
+    runLine(mock, 'Szybki agresywny widlogon.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].short).toBe('Szybki agresywny widlogon');
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      '[poko] Wpis zostal nadpisany: Widlogon (reczny opis) -> Szybki agresywny widlogon.',
+    );
+  });
+
+  it('does not run poko_tu without a saved finding in the current room', () => {
+    const mock = createMockApi({ room: { id: 22259, area: 9 } });
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_tu');
+
+    expect(mock.api.command.send).not.toHaveBeenCalled();
+    expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Brak zapisanego stwora na tej lokacji.');
   });
 
   it('clears all saved findings with poko_reset', () => {

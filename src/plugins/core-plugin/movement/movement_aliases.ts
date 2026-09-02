@@ -3,6 +3,12 @@ import { setupGaleonAlias } from './galeon';
 import { setupRandomExitAlias } from './random_exit';
 import { setupMovementSpeedAliases } from './speeds';
 
+export function runVid(api: PluginApi): void {
+  api.output.print('--> ruszam');
+  void api.command.send('/dalej 2');
+  void api.command.send('/walkerw');
+}
+
 export function setupMovementAliases(api: PluginApi): void {
   setupMovementSpeedAliases(api);
   setupRandomExitAlias(api);
@@ -27,9 +33,7 @@ export function setupMovementAliases(api: PluginApi): void {
   });
 
   api.aliases.register(/^vid$/i, () => {
-    api.output.print('--> ruszam');
-    void api.command.send('/dalej 2');
-    void api.command.send('/walkerw');
+    runVid(api);
     return true;
   });
 }
