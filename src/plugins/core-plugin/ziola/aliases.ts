@@ -10,6 +10,9 @@ const DELAY_MAX = 6650;
 // Add more IDs as needed (e.g. 'trawa', 'stulicha').
 const SELL_LIST = new Set<string>([
   'borowik_szatanski',
+  'borowik_szlachetny',
+  'ciemiernik',
+  'drabik',
   'hubka',
   'janowiec',
   'kocimietka',
@@ -19,9 +22,13 @@ const SELL_LIST = new Set<string>([
   'marzanna',
   'maslak',
   'muchomor_czerwony',
+  'muchomor_sromotnikowy',
   'oset',
   'ostrozeczka',
+  'pierscieniak_gryn',
   'podgrzybek',
+  'pokrzyk',
+  'potoslin',
   'poziewnik',
   'rabarbar',
   'skrzyp',

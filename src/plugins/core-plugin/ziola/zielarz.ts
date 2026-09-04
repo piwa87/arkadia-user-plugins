@@ -11,6 +11,7 @@ const PACK_EVERY_LOCATIONS = 3;
 const MOVE_TIMEOUT_MS = 10_000;
 const SEARCH_MEMORY_MS = 30 * 60 * 1000;
 const SEARCH_MEMORY_KEY = 'zielarz-searched-rooms';
+const MAX_SKIPPED_LOCATIONS = 10;
 
 const DIRECTION_COMMANDS: Record<string, string> = {
   north: 'n',
@@ -25,6 +26,20 @@ const DIRECTION_COMMANDS: Record<string, string> = {
   down: 'd',
   in: 'in',
   out: 'out',
+};
+
+const EXIT_DIRECTIONS: Record<string, string> = {
+  n: 'north', north: 'north', polnoc: 'north',
+  s: 'south', south: 'south', poludnie: 'south',
+  e: 'east', east: 'east', wschod: 'east',
+  w: 'west', west: 'west', zachod: 'west',
+  ne: 'northeast', northeast: 'northeast', 'polnocny-wschod': 'northeast',
+  nw: 'northwest', northwest: 'northwest', 'polnocny-zachod': 'northwest',
+  se: 'southeast', southeast: 'southeast', 'poludniowy-wschod': 'southeast',
+  sw: 'southwest', southwest: 'southwest', 'poludniowy-zachod': 'southwest',
+  u: 'up', up: 'up', gora: 'up', gore: 'up',
+  d: 'down', down: 'down', dol: 'down',
+  in: 'in', out: 'out',
 };
 
 type Room = NonNullable<ReturnType<PluginApi['map']['getRoom']>>;
@@ -44,6 +59,33 @@ export function pickUnvisitedExit(room: Room, visited: ReadonlySet<number>): str
 
   if (available.length === 0) return null;
   return available[Math.floor(Math.random() * available.length)];
+}
+
+export function pickGmcpExit(exits: readonly string[]): string | null {
+  const available = exits
+    .map((exit) => exit.trim())
+    .filter((exit) => exit.length > 0)
+    .map((exit) => {
+      const key = exit.toLowerCase().replace(/\s+/g, '-');
+      const direction = EXIT_DIRECTIONS[key];
+      return direction ? (DIRECTION_COMMANDS[direction] ?? direction) : exit;
+    });
+
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function getGmcpExits(api: PluginApi): string[] | null {
+  const gmcp = api.gmcp.get() as { room?: { info?: { exits?: unknown } } };
+  const exits = gmcp.room?.info?.exits;
+  return Array.isArray(exits) && exits.every((exit) => typeof exit === 'string') ? exits : null;
+}
+
+function pickAvailableExit(api: PluginApi, room: Room, blockedRoomIds: ReadonlySet<number>): string | null {
+  const gmcpExits = getGmcpExits(api);
+  return gmcpExits === null
+    ? pickUnvisitedExit(room, blockedRoomIds)
+    : pickGmcpExit(gmcpExits);
 }
 
 function loadSearchMemory(now = Date.now()): Map<number, number> {
@@ -124,6 +166,7 @@ export function setupZielarz(api: PluginApi): () => void {
     const searchedRecently = loadSearchMemory();
     const visited = new Set<number>([startingRoom.id]);
     let searched = 0;
+    let skippedLocations = 0;
     api.output.print(`Zielarz: zaczynam trase na ${limit} lokacji.`);
 
     while (active && searched < limit) {
@@ -134,11 +177,16 @@ export function setupZielarz(api: PluginApi): () => void {
       }
 
       if (searchedRecently.has(room.id)) {
+        skippedLocations += 1;
+        if (skippedLocations > MAX_SKIPPED_LOCATIONS) {
+          stop('Zielarz: za duzo odwiedzonych lokacji z rzedu, zatrzymano.');
+          return;
+        }
         api.output.print('Zielarz: ta lokacja byla juz niedawno przeszukana.');
         if (!await humanDelay()) break;
 
         const blocked = new Set([...visited, ...searchedRecently.keys()]);
-        const direction = pickUnvisitedExit(room, blocked);
+        const direction = pickAvailableExit(api, room, blocked);
         if (!direction) {
           stop('Zielarz: brak wolnego, nieodwiedzonego wyjscia.');
           return;
@@ -156,9 +204,14 @@ export function setupZielarz(api: PluginApi): () => void {
           stop('Zielarz: utracono dane mapy.');
           return;
         }
+        if (visited.has(nextRoom.id)) {
+          continue;
+        }
         visited.add(nextRoom.id);
         continue;
       }
+
+      skippedLocations = 0;
 
       await api.command.send('szukaj ziol');
       if (!await searchDelay()) break;
@@ -180,7 +233,7 @@ export function setupZielarz(api: PluginApi): () => void {
       if (searched >= limit) break;
 
       const blocked = new Set([...visited, ...searchedRecently.keys()]);
-      const direction = pickUnvisitedExit(room, blocked);
+      const direction = pickAvailableExit(api, room, blocked);
       if (!direction) {
         stop(`Zielarz: brak nieodwiedzonych wyjsc po ${searched} lokacjach.`);
         return;
@@ -197,6 +250,9 @@ export function setupZielarz(api: PluginApi): () => void {
       if (!nextRoom) {
         stop('Zielarz: utracono dane mapy.');
         return;
+      }
+      if (visited.has(nextRoom.id)) {
+        continue;
       }
       visited.add(nextRoom.id);
     }

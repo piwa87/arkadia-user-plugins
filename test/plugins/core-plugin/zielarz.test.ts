@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PluginApi } from '@arkadia/plugin-types';
-import { pickUnvisitedExit, setupZielarz } from '../../../src/plugins/core-plugin/ziola/zielarz';
+import { pickGmcpExit, pickUnvisitedExit, setupZielarz } from '../../../src/plugins/core-plugin/ziola/zielarz';
 import { setupPrrAlias } from '../../../src/plugins/core-plugin/misc/prr';
 import { createMockApi } from '../../helpers/mockApi';
 
@@ -14,6 +14,13 @@ describe('zielarz', () => {
 
     expect(pickUnvisitedExit(room({ north: 2, east: 3 }), new Set([2]))).toBe('e');
     expect(pickUnvisitedExit(room({ north: 2 }), new Set([2]))).toBeNull();
+  });
+
+  it('uses the server-reported GMCP exits as commands', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    expect(pickGmcpExit(['polnoc', 'wschod'])).toBe('n');
+    expect(pickGmcpExit([])).toBeNull();
   });
 
   it('registers start and stop aliases', () => {
