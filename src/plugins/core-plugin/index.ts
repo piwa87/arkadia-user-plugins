@@ -61,6 +61,7 @@ import {
   destroyTeam,
   setupTmpk,
   setupTravelAliases,
+  setupTro,
   setupWsiadaczAliases,
   setupWycinanieAliases,
   setupEventTriggers,
@@ -130,6 +131,7 @@ let cleanupAntyflood: (() => void) | null = null;
 let cleanupGhoule: (() => void) | null = null;
 let cleanupMorze: (() => void) | null = null;
 let cleanupPok: (() => void) | null = null;
+let cleanupTro: (() => void) | null = null;
 let cleanupWalker: (() => void) | null = null;
 let cleanupZiola: (() => void) | null = null;
 let cleanupHpBar: (() => void) | null = null;
@@ -141,6 +143,7 @@ let cleanupDoo: (() => void) | null = null;
 let cleanupAtakiTriggers: (() => void) | null = null;
 let cleanupTriggerTags: (() => void) | null = null;
 let cleanupTeam: (() => void) | null = null;
+let cleanupBindAliases: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -158,7 +161,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupGhoule = setupGhoule(api);
   cleanupAtakiTriggers = setupAtakiTriggers(api, kondycjeState);
   setupBattleAliases(api);
-  setupBindAliases(api);
+  cleanupBindAliases = setupBindAliases(api);
   setupBramy(api);
   cleanupBrokilon = setupBrokilon(api);
   setupBronieAliases(api);
@@ -188,6 +191,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupHpBar = setupHpBar(api);
   cleanupMorze = setupMorze(api);
   cleanupPok = setupPok(api);
+  cleanupTro = setupTro(api);
   setupLampAliases(api);
   cleanupLocationTriggers = setupLocationTriggers(api);
   setupLocationsAliases(api);
@@ -247,6 +251,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 
 export async function destroy(): Promise<void> {
+  cleanupBindAliases?.();
+  cleanupBindAliases = null;
   cleanupCombat?.();
   cleanupCombat = null;
   cleanupBrokilon?.();
@@ -263,6 +269,8 @@ export async function destroy(): Promise<void> {
   cleanupMorze = null;
   cleanupPok?.();
   cleanupPok = null;
+  cleanupTro?.();
+  cleanupTro = null;
   cleanupWalker?.();
   cleanupWalker = null;
   cleanupZiola?.();

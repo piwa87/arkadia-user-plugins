@@ -52,6 +52,7 @@ export { setupStatsAliases } from './stats';
 export { setupTeam, destroyTeam } from './mod_team/team';
 export { setupTmpk } from './tmpk/tmpk';
 export { setupTravelAliases } from './travel/travel_aliases';
+export { setupTro } from './trolle';
 export { setupWsiadaczAliases } from './travel/wsiadacz';
 export { setupEventTriggers } from './triggers/events';
 export { setupLocationTriggers } from './triggers/location';

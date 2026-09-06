@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { rankOpenExits, setupWalker } from '../../../src/plugins/core-plugin/walker';
+import {
+  DYNAMIC_WALKER_START_EVENT,
+  rankOpenExits,
+  setupWalker,
+} from '../../../src/plugins/core-plugin/walker';
 import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
 
 function printedText(mock: ReturnType<typeof createMockApi>): string[] {
@@ -77,6 +81,28 @@ describe('ZC walker manual stepping', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it('accepts an automatic target from another core-plugin module', async () => {
+    vi.useFakeTimers();
+    const room1 = { id: 1, name: 'start', area: 52, x: 0, y: 0, z: 0, exits: { east: 99 } } as any;
+    const room99 = { id: 99, name: 'target', area: 52, x: 1, y: 0, z: 0, exits: {} } as any;
+    const mock = createMockApi({ room: room1 });
+    mock.api.map.getRoomById = vi.fn((id) => id === 99 ? room99 : room1);
+    mock.api.map.findPath = vi.fn(() => [1, 99]) as any;
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 52, areaName: 'Ziemie Czaszki', rooms: [] }]) as any;
+    mock.api.gmcp.get = vi.fn(() => ({ room: { info: { exits: ['east'] } } })) as any;
+    setupWalker(mock.api);
+
+    (mock.api.events as any).emit(DYNAMIC_WALKER_START_EVENT, {
+      roomId: 99,
+      label: 'pbt',
+      automatic: true,
+    });
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(printedText(mock)).toContain('[zc] ustawiono cel: pbt (99); step! = krok, step!! = auto i5');
+    expect(mock.api.command.send).toHaveBeenCalledWith('e');
   });
 
   it('sets a target and moves only once for each step! command', async () => {

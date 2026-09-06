@@ -140,6 +140,7 @@ function setupStandardWalker(api: PluginApi): () => void {
 
 const ZC_MOVE_TIMEOUT_MS = 5_000;
 const ZC_AUTO_DELAY_MS = 500;
+export const DYNAMIC_WALKER_START_EVENT = 'dynamicWalker.start';
 const ZC_HIDDEN_OPEN_EXITS: Readonly<Record<number, readonly MapDirection[]>> = {
   20841: ['north'],
   20842: ['south'],
@@ -644,6 +645,22 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     });
   };
 
+  const onDynamicWalkerStart = (request: unknown) => {
+    if (!request || typeof request !== 'object') return;
+    const { roomId, label, automatic } = request as {
+      roomId?: unknown;
+      label?: unknown;
+      automatic?: unknown;
+    };
+    if (!Number.isSafeInteger(roomId)) return;
+
+    startZcWalking(roomId as number, typeof label === 'string' ? label : undefined);
+    if (automatic === true) startAutoWalking();
+  };
+  // Custom core-plugin event; not present in the published plugin-types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (api.events as any).on(DYNAMIC_WALKER_START_EVENT, onDynamicWalkerStart);
+
   const previewShortcut = (shortcut: LocationShortcut) => {
     if (previewTimer === null) {
       const currentId = api.map.getRoom()?.id;
@@ -885,6 +902,8 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     recentRoomIds = [];
     api.events.off('gmcp.room.info', onRoomInfo);
     api.events.off('gmcp.char.info', syncClientShortcuts);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api.events as any).off(DYNAMIC_WALKER_START_EVENT, onDynamicWalkerStart);
     api.commandHooks.unregister(commandHookId);
   };
 }

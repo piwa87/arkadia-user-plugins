@@ -1,5 +1,13 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 
+/**
+ * Commands automatically assigned to the functional bind in particular rooms.
+ * Add future room-specific binds here.
+ */
+const LOCATION_BINDS: ReadonlyMap<number, string> = new Map([
+  [20892, 'napwsz'],
+]);
+
 export function setBind(api: PluginApi, command: string, options?: { once?: boolean; label?: string }): void {
   const once = options?.once ?? false;
   api.bind.set(command, undefined, once || undefined);
@@ -11,7 +19,7 @@ export function setBind(api: PluginApi, command: string, options?: { once?: bool
   }
 }
 
-export function setupBindAliases(api: PluginApi): void {
+export function setupBindAliases(api: PluginApi): () => void {
   // f+ <command>   — persistent bind
   // f+! <command>  — one-shot bind (clears after use)
   // Use | as separator for multi-commands (e.g. f+ cmd1|cmd2|cmd3)
@@ -42,4 +50,28 @@ export function setupBindAliases(api: PluginApi): void {
     api.output.print('Bind cleared');
     return true;
   });
+
+  // Location-specific binds are deliberately cleared on leaving the room, so
+  // their action cannot accidentally be used somewhere else while travelling.
+  let locationBindActive = false;
+  const syncLocationBind = () => {
+    const room = api.map.getRoom();
+    const command = room && LOCATION_BINDS.get(room.id);
+
+    if (command) {
+      api.bind.set(command);
+      locationBindActive = true;
+    } else if (locationBindActive) {
+      api.bind.clear();
+      locationBindActive = false;
+    }
+  };
+
+  api.events.on('mapMove', syncLocationBind);
+  syncLocationBind();
+
+  return () => {
+    api.events.off('mapMove', syncLocationBind);
+    if (locationBindActive) api.bind.clear();
+  };
 }

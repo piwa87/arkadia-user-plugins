@@ -253,6 +253,12 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'poko_tu', desc: 'look and update the saved creature in this room' },
       { cmd: 'poko_reset', desc: 'clear all saved findings' },
 
+      { section: 'TROLLE / MOB LOCATIONS' },
+      { cmd: 'tro / tro_lista', desc: 'show the 30 nearest pbt/besti entries with actions' },
+      { cmd: 'tro_all', desc: 'show every pbt/besti entry' },
+      { cmd: 'trow', desc: 'open the graphical troll locations window' },
+      { cmd: 'tro!', desc: 'walk to the nearest reachable living pbt troll' },
+
       { section: 'LOCATIONS' },
       { cmd: 'pcg', desc: 'pry up the black stone' },
       { cmd: 'pwyj', desc: 'sneak to exit' },
