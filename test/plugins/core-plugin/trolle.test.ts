@@ -5,7 +5,10 @@ import {
   TRO_STORAGE_KEY,
   type MobLocation,
 } from '../../../src/plugins/core-plugin/trolle';
-import { DYNAMIC_WALKER_START_EVENT } from '../../../src/plugins/core-plugin/walker';
+import {
+  DYNAMIC_WALKER_ARRIVED_EVENT,
+  DYNAMIC_WALKER_START_EVENT,
+} from '../../../src/plugins/core-plugin/walker';
 import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
 
 class FakeElement {
@@ -14,6 +17,7 @@ class FakeElement {
   textContent = '';
   title = '';
   type = '';
+  disabled = false;
   onclick: (() => void) | null = null;
 
   constructor(public tag: string) {}
@@ -65,6 +69,18 @@ function tableRows(mock: ReturnType<typeof createMockApi>): MockAnsiAwareBuffer[
     .filter((value): value is MockAnsiAwareBuffer => (
       value instanceof MockAnsiAwareBuffer && value.text.startsWith('| ')
     ));
+}
+
+function latestBufferWithText(
+  mock: ReturnType<typeof createMockApi>,
+  text: string,
+): MockAnsiAwareBuffer {
+  const buffers = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
+    .map(([value]) => value)
+    .filter((value): value is MockAnsiAwareBuffer => value instanceof MockAnsiAwareBuffer);
+  const matching = buffers.filter((value) => value.text.includes(text));
+  expect(matching.length, `missing output buffer: ${text}`).toBeGreaterThan(0);
+  return matching[matching.length - 1];
 }
 
 const entries: MobLocation[] = [
@@ -205,6 +221,32 @@ describe('trolle mobLocations', () => {
     expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Usunieto pbt z lokacji 13771.');
   });
 
+  it('revives every dead pbt and besti from the button below the text table', () => {
+    const storage = makeLocalStorageMock({
+      [TRO_STORAGE_KEY]: JSON.stringify({
+        '13771pbt': { ...entries[0], active: '0', note: 'zachowaj' },
+        '14000besti': entries[1],
+        '15000kamienny': { ...hiddenEntry, active: '0' },
+      }),
+    });
+    vi.stubGlobal('localStorage', storage);
+    const mock = createMockApi({ room: { id: 13000, area: 52 } });
+    mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+    setupTro(mock.api);
+
+    runAlias(mock.aliases, 'tro');
+    const button = latestBufferWithText(mock, '[ oznacz wszystkie jako zywe ]');
+    button.klik('[ oznacz wszystkie jako zywe ]');
+
+    expect(JSON.parse(storage.data.get(TRO_STORAGE_KEY)!)).toEqual({
+      '13771pbt': { ...entries[0], active: '1', note: 'zachowaj' },
+      '14000besti': { ...entries[1], active: '1' },
+      '15000kamienny': { ...hiddenEntry, active: '0' },
+    });
+    expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Oznaczono jako zywe: 2.');
+    expect(button.segments[0].state).toMatchObject({ underline: false });
+  });
+
   it('reloads mobLocations every time the alias is used', () => {
     const storage = makeLocalStorageMock({ [TRO_STORAGE_KEY]: '[]' });
     vi.stubGlobal('localStorage', storage);
@@ -294,6 +336,78 @@ describe('trolle mobLocations', () => {
     window.button('💀').onclick!();
     expect(JSON.parse(storage.data.get(TRO_STORAGE_KEY)!)['14000besti'].active).toBe('1');
     cleanup();
+  });
+
+  it('revives every dead pbt and besti from the button below the graphical table', async () => {
+    const storage = makeLocalStorageMock({
+      [TRO_STORAGE_KEY]: JSON.stringify({
+        '13771pbt': { ...entries[0], active: '0', note: 'zachowaj' },
+        '14000besti': entries[1],
+        '15000kamienny': { ...hiddenEntry, active: '0' },
+        metadata: { version: 2 },
+      }),
+    });
+    vi.stubGlobal('localStorage', storage);
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => new FakeElement(tag),
+    });
+    const mock = createMockApi({ room: { id: 13000, area: 52 } });
+    mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+    setupTro(mock.api);
+
+    runAlias(mock.aliases, 'trow');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    const popupCalls = vi.mocked(mock.api.ui.registerPersistentPopup).mock.calls;
+    const popupOptions = popupCalls[popupCalls.length - 1][0] as any;
+    const window = popupOptions.createContent() as unknown as FakeElement;
+    window.button('Oznacz wszystkie jako zywe').onclick!();
+
+    expect(JSON.parse(storage.data.get(TRO_STORAGE_KEY)!)).toEqual({
+      '13771pbt': { ...entries[0], active: '1', note: 'zachowaj' },
+      '14000besti': { ...entries[1], active: '1' },
+      '15000kamienny': { ...hiddenEntry, active: '0' },
+      metadata: { version: 2 },
+    });
+    expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Oznaczono jako zywe: 2.');
+  });
+
+  it('refreshes graphical distances only when the dynamic walker arrives', async () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock({
+      [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
+    }));
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => new FakeElement(tag),
+    });
+    let currentRoomId = 13000;
+    const mock = createMockApi();
+    mock.api.map.getRoom = vi.fn(() => ({ id: currentRoomId, area: 52 })) as any;
+    mock.api.map.findPath = vi.fn((from, to) => (
+      from === to ? [from] : [from, to]
+    ));
+    const cleanup = setupTro(mock.api);
+
+    runAlias(mock.aliases, 'trow');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    const popupResult = vi.mocked(mock.api.ui.registerPersistentPopup).mock.results[0];
+    const popupHandle = await popupResult.value as any;
+    popupHandle.isOpen = true;
+
+    currentRoomId = 13771;
+    mock.api.events.emit('mapMove');
+    expect(popupHandle.setBody).not.toHaveBeenCalled();
+    (mock.api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: 13771 });
+
+    expect(popupHandle.setBody).toHaveBeenCalledOnce();
+    const refreshedWindow = vi.mocked(popupHandle.setBody).mock.calls[0][0] as FakeElement;
+    expect(refreshedWindow.text.replace(/\s+/g, ' ')).toContain('13771 0 pbt');
+
+    cleanup();
+    (mock.api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: 13771 });
+    expect(popupHandle.setBody).toHaveBeenCalledOnce();
+    expect(mock.api.events.off).toHaveBeenCalledWith(
+      DYNAMIC_WALKER_ARRIVED_EVENT,
+      expect.any(Function),
+    );
   });
 
   it('tro! walks to the nearest reachable living pbt and ignores besti and dead trolls', () => {

@@ -18,6 +18,7 @@ interface TroViewOptions {
   toggle(row: TroViewRow): void;
   preview(row: TroViewRow): void;
   remove(row: TroViewRow): void;
+  reviveAll(): void;
 }
 
 export interface TroView {
@@ -57,7 +58,7 @@ export function createTroView(options: TroViewOptions): TroView {
   };
 
   function refresh(): void {
-    if (popup) popup.setBody(build());
+    if (popup?.isOpen) popup.setBody(build());
   }
 
   function build(): HTMLElement {
@@ -144,6 +145,18 @@ export function createTroView(options: TroViewOptions): TroView {
     table.append(body);
     scroller.append(table);
     root.append(scroller);
+
+    const deadCount = orderedRows.filter((row) => !row.active).length;
+    const reviveAll = actionButton(
+      'Oznacz wszystkie jako zywe',
+      'tro-revive-all',
+      deadCount === 0
+        ? 'Wszystkie moby sa juz oznaczone jako zywe'
+        : `Oznacz jako zywe: ${deadCount}`,
+      options.reviveAll,
+    );
+    reviveAll.disabled = deadCount === 0;
+    root.append(reviveAll);
     return root;
   }
 
@@ -211,7 +224,9 @@ const STYLE = `
 .tro-status-dead { color: #d28a91; border-color: #7e4b5166; }
 .tro-actions { display: flex; gap: 1px; }
 .tro-icon { opacity: .7; font-size: 1em; }
-.tro-link:focus-visible, .tro-status:focus-visible, .tro-icon:focus-visible, .tro-mode-btn:focus-visible { outline: 2px solid #78a98a; outline-offset: 1px; }
+.tro-revive-all { align-self: stretch; flex: 0 0 auto; border: 1px solid #5e9b7466; border-radius: 4px; background: var(--tro-green-soft); color: #a8d5b7; padding: 4px 7px; font: inherit; cursor: pointer; }
+.tro-revive-all:disabled { border-color: var(--tro-line); background: transparent; color: var(--tro-muted); cursor: default; opacity: .55; }
+.tro-link:focus-visible, .tro-status:focus-visible, .tro-icon:focus-visible, .tro-mode-btn:focus-visible, .tro-revive-all:focus-visible { outline: 2px solid #78a98a; outline-offset: 1px; }
 .tro-empty { display: grid; place-items: center; flex: 1; color: var(--tro-muted); }
 @media (max-width: 340px) {
   .tro-panel { min-width: 260px; padding: 6px; }

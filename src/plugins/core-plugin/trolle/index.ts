@@ -1,5 +1,5 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
-import { DYNAMIC_WALKER_START_EVENT } from '../walker';
+import { DYNAMIC_WALKER_ARRIVED_EVENT, DYNAMIC_WALKER_START_EVENT } from '../walker';
 import { createTroView, type TroViewRow } from './view';
 
 export const TRO_STORAGE_KEY = 'mobLocations';
@@ -166,6 +166,33 @@ function mutateStoredEntry(
   }
 }
 
+function reviveAllVisibleMobs(api: PluginApi): void {
+  const store = loadMobLocationStore();
+  let revived = 0;
+
+  for (const stored of store.locations) {
+    const { entry, storageKey } = stored;
+    if (entry.active !== '0' || !VISIBLE_MOB_TYPES.has(normalizedMobType(entry))) continue;
+
+    const updated = { ...entry, active: '1' };
+    if (store.kind === 'record' && storageKey !== null) store.raw[storageKey] = updated;
+    else if (store.kind === 'array') {
+      const index = store.raw.indexOf(entry);
+      if (index !== -1) store.raw[index] = updated;
+    }
+    revived += 1;
+  }
+
+  if (revived === 0) return;
+
+  try {
+    saveMobLocationStore(store);
+    api.output.print(`[tro] Oznaczono jako zywe: ${revived}.`);
+  } catch {
+    api.output.print('[tro] Nie udalo sie zapisac zmian w mobLocations.');
+  }
+}
+
 function printMobTable(
   api: PluginApi,
   preview: (entry: MobLocation) => void,
@@ -275,6 +302,23 @@ function printMobTable(
     api.output.print(buffer);
   });
   printColored(border, borderColor);
+
+  const deadCount = orderedRows.filter(({ stored }) => stored.entry.active === '0').length;
+  const reviveLabel = '[ oznacz wszystkie jako zywe ]';
+  const reviveButton = new api.AnsiAwareBuffer();
+  reviveButton.append(reviveLabel, deadCount === 0 ? inactiveColor : {
+    ...idColor,
+    underline: false,
+    hyperlink: {
+      title: `Oznacz jako zywe: ${deadCount}`,
+      onClick: () => {
+        reviveAllVisibleMobs(api);
+        onMutation?.();
+        printMobTable(api, preview, rowLimit, onMutation);
+      },
+    },
+  });
+  api.output.print(reviveButton);
 }
 
 export function setupTro(api: PluginApi): () => void {
@@ -334,8 +378,16 @@ export function setupTro(api: PluginApi): () => void {
       mutateStoredEntry(api, toStoredEntry(row), 'remove');
       view.refresh();
     },
+    reviveAll: () => {
+      reviveAllVisibleMobs(api);
+      view.refresh();
+    },
   });
   const menuEntry = api.ui.addPopupMenuEntry('Trolle', () => void view.open());
+  const refreshViewOnArrival = () => view.refresh();
+  // Custom core-plugin event; not present in the published plugin-types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (api.events as any).on(DYNAMIC_WALKER_ARRIVED_EVENT, refreshViewOnArrival);
 
   api.aliases.register(/^(?:tro_all|tro_lista|tro)$/i, (matches) => {
     const showAll = matches?.[0]?.toLocaleLowerCase('pl-PL') === 'tro_all';
@@ -365,6 +417,8 @@ export function setupTro(api: PluginApi): () => void {
   return () => {
     if (previewTimer !== null) clearTimeout(previewTimer);
     finishPreview();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api.events as any).off(DYNAMIC_WALKER_ARRIVED_EVENT, refreshViewOnArrival);
     menuEntry.remove();
     view.stop();
   };

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  DYNAMIC_WALKER_ARRIVED_EVENT,
   DYNAMIC_WALKER_START_EVENT,
   rankOpenExits,
   setupWalker,
@@ -533,6 +534,9 @@ describe('ZC walker manual stepping', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(notification).toHaveBeenCalledExactlyOnceWith('Arrived 🏁');
     expect(printedText(mock)).toContain('[zc] dotarto do 22759 (Pokoik w Kle)');
+    expect(mock.api.events.emit).toHaveBeenCalledWith(DYNAMIC_WALKER_ARRIVED_EVENT, {
+      roomId: 22759,
+    });
     cleanup();
   });
 
@@ -549,7 +553,7 @@ describe('ZC walker manual stepping', () => {
 
     expect(mock.commandHooks[0].callback('wk home')).toBeNull();
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
-      '/idz home 2',
+      '/idz 22759 2',
       '/walkerw',
     ]);
     await Promise.resolve();
@@ -603,8 +607,8 @@ describe('ZC walker manual stepping', () => {
     homeRow.klik('👁');
     await vi.advanceTimersByTimeAsync(2_000);
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
-      '/prowadz home',
-      '/idz home 2',
+      '/prowadz 22759',
+      '/idz 22759 2',
       '/walkerw',
       '/ustaw 22759',
       '/ustaw 1',

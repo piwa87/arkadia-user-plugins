@@ -141,6 +141,7 @@ function setupStandardWalker(api: PluginApi): () => void {
 const ZC_MOVE_TIMEOUT_MS = 5_000;
 const ZC_AUTO_DELAY_MS = 500;
 export const DYNAMIC_WALKER_START_EVENT = 'dynamicWalker.start';
+export const DYNAMIC_WALKER_ARRIVED_EVENT = 'dynamicWalker.arrived';
 const ZC_HIDDEN_OPEN_EXITS: Readonly<Record<number, readonly MapDirection[]>> = {
   20841: ['north'],
   20842: ['south'],
@@ -377,18 +378,6 @@ function saveLocationShortcuts(
   }
 }
 
-function withActiveClientShortcut(api: PluginApi, shortcut: LocationShortcut, action: () => void): void {
-  const shortcuts = getLocationShortcuts(api);
-  if (!shortcuts?.some(
-    (saved) => saved.key.toLocaleLowerCase('pl-PL') === shortcut.key.toLocaleLowerCase('pl-PL') &&
-      saved.id === shortcut.id,
-  )) {
-    printWalkerFeedback(api, '[walker] nie udalo sie przygotowac skrotu dla komendy klienta');
-    return;
-  }
-  action();
-}
-
 function saveCurrentLocationShortcut(api: PluginApi, key: string, customLabel?: string): void {
   const current = api.map.getRoom();
   if (!current) {
@@ -474,6 +463,9 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
   const arrive = (room: Room) => {
     stop(`dotarto do ${room.id} (${room.name})`);
     notify('Arrived 🏁');
+    // Custom event shared inside core-plugin; absent from the published event union.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: room.id });
   };
 
   const detectTwoRoomLoop = (roomId: number): boolean => {
@@ -517,7 +509,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
       return;
     }
     if (current.id === target.id) {
-      stop(`dotarto do ${target.id} (${target.name})`);
+      arrive(target);
       return;
     }
 
@@ -639,10 +631,8 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
       return;
     }
     if (targetId !== null) stop();
-    withActiveClientShortcut(api, shortcut, () => {
-      void api.command.send(`/idz ${shortcut.key} 2`);
-      void api.command.send('/walkerw');
-    });
+    void api.command.send(`/idz ${shortcut.id} 2`);
+    void api.command.send('/walkerw');
   };
 
   const onDynamicWalkerStart = (request: unknown) => {
@@ -779,10 +769,10 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
         ...leadColor,
         underline: true,
         hyperlink: {
-          title: `/prowadz ${shortcut.key}`,
-          onClick: () => withActiveClientShortcut(api, shortcut, () => {
-            void api.command.send(`/prowadz ${shortcut.key}`);
-          }),
+          title: `/prowadz ${shortcut.id}`,
+          onClick: () => {
+            void api.command.send(`/prowadz ${shortcut.id}`);
+          },
         },
       });
       line.append(' | ', rowColor);
