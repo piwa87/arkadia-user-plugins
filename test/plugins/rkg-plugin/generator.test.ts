@@ -35,8 +35,10 @@ describe('proper', () => {
 
 describe('word lists', () => {
   it('ported the CMud lists at the expected size', () => {
-    // 19 in the CMud export + `loza`, which the live dialogue offers.
-    expect(RKG_TYPY).toHaveLength(20);
+    // 19 in the CMud export + live `loza` and female `siostrzenstwo`.
+    expect(RKG_TYPY).toHaveLength(21);
+    expect(RKG_TYPY).toContain('braterstwo');
+    expect(RKG_TYPY).toContain('siostrzenstwo');
     expect(RKG_TYPY).toContain('loza');
     // 970 unique in the CMud export, minus the 8 in ZABRONIONE.
     expect(RKG_PRZYMIOTNIKI).toHaveLength(962);

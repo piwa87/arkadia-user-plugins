@@ -37,6 +37,7 @@ import {
   setupZmeczenieTriggers,
   setupLampAliases,
   setupLocationsAliases,
+  setupLocationCommands,
   setupLootAliases,
   setupLootShitAliases,
   setupMapAliases,
@@ -139,6 +140,7 @@ let cleanupCharName: (() => void) | null = null;
 let cleanupTorba: (() => void) | null = null;
 let cleanupPlecak: (() => void) | null = null;
 let cleanupLocationTriggers: (() => void) | null = null;
+let cleanupLocationCommands: (() => void) | null = null;
 let cleanupDoo: (() => void) | null = null;
 let cleanupAtakiTriggers: (() => void) | null = null;
 let cleanupTriggerTags: (() => void) | null = null;
@@ -194,6 +196,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupTro = setupTro(api);
   setupLampAliases(api);
   cleanupLocationTriggers = setupLocationTriggers(api);
+  cleanupLocationCommands = setupLocationCommands(api);
   setupLocationsAliases(api);
   setupLootAliases(api);
   setupLootShitAliases(api);
@@ -285,6 +288,8 @@ export async function destroy(): Promise<void> {
   cleanupPlecak = null;
   cleanupLocationTriggers?.();
   cleanupLocationTriggers = null;
+  cleanupLocationCommands?.();
+  cleanupLocationCommands = null;
   cleanupDoo?.();
   cleanupDoo = null;
   cleanupAtakiTriggers?.();

@@ -33,6 +33,11 @@ describe('wzorzecLiniiGry', () => {
 });
 
 describe('wzorzecNazwy', () => {
+  it('accepts siostrzenstwo in plugin name validation and game capture', () => {
+    expect(nazwa.test('Siostrzenstwo Pokretnych Zmor')).toBe(true);
+    expect('\tSiostrzenstwo Pokretnych Zmor'.match(liniaGry)?.[1]).toBe('Siostrzenstwo Pokretnych Zmor');
+  });
+
   it('accepts every name the CMud module had collected', () => {
     const odrzucone = NAZWY_KLUBOW.filter((n) => !nazwa.test(n));
     expect(odrzucone).toEqual([]);

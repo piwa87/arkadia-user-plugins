@@ -9,8 +9,8 @@
  * and de-duplicates (`plugawy` appeared twice).
  *
  * The list still contains a handful of adverbs (`mimochodem`, `powoli`,
- * `szczerze`, …) that the CMud list had picked up. They are harmless — the game
- * rejects what it does not accept as an adjective.
+ * `szczerze`, …) that the CMud list had picked up. The game may reject these; the creator retries
+ * another unused candidate on a repeated prompt, with a bounded attempt limit.
  *
  * Otherwise this is the CMud list verbatim MINUS the 8 entries in ZABRONIONE:
  * 970 unique in, 962 out. Names generated here can end up on a public wall, and

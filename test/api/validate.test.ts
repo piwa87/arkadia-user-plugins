@@ -18,6 +18,16 @@ function poprawne(over: Partial<ZgloszenieRequest> = {}): ZgloszenieRequest {
 }
 
 describe('walidujZgloszenie — accepts', () => {
+  it('siostrzenstwo with feminine titles and unchanged role keys', () => {
+    const role = { przywodca: 'Starsza Siostrzenstwa', zastepca: 'Zaufana Siostrzenstwa', czlonek: 'Siostra Siostrzenstwa' };
+    const r = walidujZgloszenie(poprawne({ typ: 'siostrzenstwo', wynik: 'Siostrzenstwo Pokretnych Zmor', role }));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.dane.typ).toBe('siostrzenstwo');
+      expect(r.dane.role).toEqual(role);
+    }
+  });
+
   it('a real generated name', () => {
     const r = walidujZgloszenie(poprawne());
     expect(r.ok).toBe(true);

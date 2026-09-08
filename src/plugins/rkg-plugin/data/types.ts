@@ -1,4 +1,4 @@
-/** Organisation types offered by the club-creation dialogue (CMud `rkgTyp`). */
+/** Known union for validation across character genders; live menus offer subsets. */
 export const RKG_TYPY: string[] = [
   'banda',
   'brac',
@@ -20,6 +20,7 @@ export const RKG_TYPY: string[] = [
   'organizacja',
   'przymierze',
   'rodzina',
+  'siostrzenstwo',
   'spolka handlowa',
   'szajka',
   'trupa',

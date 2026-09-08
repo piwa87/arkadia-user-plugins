@@ -1,17 +1,15 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import type { Liczba, Przypadek, Role, WpisLokalny } from '../../shared/rkg-api';
 import { LICZBY, PRZYPADKI } from '../../shared/rkg-api';
-import { withDelay } from '../../lib/withDelay';
 import type { Baza } from './store';
 import type { RkgStyles } from './styles';
 import { RKG_PRZYMIOTNIKI } from './data/adjectives';
-import { RKG_TYPY } from './data/types';
 import { RZECZOWNIKI_SEED } from './data/seed';
 import { pick } from './generator';
 import { printClubTable } from './presentation';
 
 /**
- * `rkg!` — drive the club-creation dialogue, harvesting every menu live, and
+ * `rkg!` — drive the club-creation dialogue, harvesting type and title menus live, and
  * record the full generated club. PREVIEW ONLY: at the final "Czy chcesz
  * stworzyc taki klub?" prompt the runner sends `**` to cancel. It NEVER sends
  * `tak`; no club is ever founded.
@@ -20,13 +18,12 @@ import { printClubTable } from './presentation';
  * MUD and drift over time, and crucially the three leadership-title menus
  * (przywodca / zastepca / szeregowy czlonek) differ from one club type to the
  * next. So the type menu and the three title menus are read from the game's own
- * `* option` lines and chosen at random. The static lists survive only as a
- * fallback when a harvest comes back empty.
+ * `* option` lines and chosen at random. Empty menus cancel the preview.
  *
  * The nouns are the exception: their pool barely changes, so rather than walk
  * the category sub-menus on every run (an extra round-trip that spams the game),
  * we keep a comprehensive static base in `data/seed.ts` and answer the noun
- * prompt directly with a random one.
+ * prompt directly with a random one, retrying rejected words without replacement.
  *
  * Prompt-driven, not timer-driven: each answer is sent only after the game's
  * actual question for that step arrives (verbatim from a real transcript). All
@@ -42,11 +39,22 @@ const GAP_MIN = 450;
 const GAP_MAX = 900;
 const WATCHDOG_MS = 15000;
 
-// Used only if a title menu fails to harvest — the options seen in one real run.
-// The game validates them, so a wrong-for-this-type fallback is simply rejected.
-const FALLBACK_PRZYWODCA = ['pierwszy', 'przewodniczacy', 'przewodzacy', 'przywodca', 'starszy', 'zalozyciel'];
-const FALLBACK_ZASTEPCA = ['drugi', 'starszy', 'wspolprzewodzacy', 'wspolzalozyciel', 'zaufany'];
-const FALLBACK_CZLONEK = ['brat', 'czlonek', 'jeden', 'nalezacy', 'uczestnik'];
+// Bound both static-word retries and live-menu retries per question.
+const MAX_ATTEMPTS = 5;
+// A bullet begins a line or a tab-separated menu cell. Only words are answers;
+// **, prose containing punctuation, and non-bullet explanations are excluded.
+const MENU_OPTION = /(?:^|[\r\n\t])[ ]*\*[ ]+([a-z]+(?:[ ]+[a-z]+)*)[ ]*(?=$|[\r\n\t])/gi;
+
+const SUMMARY_NAME = /^Podsumowujac, nowy klub bedzie sie nazywal:/i;
+const SUMMARY_LEADER = /^Przywod(?:ca|czyni) bedzie nosi(?:l|la) tytul:/i;
+const SUMMARY_DEPUTY = /^Zastep(?:ca|czyni) przywod(?:cy|czyni) bedzie nosi(?:l|la) tytul:/i;
+const SUMMARY_MEMBER = /^Szeregow(?:y czlonek|a czlonkini) klubu bedzie nosi(?:l|la) tytul:/i;
+
+interface Prompt {
+  re: RegExp;
+  fn: (m: RegExpMatchArray) => void;
+  onPrompt?: (text: string) => void;
+}
 
 const CHARAKTER = 'jawny';
 const PLEC = 'dowolnej';
@@ -74,6 +82,8 @@ export function setupKreator(
   poZakonczeniu?: (w: WpisLokalny) => void,
 ): () => void {
   let ctx: Ctx | null = null;
+  let delayed: ReturnType<typeof setTimeout> | null = null;
+  let rejected: Prompt | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
 
   const drukuj = (tekst: string, kolor: FormatStateSnapshot) => {
@@ -93,6 +103,9 @@ export function setupKreator(
 
   const sprzatnij = () => {
     czyscWatchdog();
+    if (delayed !== null) clearTimeout(delayed);
+    delayed = null;
+    rejected = null;
     api.triggers.removeByTag(TAG_KREATOR);
     api.triggers.removeByTag(TAG_MENU);
     ctx = null;
@@ -107,39 +120,41 @@ export function setupKreator(
 
   const ustawWatchdog = (gdzie: string) => {
     czyscWatchdog();
-    watchdog = setTimeout(() => przerwij(`brak odpowiedzi gry (${gdzie})`, false), WATCHDOG_MS);
+    watchdog = setTimeout(() => przerwij(`brak odpowiedzi gry (${gdzie})`, true), WATCHDOG_MS);
   };
 
-  /**
-   * Wait for `re`, then after a randomized delay run `fn`. Guards against the
-   * run being aborted or restarted while the delay is pending. Keeps the
-   * trigger body trivial — real work is always on the timer, never inline, so a
-   * throw can never escape into the client's output loop.
-   */
-  /**
-   * Wait for whichever of several prompts arrives first, run its handler, and
-   * drop the losing one-shots. The dialogue branches once: a plurale tantum noun
-   * ('wrota', 'drzwi', 'nozyce', ...) makes the game skip the liczba question and
-   * jump straight to przypadek.
-   */
-  const czekajNaJedno = (warianty: { re: RegExp; fn: (m: RegExpMatchArray) => void }[]) => {
+  /** Wait for the next question OR a repetition of the submitted question. */
+  const czekajNaJedno = (warianty: Prompt[]) => {
     ustawWatchdog(warianty.map((w) => w.re.source).join(' / '));
     const biezacy = ctx;
-    for (const { re, fn } of warianty) {
+    const prompts = rejected ? [...warianty, rejected] : warianty;
+    let handled = false;
+    for (const { re, fn, onPrompt } of prompts) {
       api.triggers.registerOneTime(
         re,
         (line, matches) => {
-          if (!ctx || ctx !== biezacy) return line;
-          czyscWatchdog();
-          api.triggers.removeByTag(TAG_KREATOR); // drop the sibling prompt(s)
-          withDelay(GAP_MIN, GAP_MAX, () => {
-            if (ctx !== biezacy) return;
-            try {
-              fn(matches);
-            } catch (e) {
-              przerwij(`blad: ${String(e)}`, true);
-            }
-          });
+          if (!ctx || ctx !== biezacy || handled) return line;
+          handled = true;
+          try {
+            czyscWatchdog();
+            api.triggers.removeByTag(TAG_KREATOR);
+            api.triggers.removeByTag(TAG_MENU);
+            // Fixed answers cannot safely be varied: cancel if rejected.
+            rejected = { re, fn: () => przerwij(`odrzucona odpowiedz (${re.source})`, true) };
+            onPrompt?.(line.text);
+            delayed = setTimeout(() => {
+              delayed = null;
+              if (ctx !== biezacy) return;
+              try {
+                api.triggers.removeByTag(TAG_MENU);
+                fn(matches);
+              } catch (e) {
+                przerwij(`blad: ${String(e)}`, true);
+              }
+            }, Math.floor(Math.random() * (GAP_MAX - GAP_MIN) + GAP_MIN));
+          } catch (e) {
+            przerwij(`blad: ${String(e)}`, true);
+          }
           return line;
         },
         TAG_KREATOR,
@@ -147,25 +162,49 @@ export function setupKreator(
     }
   };
 
-  const czekaj = (re: RegExp, fn: (m: RegExpMatchArray) => void) => czekajNaJedno([{ re, fn }]);
+  const czekaj = (re: RegExp, fn: Prompt['fn']) => czekajNaJedno([{ re, fn }]);
 
-  /** A `* option` menu: collect the bullets that follow the prompt, pick one. */
-  const menuKrok = (re: RegExp, fallback: readonly string[], uzyj: (wybor: string) => void) => {
-    const bufor: string[] = [];
-    api.triggers.register(
-      /^\s+\*\s+(.+)$/,
-      (line, m) => {
-        if (m && m[1]) bufor.push(m[1].trim());
-        return line;
+  /** Submit unused candidates; a repeated question keeps this attempt history. */
+  const wyborKrok = (
+    re: RegExp, nazwa: string, uzyj: (wybor: string) => void,
+    stale?: readonly string[],
+  ) => {
+    const proby = new Set<string>();
+    let opcje: string[] = [];
+    const zbierz = (text: string) => {
+      for (const m of text.matchAll(MENU_OPTION)) {
+        const option = m[1].trim().toLowerCase();
+        if (option !== 'tak' && !opcje.includes(option)) opcje.push(option);
+      }
+    };
+    const prompt: Prompt = {
+      re,
+      onPrompt: stale ? undefined : (text) => {
+        opcje = [];
+        zbierz(text);
+        // Transient structural parser: bullets have no common word to gate on.
+        api.triggers.register(/\*/, (line) => {
+          zbierz(line.text);
+          return line;
+        }, TAG_MENU);
       },
-      TAG_MENU,
-    );
-    czekaj(re, () => {
-      api.triggers.removeByTag(TAG_MENU);
-      const opcje = bufor.length > 0 ? bufor : [...fallback];
-      uzyj(pick(opcje));
-    });
+      fn: () => {
+        const dostepne = (stale ?? opcje).filter((x) => !proby.has(x));
+        if (!dostepne.length || proby.size >= MAX_ATTEMPTS) {
+          przerwij(`${nazwa}: ${proby.size ? 'odrzucone odpowiedzi, brak bezpiecznej kolejnej proby' : 'brak poprawnych opcji w menu'}`, true);
+          return;
+        }
+        const wybor = pick(dostepne);
+        proby.add(wybor);
+        rejected = prompt;
+        uzyj(wybor);
+      },
+    };
+    czekajNaJedno([prompt]);
   };
+
+  const menuKrok = (re: RegExp, nazwa: string, uzyj: (wybor: string) => void) =>
+    wyborKrok(re, nazwa, uzyj);
 
   // ── The dialogue, step by step ────────────────────────────────────────────
 
@@ -179,10 +218,7 @@ export function setupKreator(
 
   const krokTyp = () => {
     post(2, 'typ');
-    // Hardcoded: the type list is stable, so we answer from RKG_TYPY directly
-    // rather than harvesting the menu.
-    czekaj(/Jakiego typu ma to byc klub/i, () => {
-      const typ = pick(RKG_TYPY);
+    menuKrok(/Jakiego typu ma to byc klub/i, 'typ klubu', (typ) => {
       ctx!.typ = typ;
       send(typ);
       krokPlec();
@@ -238,22 +274,20 @@ export function setupKreator(
   // category sub-menus, so the run stays to a single round-trip here.
   const krokRzeczownik = () => {
     post(5, 'rzeczownik');
-    czekaj(/Podaj rzeczownik lub wyswietl/i, () => {
-      const noun = pick(RZECZOWNIKI_SEED);
+    wyborKrok(/Podaj rzeczownik lub wyswietl/i, 'rzeczownik', (noun) => {
       ctx!.rzeczownik = noun;
       send(noun);
       krokPrzymiotnik();
-    });
+    }, RZECZOWNIKI_SEED);
   };
 
   const krokPrzymiotnik = () => {
     post(6, 'przymiotnik');
-    czekaj(/Podaj przymiotnik/i, () => {
-      const adj = pick(RKG_PRZYMIOTNIKI);
+    wyborKrok(/Podaj przymiotnik/i, 'przymiotnik', (adj) => {
       ctx!.przymiotnik = adj;
       send(adj);
       krokLiczbaLubPrzypadek();
-    });
+    }, RKG_PRZYMIOTNIKI);
   };
 
   const wyslijPrzypadek = () => {
@@ -295,7 +329,7 @@ export function setupKreator(
 
   const krokPrzywodca = () => {
     post(9, 'tytul przywodcy');
-    menuKrok(/Wybierz tytul dla przywodcy/i, FALLBACK_PRZYWODCA, (t) => {
+    menuKrok(/Wybierz tytul dla przywod(?:cy|czyni)/i, 'tytul przywodcy', (t) => {
       send(t);
       krokZastepca();
     });
@@ -303,7 +337,7 @@ export function setupKreator(
 
   const krokZastepca = () => {
     post(10, 'tytul zastepcy');
-    menuKrok(/Wybierz tytul dla zastepcy przywodcy/i, FALLBACK_ZASTEPCA, (t) => {
+    menuKrok(/Wybierz tytul dla zastep(?:cy|czyni) przywod(?:cy|czyni)/i, 'tytul zastepcy', (t) => {
       send(t);
       krokSzeregowy();
     });
@@ -311,7 +345,7 @@ export function setupKreator(
 
   const krokSzeregowy = () => {
     post(11, 'tytul czlonka');
-    menuKrok(/Wybierz tytul dla szeregowego czlonka/i, FALLBACK_CZLONEK, (t) => {
+    menuKrok(/Wybierz tytul dla szeregow(?:ego czlonka|ej czlonkini)/i, 'tytul czlonka', (t) => {
       send(t);
       krokGest();
     });
@@ -344,21 +378,23 @@ export function setupKreator(
       (line) => {
         const biezacy = ctx;
         if (!biezacy) return line;
-        const t = line.text.trim();
-        if (/^Podsumowujac, nowy klub bedzie sie nazywal:/i.test(t)) {
-          biezacy.pendingNazwa = true;
-        } else if (biezacy.pendingNazwa && t) {
-          biezacy.wynik = t;
-          biezacy.pendingNazwa = false;
-        } else if (/^Przywodca bedzie nosil tytul:/i.test(t)) {
-          biezacy.pendingRola = 'przywodca';
-        } else if (/^Zastepca przywodcy bedzie nosil tytul:/i.test(t)) {
-          biezacy.pendingRola = 'zastepca';
-        } else if (/^Szeregowy czlonek klubu bedzie nosil tytul:/i.test(t)) {
-          biezacy.pendingRola = 'czlonek';
-        } else if (biezacy.pendingRola && t) {
-          biezacy.role[biezacy.pendingRola] = t;
-          biezacy.pendingRola = null;
+        for (const raw of line.text.split(/\r?\n/)) {
+          const t = raw.trim();
+          if (SUMMARY_NAME.test(t)) {
+            biezacy.pendingNazwa = true;
+          } else if (biezacy.pendingNazwa && t) {
+            biezacy.wynik = t;
+            biezacy.pendingNazwa = false;
+          } else if (SUMMARY_LEADER.test(t)) {
+            biezacy.pendingRola = 'przywodca';
+          } else if (SUMMARY_DEPUTY.test(t)) {
+            biezacy.pendingRola = 'zastepca';
+          } else if (SUMMARY_MEMBER.test(t)) {
+            biezacy.pendingRola = 'czlonek';
+          } else if (biezacy.pendingRola && t) {
+            biezacy.role[biezacy.pendingRola] = t;
+            biezacy.pendingRola = null;
+          }
         }
         return line;
       },

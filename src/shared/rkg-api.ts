@@ -58,7 +58,7 @@ export interface WpisLokalny extends Ziarno {
   wynik: string;
   /** `jawny` / `niejawny`. */
   charakter: string;
-  /** `dowolnej` / `meskiej`. */
+  /** `dowolnej` / `meskiej` / `zenskiej`. */
   plec: string;
   /** The three harvested leadership titles. */
   role: Role;
