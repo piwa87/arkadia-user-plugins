@@ -122,6 +122,7 @@ const TRIGGER_TAGS = [
   'wsiadacz_statek_ned',
   'siad_oneshot',
   'wycinanie',
+  'tro_zabij_oneshot',
 ];
 
 let cleanupCombat: (() => void) | null = null;

@@ -1,10 +1,13 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
+import { withDelay } from '../../../lib/withDelay';
 import { DYNAMIC_WALKER_ARRIVED_EVENT, DYNAMIC_WALKER_START_EVENT } from '../walker';
 import { createTroView, type TroViewRow } from './view';
 
 export const TRO_STORAGE_KEY = 'mobLocations';
 const TRO_DEFAULT_ROW_LIMIT = 30;
 const VISIBLE_MOB_TYPES = new Set(['pbt', 'besti']);
+// One-shot trigger armed only while a tro! walk is in flight; see armZabijTrolla below.
+const TAG_TRO_ZABIJ = 'tro_zabij_oneshot';
 
 export interface MobLocation {
   active: string;
@@ -51,9 +54,7 @@ function loadMobLocationStore(): MobLocationStore {
       return {
         kind: 'array',
         raw: parsed,
-        locations: parsed.flatMap((entry) => (
-          isMobLocation(entry) ? [{ storageKey: null, entry }] : []
-        )),
+        locations: parsed.flatMap((entry) => (isMobLocation(entry) ? [{ storageKey: null, entry }] : [])),
       };
     }
     if (parsed && typeof parsed === 'object') {
@@ -61,9 +62,9 @@ function loadMobLocationStore(): MobLocationStore {
       return {
         kind: 'record',
         raw: record,
-        locations: Object.entries(record).flatMap(([storageKey, entry]) => (
-          isMobLocation(entry) ? [{ storageKey, entry }] : []
-        )),
+        locations: Object.entries(record).flatMap(([storageKey, entry]) =>
+          isMobLocation(entry) ? [{ storageKey, entry }] : [],
+        ),
       };
     }
   } catch {
@@ -89,11 +90,7 @@ function distanceFromCurrent(api: PluginApi, roomId: number): number | null {
 }
 
 function isSameMobLocation(entry: MobLocation, selected: MobLocation): boolean {
-  return (
-    entry.roomId === selected.roomId &&
-    entry.mobType === selected.mobType &&
-    entry.time === selected.time
-  );
+  return entry.roomId === selected.roomId && entry.mobType === selected.mobType && entry.time === selected.time;
 }
 
 function normalizedMobType(entry: MobLocation): string {
@@ -101,17 +98,18 @@ function normalizedMobType(entry: MobLocation): string {
 }
 
 function getOrderedRows(api: PluginApi): MobRow[] {
-  return loadMobLocationStore().locations
-    .filter(({ entry }) => VISIBLE_MOB_TYPES.has(normalizedMobType(entry)))
+  return loadMobLocationStore()
+    .locations.filter(({ entry }) => VISIBLE_MOB_TYPES.has(normalizedMobType(entry)))
     .map((stored, sourceIndex) => ({
       stored,
       sourceIndex,
       distance: distanceFromCurrent(api, stored.entry.roomId),
     }))
-    .sort((left, right) => (
-      (left.distance ?? Number.POSITIVE_INFINITY) - (right.distance ?? Number.POSITIVE_INFINITY) ||
-      left.sourceIndex - right.sourceIndex
-    ));
+    .sort(
+      (left, right) =>
+        (left.distance ?? Number.POSITIVE_INFINITY) - (right.distance ?? Number.POSITIVE_INFINITY) ||
+        left.sourceIndex - right.sourceIndex,
+    );
 }
 
 function startDynamicWalker(api: PluginApi, entry: MobLocation, automatic: boolean): void {
@@ -124,11 +122,7 @@ function startDynamicWalker(api: PluginApi, entry: MobLocation, automatic: boole
   });
 }
 
-function mutateStoredEntry(
-  api: PluginApi,
-  selected: StoredMobLocation,
-  mutation: 'toggle' | 'remove',
-): void {
+function mutateStoredEntry(api: PluginApi, selected: StoredMobLocation, mutation: 'toggle' | 'remove' | 'kill'): void {
   const freshStore = loadMobLocationStore();
   let current: MobLocation | null = null;
   let arrayIndex = -1;
@@ -137,9 +131,9 @@ function mutateStoredEntry(
     const candidate = freshStore.raw[selected.storageKey];
     if (isMobLocation(candidate) && isSameMobLocation(candidate, selected.entry)) current = candidate;
   } else if (freshStore.kind === 'array') {
-    arrayIndex = freshStore.raw.findIndex((candidate) => (
-      isMobLocation(candidate) && isSameMobLocation(candidate, selected.entry)
-    ));
+    arrayIndex = freshStore.raw.findIndex(
+      (candidate) => isMobLocation(candidate) && isSameMobLocation(candidate, selected.entry),
+    );
     if (arrayIndex !== -1) current = freshStore.raw[arrayIndex] as MobLocation;
   }
 
@@ -148,9 +142,11 @@ function mutateStoredEntry(
     return;
   }
 
+  if (mutation === 'kill' && current.active === '0') return;
+
   try {
-    if (mutation === 'toggle') {
-      const updated = { ...current, active: current.active === '1' ? '0' : '1' };
+    if (mutation === 'toggle' || mutation === 'kill') {
+      const updated = { ...current, active: mutation === 'kill' ? '0' : current.active === '1' ? '0' : '1' };
       if (freshStore.kind === 'record') freshStore.raw[selected.storageKey!] = updated;
       else freshStore.raw[arrayIndex] = updated;
     } else {
@@ -160,6 +156,8 @@ function mutateStoredEntry(
     saveMobLocationStore(freshStore);
     if (mutation === 'remove') {
       api.output.print(`[tro] Usunieto ${selected.entry.mobType} z lokacji ${selected.entry.roomId}.`);
+    } else if (mutation === 'kill') {
+      api.output.print(`[tro] Oznaczono jako zabitego: ${selected.entry.mobType} (${selected.entry.roomId}).`);
     }
   } catch {
     api.output.print('[tro] Nie udalo sie zapisac zmian w mobLocations.');
@@ -207,7 +205,7 @@ function printMobTable(
 
   const rows = rowLimit === null ? orderedRows : orderedRows.slice(0, rowLimit);
 
-  const distanceLabels = rows.map(({ distance }) => distance === null ? '-' : `${distance} lok.`);
+  const distanceLabels = rows.map(({ distance }) => (distance === null ? '-' : `${distance} lok.`));
   const idWidth = Math.max(...rows.map(({ stored }) => String(stored.entry.roomId).length));
   const distanceWidth = Math.max(...distanceLabels.map((value) => value.length));
   const typeWidth = Math.max(...rows.map(({ stored }) => stored.entry.mobType.length));
@@ -231,10 +229,7 @@ function printMobTable(
     api.output.print(buffer);
   };
 
-  const mutateEntry = (
-    selected: StoredMobLocation,
-    mutation: 'toggle' | 'remove',
-  ) => {
+  const mutateEntry = (selected: StoredMobLocation, mutation: 'toggle' | 'remove') => {
     mutateStoredEntry(api, selected, mutation);
     onMutation?.();
     printMobTable(api, preview, rowLimit, onMutation);
@@ -267,10 +262,7 @@ function printMobTable(
         onClick: () => startDynamicWalker(api, entry, true),
       },
     });
-    buffer.append(
-      ` | ${entry.mobType.padEnd(typeWidth)} | `,
-      dataColor,
-    );
+    buffer.append(` | ${entry.mobType.padEnd(typeWidth)} | `, dataColor);
     const checkIcon = isActive ? '  ' : '💀';
     buffer.append(checkIcon, {
       ...(isActive ? aliveMarkerColor : deadMarkerColor),
@@ -306,18 +298,23 @@ function printMobTable(
   const deadCount = orderedRows.filter(({ stored }) => stored.entry.active === '0').length;
   const reviveLabel = '[ oznacz wszystkie jako zywe ]';
   const reviveButton = new api.AnsiAwareBuffer();
-  reviveButton.append(reviveLabel, deadCount === 0 ? inactiveColor : {
-    ...idColor,
-    underline: false,
-    hyperlink: {
-      title: `Oznacz jako zywe: ${deadCount}`,
-      onClick: () => {
-        reviveAllVisibleMobs(api);
-        onMutation?.();
-        printMobTable(api, preview, rowLimit, onMutation);
-      },
-    },
-  });
+  reviveButton.append(
+    reviveLabel,
+    deadCount === 0
+      ? inactiveColor
+      : {
+          ...idColor,
+          underline: false,
+          hyperlink: {
+            title: `Oznacz jako zywe: ${deadCount}`,
+            onClick: () => {
+              reviveAllVisibleMobs(api);
+              onMutation?.();
+              printMobTable(api, preview, rowLimit, onMutation);
+            },
+          },
+        },
+  );
   api.output.print(reviveButton);
 }
 
@@ -358,15 +355,16 @@ export function setupTro(api: PluginApi): () => void {
   });
   const view = createTroView({
     api,
-    getRows: () => getOrderedRows(api).map(({ stored, distance }) => ({
-      storageKey: stored.storageKey,
-      active: stored.entry.active === '1',
-      mobType: stored.entry.mobType,
-      roomId: stored.entry.roomId,
-      time: stored.entry.time,
-      distance,
-      current: distance === 0,
-    })),
+    getRows: () =>
+      getOrderedRows(api).map(({ stored, distance }) => ({
+        storageKey: stored.storageKey,
+        active: stored.entry.active === '1',
+        mobType: stored.entry.mobType,
+        roomId: stored.entry.roomId,
+        time: stored.entry.time,
+        distance,
+        current: distance === 0,
+      })),
     setTarget: (row) => startDynamicWalker(api, toStoredEntry(row).entry, false),
     startWalking: (row) => startDynamicWalker(api, toStoredEntry(row).entry, true),
     toggle: (row) => {
@@ -389,6 +387,47 @@ export function setupTro(api: PluginApi): () => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (api.events as any).on(DYNAMIC_WALKER_ARRIVED_EVENT, refreshViewOnArrival);
 
+  // tro! arms this while walking to a target: on arrival, wait a random 1-3s
+  // "human" delay, send `zabij trolla`, then watch for the client's reply
+  // saying nobody is there — that means the troll is already dead.
+  let zabijOffArrival: (() => void) | null = null;
+  let zabijDelayTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cancelZabijTrolla = () => {
+    zabijOffArrival?.();
+    zabijOffArrival = null;
+    if (zabijDelayTimer !== null) clearTimeout(zabijDelayTimer);
+    zabijDelayTimer = null;
+    api.triggers.removeByTag(TAG_TRO_ZABIJ);
+  };
+
+  const armZabijTrolla = (target: StoredMobLocation) => {
+    cancelZabijTrolla();
+    const onArrived = (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
+      const { roomId } = payload as { roomId?: unknown };
+      if (roomId !== target.entry.roomId) return;
+      cancelZabijTrolla();
+      withDelay(1000, 3000, () => {
+        void api.command.send('zabij trolla');
+        api.triggers.registerOneTime(
+          /Nie widzisz zadnej takiej osoby\./,
+          (line) => {
+            mutateStoredEntry(api, target, 'kill');
+            view.refresh();
+            return line;
+          },
+          TAG_TRO_ZABIJ,
+        );
+      });
+    };
+    // Custom core-plugin event; not present in the published plugin-types.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api.events as any).on(DYNAMIC_WALKER_ARRIVED_EVENT, onArrived);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    zabijOffArrival = () => (api.events as any).off(DYNAMIC_WALKER_ARRIVED_EVENT, onArrived);
+  };
+
   api.aliases.register(/^(?:tro_all|tro_lista|tro)$/i, (matches) => {
     const showAll = matches?.[0]?.toLocaleLowerCase('pl-PL') === 'tro_all';
     printMobTable(api, preview, showAll ? null : TRO_DEFAULT_ROW_LIMIT, () => view.refresh());
@@ -401,15 +440,15 @@ export function setupTro(api: PluginApi): () => void {
   });
 
   api.aliases.register(/^tro!$/i, () => {
-    const nearestTroll = getOrderedRows(api).find(({ stored, distance }) => (
-      normalizedMobType(stored.entry) === 'pbt' &&
-      stored.entry.active === '1' &&
-      distance !== null
-    ));
+    const nearestTroll = getOrderedRows(api).find(
+      ({ stored, distance }) =>
+        normalizedMobType(stored.entry) === 'pbt' && stored.entry.active === '1' && distance !== null,
+    );
     if (!nearestTroll) {
       api.output.print('[tro] Brak osiagalnego zywego trolla.');
       return true;
     }
+    armZabijTrolla(nearestTroll.stored);
     startDynamicWalker(api, nearestTroll.stored.entry, true);
     return true;
   });
@@ -417,6 +456,7 @@ export function setupTro(api: PluginApi): () => void {
   return () => {
     if (previewTimer !== null) clearTimeout(previewTimer);
     finishPreview();
+    cancelZabijTrolla();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api.events as any).off(DYNAMIC_WALKER_ARRIVED_EVENT, refreshViewOnArrival);
     menuEntry.remove();

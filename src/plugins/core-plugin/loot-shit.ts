@@ -4,9 +4,13 @@ import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 /**
  * Port of the CMUD "Shit" class — loot management for different mob types.
  *
- * Each group defines item lists dropped by a specific mob type, with take/sell/store
- * aliases that expand to game commands. No triggers needed — pure aliases, auto-cleaned
+ * Each group defines item lists dropped by a specific mob type, with aliases
+ * that expand to game commands. No triggers needed — pure aliases, auto-cleaned
  * on unload.
+ *
+ * Standard sequences:
+ *   Take: wez <item> × N → napt
+ *   Sell: 4 cycles of napt → wyj (bronie|zb) → sprzedaj je, 1s cooldown between
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -17,72 +21,74 @@ interface LootGroup {
   items: string[];
   /** Aliases that trigger the take sequence. */
   takeAliases: string[];
-  /** Aliases that trigger the sell sequence (optional — some groups only store). */
+  /** Aliases that trigger the sell sequence. */
   sellAliases?: string[];
-  /** Aliases that trigger the store sequence (optional). */
-  storeAliases?: string[];
 }
 
 // ── Item lists ─────────────────────────────────────────────────────────────────
 
 const ORK_SHIT = [
-  'wytarte skorzane kurtki',
-  'drewniane okute tarcze',
-  'czarne zakrzywione szable',
-  'stalowe ciezkie napiersniki',
   'ciemne matowe szable',
-  'dlugie mysliwskie noze',
-  'lekkie poreczne noze',
-  'zelazne naramienniki',
-  'zelazne napiersniki',
-  'skorzane ocieplane kaftany',
   'ciezkie obreczowe helmy',
+  'ciezkie szerokie szable',
+  'czarne zakrzywione szable',
+  'dlugie mysliwskie noze',
+  'drewniane okute tarcze',
+  'krotkie czarne wlocznie',
+  'lekkie polkoliste topory',
+  'lekkie poreczne noze',
   'okragle drewniane tarcze',
   'polatane stalowe kolczugi',
-  'ciezkie szerokie szable',
-  'zakrzywione goblinskie szable',
-  'lekkie polkoliste topory',
-  'krotkie czarne wlocznie',
+  'skorzane ocieplane kaftany',
+  'stalowe ciezkie napiersniki',
   'stalowe otwarte helmy',
+  'wytarte skorzane kurtki',
+  'zakrzywione goblinskie szable',
+  'zelazne naramienniki',
+  'zelazne napiersniki',
 ];
 
 const GOB_SHIT = [
-  'mysliwskie skorzane kaftany',
-  'krzywe lekkie tarcze',
+  'goblinskie kamienne wlocznie',
   'krzywe krotkie noze',
+  'krzywe lekkie tarcze',
+  'mysliwskie skorzane kaftany',
   'okragle drewniane tarcze',
   'przetarte lekkie kolczugi',
-  'goblinskie kamienne wlocznie',
-];
-
-const STR_SHIT = [
-  'zwykle stalowe miecze',
-  'ciezkie stalowe kirysy',
-  'lsniace stalowe helmy',
-  'ciezkie stalowe paweze',
-  'lekkie poszczerbione miecze',
-  'lekkie stalowe zbroje',
-  'lekkie zwykle topory',
-  'stalowe lsniace kirysy',
-  'czarne dlugie piki',
-  'pikowane cieple kaftany',
-  'wielkie ciezkie tarcze',
-  'zwykle proste miecze',
-  'ciezkie oficerskie buzdygany',
 ];
 
 const CAMPO_SHIT = [
-  'kruczoczarne dlugie kolczugi',
+  'czarne luskowe helmy',
   'dwureczne czarne mloty',
+  'faliste flambergi',
+  'kruczoczarne dlugie kolczugi',
   'matowe nareczaki',
   'matowe smolistoczarne napiersniki',
-  'faliste flambergi',
-  'czarne luskowe helmy',
-  'stare rzezbione wlocznie',
-  'srebrzyste jednoreczne topory',
-  'polyskliwe czarne helmy',
-  'polyskliwe czarne diademy',
   'niewielkie zdobione korony',
+  'polyskliwe czarne diademy',
+  'polyskliwe czarne helmy',
+  'srebrzyste jednoreczne topory',
+  'stare rzezbione wlocznie',
+];
+
+const HAS_SHIT = [
+  'ciemne plytkowe lewe naramienniki',
+  'ciemne plytkowe prawe naramienniki',
+  'ciezkie lancuchowe korbacze',
+  'ciezkie poszczerbione szable',
+  'folgowe ciemne lewe naramienniki',
+  'folgowe ciemne prawe naramienniki',
+  'folgowe stalowe napiersniki',
+  'jednoreczne krasnoludzkie mloty',
+  'jednoreczne krasnoludzkie topory',
+  'krasnoludzkie pierscieniowe kolczugi',
+  'obreczowe wzmacniane helmy z rogami',
+  'okute krasnoludzkie buty',
+  'otwarte hobgoblinskie helmy z rogami',
+  'pancerne stalowe lewe rekawice',
+  'pancerne stalowe prawe rekawice',
+  'przyciemniane plytkowe kirysy',
+  'trojkatne wzmacniane tarcze',
 ];
 
 // ── Groups ──────────────────────────────────────────────────────────────────────
@@ -92,29 +98,29 @@ const GROUPS: LootGroup[] = [
     key: 'ork',
     label: 'ork',
     items: ORK_SHIT,
-    takeAliases: ['work'],
-    sellAliases: ['sork', 'sporkshit'],
+    takeAliases: ['wezork'],
+    sellAliases: ['spork'],
   },
   {
     key: 'gob',
     label: 'goblin',
     items: GOB_SHIT,
-    takeAliases: ['wgob'],
-    sellAliases: ['sgob', 'spox'],
+    takeAliases: ['wezgob'],
+    sellAliases: ['spgob'],
   },
   {
-    key: 'str',
-    label: 'strzyga',
-    items: STR_SHIT,
-    takeAliases: ['wstr'],
-    storeAliases: ['strned'],
-  },
-  {
-    key: 'campo',
+    key: 'cam',
     label: 'campo',
     items: CAMPO_SHIT,
-    takeAliases: ['wcampo'],
-    sellAliases: ['scampo', 'spcampo'],
+    takeAliases: ['wezcam'],
+    sellAliases: ['spcam'],
+  },
+  {
+    key: 'has',
+    label: 'has',
+    items: HAS_SHIT,
+    takeAliases: ['wezhas'],
+    sellAliases: ['sphas'],
   },
 ];
 
@@ -126,173 +132,122 @@ function wezWszystkie(api: PluginApi, items: string[]): void {
   }
 }
 
-function wyjWszystkie(api: PluginApi, items: string[]): void {
-  for (const item of items) {
-    api.command.send(`wyj ${item}`, false);
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ── Standard sequences ─────────────────────────────────────────────────────────
+
+/** Standard take: wez group items → napt. */
+function takeSequence(api: PluginApi, items: string[]): void {
+  wezWszystkie(api, items);
+  api.command.send('napt', false);
+}
+
+const SELL_CYCLES: string[][] = [
+  ['wyj bronie', 'sprzedaj je'],
+  ['wyjzb', 'sprzedaj je'],
+  ['wyj bronie', 'sprzedaj je'],
+  ['wyjzb', 'sprzedaj je'],
+];
+
+/**
+ * Standard sell: 4 cycles alternating bronie/wyjzb, 1s cooldown between.
+ * Uses async/await via promise delay so commands don't pile up too fast.
+ */
+async function sellSequence(api: PluginApi): Promise<void> {
+  for (let i = 0; i < SELL_CYCLES.length; i++) {
+    api.command.send('napt', false);
+    for (const cmd of SELL_CYCLES[i]) {
+      api.command.send(cmd, false);
+    }
+    if (i < SELL_CYCLES.length - 1) {
+      await delay(1000);
+    }
   }
 }
 
-function sprzedajWszystkie(api: PluginApi, items: string[]): void {
-  for (const item of items) {
-    api.command.send(`sprzedaj ${item}`, false);
-  }
-}
-
-// (findGroupByAlias omitted — groups are resolved directly in the parameterized aliases)
-
-// ── Alias callbacks ─────────────────────────────────────────────────────────────
-
-// Take sequences //
+// ── Take callbacks ──────────────────────────────────────────────────────────────
 
 function takeOrk(api: PluginApi): void {
-  api.command.send('ot', false);
-  wezWszystkie(api, ORK_SHIT);
-  api.command.send('napelnij torbe', false);
-  api.command.send('napelnij plecak', false);
-  api.command.send('napelnij worek');
+  takeSequence(api, ORK_SHIT);
 }
 
 function takeGob(api: PluginApi): void {
-  api.command.send('ot', false);
-  api.command.send('otworz worek', false);
-  api.command.send('w1', false);
-  api.command.send('w2', false);
-  api.command.send('w3', false);
-  api.command.send('w4', false);
-  wezWszystkie(api, GOB_SHIT);
-  api.command.send('napelnij worek', false);
-  api.command.send('napp');
+  takeSequence(api, GOB_SHIT);
 }
 
-function takeCampo(api: PluginApi): void {
-  api.command.send('ot', false);
-  wezWszystkie(api, CAMPO_SHIT);
-  api.command.send('napt');
+function takeCam(api: PluginApi): void {
+  takeSequence(api, CAMPO_SHIT);
 }
 
-// Sell sequences //
-
-function sellOrk(api: PluginApi): void {
-  api.command.send('ot', false);
-  wyjWszystkie(api, ORK_SHIT);
-  api.command.send('oproznij worek', false);
-  sprzedajWszystkie(api, ORK_SHIT);
-}
-
-function sellGob(api: PluginApi): void {
-  api.command.send('ot', false);
-  wyjWszystkie(api, GOB_SHIT);
-  api.command.send('oproznij worek', false);
-  sprzedajWszystkie(api, GOB_SHIT);
-}
-
-function sellCampo(api: PluginApi): void {
-  wyjWszystkie(api, CAMPO_SHIT);
-  sprzedajWszystkie(api, CAMPO_SHIT);
-}
-
-// Store sequences //
-
-function storeStr(api: PluginApi): void {
-  const backpacks = [
-    'ciemnozielonego plecaka',
-    'drugiego ciemnozielonego plecaka',
-    'trzeciego ciemnozielonego plecaka',
-    'czwartego ciemnozielonego plecaka',
-  ];
-  for (const item of STR_SHIT) {
-    api.command.send(`wyj ${item}`, false);
-    for (const bp of backpacks) {
-      api.command.send(`wloz ${item} do ${bp}`, false);
-    }
-  }
+function takeHas(api: PluginApi): void {
+  takeSequence(api, HAS_SHIT);
 }
 
 // ── Registration ────────────────────────────────────────────────────────────────
 
 export function setupLootShitAliases(api: PluginApi): void {
-  // ── Specific aliases (original names) ────────────────────────────────────
+  // ── Specific aliases: wez<group> / sp<group> ─────────────────────────────
 
-  api.aliases.register(/^work$/i, () => {
+  api.aliases.register(/^wezork$/i, () => {
     takeOrk(api);
     return true;
   });
-  api.aliases.register(/^sporkshit$/i, () => {
-    sellOrk(api);
+  api.aliases.register(/^spork$/i, () => {
+    sellSequence(api);
     return true;
   });
 
-  api.aliases.register(/^wgob$/i, () => {
+  api.aliases.register(/^wezgob$/i, () => {
     takeGob(api);
     return true;
   });
-  api.aliases.register(/^spox$/i, () => {
-    sellGob(api);
+  api.aliases.register(/^spgob$/i, () => {
+    sellSequence(api);
     return true;
   });
 
-  api.aliases.register(/^wcampo$/i, () => {
-    takeCampo(api);
+  api.aliases.register(/^wezcam$/i, () => {
+    takeCam(api);
     return true;
   });
-  api.aliases.register(/^spcampo$/i, () => {
-    sellCampo(api);
-    return true;
-  });
-
-  api.aliases.register(/^strned$/i, () => {
-    storeStr(api);
+  api.aliases.register(/^spcam$/i, () => {
+    sellSequence(api);
     return true;
   });
 
-  // ── Parameterized aliases: w <group> / s <group> ─────────────────────────
+  api.aliases.register(/^wezhas$/i, () => {
+    takeHas(api);
+    return true;
+  });
+  api.aliases.register(/^sphas$/i, () => {
+    sellSequence(api);
+    return true;
+  });
 
-  api.aliases.register(/^w\s+(ork|gob|str|campo)$/i, (matches) => {
+  // ── Parameterized aliases: wez <group> / sp <group> ──────────────────────
+
+  api.aliases.register(/^wez\s+(ork|gob|cam|has)$/i, (matches) => {
     const key = matches![1].toLowerCase();
     const group = GROUPS.find((g) => g.key === key);
     if (!group) return true;
-    switch (key) {
-      case 'ork':
-        takeOrk(api);
-        break;
-      case 'gob':
-        takeGob(api);
-        break;
-      case 'campo':
-        takeCampo(api);
-        break;
-      // str has no take sequence — only store
-    }
+    takeSequence(api, group.items);
     return true;
   });
 
-  api.aliases.register(/^s\s+(ork|gob|campo)$/i, (matches) => {
+  api.aliases.register(/^sp\s+(ork|gob|cam|has)$/i, (matches) => {
     const key = matches![1].toLowerCase();
-    switch (key) {
-      case 'ork':
-        sellOrk(api);
-        break;
-      case 'gob':
-        sellGob(api);
-        break;
-      case 'campo':
-        sellCampo(api);
-        break;
-    }
+    const group = GROUPS.find((g) => g.key === key);
+    if (!group) return true;
+    sellSequence(api);
     return true;
   });
 
   // ── sall — sell all groups ────────────────────────────────────────────────
 
   api.aliases.register(/^sall$/i, () => {
-    api.command.send('ot', false);
-    wyjWszystkie(api, ORK_SHIT);
-    wyjWszystkie(api, GOB_SHIT);
-    wyjWszystkie(api, CAMPO_SHIT);
-    api.command.send('oproznij worek', false);
-    sprzedajWszystkie(api, ORK_SHIT);
-    sprzedajWszystkie(api, GOB_SHIT);
-    sprzedajWszystkie(api, CAMPO_SHIT);
+    sellSequence(api);
     return true;
   });
 
@@ -324,7 +279,6 @@ export function setupLootShitAliases(api: PluginApi): void {
       const tags: string[] = [];
       tags.push(`take: ${g.takeAliases.join(', ')}`);
       if (g.sellAliases?.length) tags.push(`sell: ${g.sellAliases.join(', ')}`);
-      if (g.storeAliases?.length) tags.push(`store: ${g.storeAliases.join(', ')}`);
       line([
         { text: `  ${g.key}`, color: accent },
         { text: ` (${g.items.length} items)`, color: dim },

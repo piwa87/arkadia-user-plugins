@@ -104,11 +104,7 @@ export function cancelWylap(api: PluginApi): void {
  * Start capturing declensions for `names`. `onFinished` runs once the whole
  * queue is done (the caller rebuilds the team so the new forms take effect).
  */
-export function startWylap(
-  api: PluginApi,
-  names: string[],
-  onFinished?: () => void,
-): void {
+export function startWylap(api: PluginApi, names: string[], onFinished?: () => void): void {
   if (capture) {
     print(api, 'wylap: odmiana juz trwa.', COLOR_WARN);
     return;
@@ -138,7 +134,9 @@ function askNext(api: PluginApi, onFinished?: () => void): void {
   run.name = name;
   run.forms = {};
   arm(api, run, onFinished);
-  api.command.send(`odmien ${name}`, false);
+  // The game only recognises `odmien` targets in lowercase — a capitalized
+  // team name (as GMCP reports it) gets "Odmien <kto/co>?" (not recognised).
+  api.command.send(`odmien ${name.toLowerCase()}`, false);
 }
 
 /** Arm the block parsers for the name currently being declined. */
@@ -241,10 +239,7 @@ function complete(api: PluginApi, run: Capture, onFinished?: () => void): void {
   buf.append('[druzyna] ', api.colors.fromHex(COLOR_PREFIX));
   buf.append('Odmieniono: ', api.colors.fromHex(complete4 ? COLOR_OK : COLOR_WARN));
   buf.append(entry.M.padEnd(14), api.colors.fromHex(COLOR_NAME));
-  buf.append(
-    ` B:${entry.B} C:${entry.C} D:${entry.D} N:${entry.N}`,
-    api.colors.fromHex(COLOR_FORM),
-  );
+  buf.append(` B:${entry.B} C:${entry.C} D:${entry.D} N:${entry.N}`, api.colors.fromHex(COLOR_FORM));
   api.output.print(buf);
   if (!complete4) {
     print(api, `wylap: niepelna odmiana ${entry.M} — brakujace formy = mianownik.`, COLOR_WARN);

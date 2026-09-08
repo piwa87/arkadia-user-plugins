@@ -134,7 +134,7 @@ describe('mod_team', () => {
       expect(getMissingNames()).toEqual(['Jasko']);
 
       fireBind(mock);
-      expect(sentCommands(mock)).toContain('odmien Jasko');
+      expect(sentCommands(mock)).toContain('odmien jasko');
 
       replyOdmien(mock, JASKO);
       vi.runAllTimers(); // completion delay + the final team rebuild
@@ -157,14 +157,14 @@ describe('mod_team', () => {
       setupTeam(mock.api);
 
       fireBind(mock);
-      expect(sentCommands(mock)).toContain('odmien Jasko');
-      expect(sentCommands(mock)).not.toContain('odmien Bolko');
+      expect(sentCommands(mock)).toContain('odmien jasko');
+      expect(sentCommands(mock)).not.toContain('odmien bolko');
 
       replyOdmien(mock, JASKO);
       // Only the inter-command gap — running all timers here would also fire
       // Bolko's freshly armed watchdog.
       vi.advanceTimersByTime(700);
-      expect(sentCommands(mock)).toContain('odmien Bolko');
+      expect(sentCommands(mock)).toContain('odmien bolko');
 
       replyOdmien(mock, { M: 'Bolko', D: 'Bolka', C: 'Bolkowi', B: 'Bolka', N: 'Bolkiem', Ms: 'Bolku' });
       vi.runAllTimers();
@@ -244,7 +244,7 @@ describe('mod_team', () => {
       vi.advanceTimersByTime(700); // the completion gap, well under the 5s watchdog
 
       // Moved straight on to the next name instead of waiting out the watchdog.
-      expect(sentCommands(mock)).toContain('odmien Jasko');
+      expect(sentCommands(mock)).toContain('odmien jasko');
       expect(getLearnedNames()).toEqual([]);
 
       destroyTeam(mock.api);
@@ -276,11 +276,11 @@ describe('mod_team', () => {
 
       const wylap = mock.aliases.find((a) => a.pattern.test('wylap'))!;
       wylap.callback(['wylap Jasko Bolko', 'Jasko Bolko'] as unknown as RegExpMatchArray);
-      expect(sentCommands(mock)).toContain('odmien Jasko');
+      expect(sentCommands(mock)).toContain('odmien jasko');
 
       replyOdmien(mock, JASKO);
       vi.advanceTimersByTime(700);
-      expect(sentCommands(mock)).toContain('odmien Bolko');
+      expect(sentCommands(mock)).toContain('odmien bolko');
 
       destroyTeam(mock.api);
     });
@@ -293,7 +293,7 @@ describe('mod_team', () => {
 
       fireBind(mock);
       fireBind(mock);
-      expect(sentCommands(mock).filter((c) => c === 'odmien Jasko')).toHaveLength(1);
+      expect(sentCommands(mock).filter((c) => c === 'odmien jasko')).toHaveLength(1);
 
       destroyTeam(mock.api);
     });
@@ -408,12 +408,8 @@ describe('mod_team', () => {
       runLine(mock, 'Zrecznie zaslaniasz Vindaela przed ciosami orka.');
       vi.advanceTimersByTime(5000);
 
-      const printed = (mock.api.output.print as any).mock.calls.map(
-        ([value]: [any]) => value?.text ?? String(value),
-      );
-      expect(printed).toContain(
-        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
-      );
+      const printed = (mock.api.output.print as any).mock.calls.map(([value]: [any]) => value?.text ?? String(value));
+      expect(printed).toContain(`${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`);
 
       destroyTeam(mock.api);
     });
@@ -424,18 +420,11 @@ describe('mod_team', () => {
       (mock.api.team.getMembers as any).mockReturnValue([]);
       setupTeam(mock.api);
 
-      runLine(
-        mock,
-        'Probujesz zaslonic Vindaela przed ciosami orka, jednak nie jestes w stanie tego uczynic.',
-      );
+      runLine(mock, 'Probujesz zaslonic Vindaela przed ciosami orka, jednak nie jestes w stanie tego uczynic.');
       vi.advanceTimersByTime(5000);
 
-      const printed = (mock.api.output.print as any).mock.calls.map(
-        ([value]: [any]) => value?.text ?? String(value),
-      );
-      expect(printed).toContain(
-        `${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`,
-      );
+      const printed = (mock.api.output.print as any).mock.calls.map(([value]: [any]) => value?.text ?? String(value));
+      expect(printed).toContain(`${'   '.repeat(10)}m a n e w r u j${'  '.repeat(10)}m a n e w r u j`);
 
       destroyTeam(mock.api);
     });
