@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  DYNAMIC_WALKER_ARRIVED_EVENT,
   DYNAMIC_WALKER_START_EVENT,
   rankOpenExits,
   setupWalker,
-} from '../../../src/plugins/core-plugin/walker';
+} from '../../../src/plugins/core-plugin/movement/walker';
 import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
 
 function printedText(mock: ReturnType<typeof createMockApi>): string[] {
-  return (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
-    .map(([line]) => line instanceof MockAnsiAwareBuffer ? line.text : String(line));
+  return (vi.mocked(mock.api.output.print).mock.calls as unknown[][]).map(([line]) =>
+    line instanceof MockAnsiAwareBuffer ? line.text : String(line),
+  );
 }
 
 const target = { id: 99, x: 10, y: 0, z: 0, exits: {} } as any;
@@ -89,7 +89,7 @@ describe('ZC walker manual stepping', () => {
     const room1 = { id: 1, name: 'start', area: 52, x: 0, y: 0, z: 0, exits: { east: 99 } } as any;
     const room99 = { id: 99, name: 'target', area: 52, x: 1, y: 0, z: 0, exits: {} } as any;
     const mock = createMockApi({ room: room1 });
-    mock.api.map.getRoomById = vi.fn((id) => id === 99 ? room99 : room1);
+    mock.api.map.getRoomById = vi.fn((id) => (id === 99 ? room99 : room1));
     mock.api.map.findPath = vi.fn(() => [1, 99]) as any;
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 52, areaName: 'Ziemie Czaszki', rooms: [] }]) as any;
     mock.api.gmcp.get = vi.fn(() => ({ room: { info: { exits: ['east'] } } })) as any;
@@ -114,7 +114,11 @@ describe('ZC walker manual stepping', () => {
     const room99 = { id: 99, name: 'target', x: 2, y: 0, z: 0, exits: {} } as any;
     let current = room1;
     let openExits = ['east'];
-    const roomById = new Map([[1, room1], [2, room2], [99, room99]]);
+    const roomById = new Map([
+      [1, room1],
+      [2, room2],
+      [99, room99],
+    ]);
     const mock = createMockApi();
     mock.api.map.getRoom = vi.fn(() => current);
     mock.api.map.getRoomById = vi.fn((id) => roomById.get(id) ?? null);
@@ -132,9 +136,7 @@ describe('ZC walker manual stepping', () => {
     start.callback('/zcwalk 99'.match(start.pattern) as RegExpMatchArray);
     expect(mock.api.command.send).not.toHaveBeenCalled();
     expect(commandHook.callback('i5')).toBeUndefined();
-    expect(printedText(mock)).toContain(
-      '[zc] ustawiono cel: 99; step! = krok, step!! = auto i5',
-    );
+    expect(printedText(mock)).toContain('[zc] ustawiono cel: 99; step! = krok, step!! = auto i5');
 
     const step = mock.aliases.find((alias) => alias.pattern.test('step!'))!;
     step.callback('step!'.match(step.pattern) as RegExpMatchArray);
@@ -174,11 +176,15 @@ describe('ZC walker manual stepping', () => {
     const room2 = { id: 2, name: 'middle', x: 1, y: 0, z: 0, exits: { east: 99 } } as any;
     const room99 = { id: 99, name: 'target', x: 2, y: 0, z: 0, exits: {} } as any;
     let current = room1;
-    const roomById = new Map([[1, room1], [2, room2], [99, room99]]);
+    const roomById = new Map([
+      [1, room1],
+      [2, room2],
+      [99, room99],
+    ]);
     const mock = createMockApi();
     mock.api.map.getRoom = vi.fn(() => current);
     mock.api.map.getRoomById = vi.fn((id) => roomById.get(id) ?? null);
-    mock.api.map.findPath = vi.fn((from) => from === 1 ? [1, 2, 99] : [2, 99]);
+    mock.api.map.findPath = vi.fn((from) => (from === 1 ? [1, 2, 99] : [2, 99]));
     mock.api.gmcp.get = vi.fn(() => ({ room: { info: { exits: ['east'] } } }));
 
     const cleanup = setupWalker(mock.api);
@@ -225,7 +231,11 @@ describe('ZC walker manual stepping', () => {
       specialExits: {},
     } as any;
     const targetRoom = { id: 99, name: 'target', x: 0, y: 10, z: 0, exits: {} } as any;
-    const roomById = new Map([[1, roomA], [2, roomB], [99, targetRoom]]);
+    const roomById = new Map([
+      [1, roomA],
+      [2, roomB],
+      [99, targetRoom],
+    ]);
     let current = roomA;
     const mock = createMockApi();
     mock.api.map.getRoom = vi.fn(() => current);
@@ -254,9 +264,7 @@ describe('ZC walker manual stepping', () => {
     current = roomA;
     mock.api.events.emit('gmcp.room.info', {});
     await vi.advanceTimersByTimeAsync(0);
-    expect(printedText(mock)).toContain(
-      '[zc] petla 1 <-> 2; automat zatrzymany, cel pozostaje ustawiony',
-    );
+    expect(printedText(mock)).toContain('[zc] petla 1 <-> 2; automat zatrzymany, cel pozostaje ustawiony');
     await vi.advanceTimersByTimeAsync(2_000);
     expect(mock.api.command.send).toHaveBeenCalledTimes(4);
     cleanup();
@@ -275,7 +283,12 @@ describe('ZC walker manual stepping', () => {
     const room2 = { id: 2, name: 'route', x: 1, y: 0, z: 0, exits: {} } as any;
     const room3 = { id: 3, name: 'alternative', x: 0, y: 1, z: 0, exits: {} } as any;
     const room99 = { id: 99, name: 'target', x: 3, y: 0, z: 0, exits: {} } as any;
-    const roomById = new Map([[1, room1], [2, room2], [3, room3], [99, room99]]);
+    const roomById = new Map([
+      [1, room1],
+      [2, room2],
+      [3, room3],
+      [99, room99],
+    ]);
     const mock = createMockApi({ room: room1 });
     mock.api.map.getRoomById = vi.fn((id) => roomById.get(id) ?? null);
     mock.api.map.findPath = vi.fn(() => [1, 2, 99]);
@@ -316,7 +329,11 @@ describe('ZC walker manual stepping', () => {
     } as any;
     const room13800 = { id: 13800, name: 'NE', x: 305, y: 37, z: 0, exits: {} } as any;
     const room20812 = { id: 20812, name: 'Przed szczelina', x: 304, y: 36, z: -1, exits: {} } as any;
-    const roomById = new Map([[13774, room13774], [13800, room13800], [20812, room20812]]);
+    const roomById = new Map([
+      [13774, room13774],
+      [13800, room13800],
+      [20812, room20812],
+    ]);
     const mock = createMockApi({ room: room13774 });
     mock.api.map.getRoomById = vi.fn((id) => roomById.get(id) ?? null);
     mock.api.map.findPath = vi.fn(() => [13774, 20812]);
@@ -347,7 +364,11 @@ describe('ZC walker manual stepping', () => {
     } as any;
     const room20842 = { id: 20842, name: '20842', x: 345, y: -7, z: 0, exits: {} } as any;
     const room20840 = { id: 20840, name: '20840', x: 345, y: -9, z: 0, exits: {} } as any;
-    const roomById = new Map([[20840, room20840], [20841, room20841], [20842, room20842]]);
+    const roomById = new Map([
+      [20840, room20840],
+      [20841, room20841],
+      [20842, room20842],
+    ]);
     const mock = createMockApi({ room: room20841 });
     mock.api.map.getRoomById = vi.fn((id) => roomById.get(id) ?? null);
     mock.api.map.findPath = vi.fn(() => [20841, 20842]);
@@ -378,7 +399,11 @@ describe('ZC walker manual stepping', () => {
       specialExits: {},
     } as any;
     const room20843 = { id: 20843, name: '20843', x: 345, y: -11, z: 0, exits: {} } as any;
-    const roomById = new Map([[20841, room20841], [20842, room20842], [20843, room20843]]);
+    const roomById = new Map([
+      [20841, room20841],
+      [20842, room20842],
+      [20843, room20843],
+    ]);
     const mock = createMockApi({ room: room20842 });
     mock.api.map.getRoomById = vi.fn((id) => roomById.get(id) ?? null);
     mock.api.map.findPath = vi.fn(() => [20842, 20841]);
@@ -396,147 +421,123 @@ describe('ZC walker manual stepping', () => {
     cleanup();
   });
 
-  it('routes a saved wk shortcut through the ZC walker while in Ziemie Czaszki', () => {
+  it('routes a saved wk shortcut through the built-in walker while in Ziemie Czaszki', () => {
     const room1 = { id: 1, area: 12, name: 'start', x: 0, y: 0, z: 0, exits: { east: 22759 } } as any;
-    const destination = { id: 22759, area: 12, name: 'Pokoik w Kle', x: 1, y: 0, z: 0, exits: {} } as any;
     stubLocalStorage({
       shortcuts: JSON.stringify([{ key: 'home', id: 22759, label: 'Pokoik w Kle' }]),
     });
 
     const mock = createMockApi({ room: room1 });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 12, areaName: 'Ziemie Czaszki', rooms: [] }]) as any;
-    mock.api.map.getRoomById = vi.fn((id) => id === 22759 ? destination : null);
-    mock.api.map.findPath = vi.fn(() => [1, 22759]);
-    mock.api.gmcp.get = vi.fn(() => ({
-      char: { info: { name: 'Jens' } },
-      room: { info: { exits: ['east'] } },
-    }));
+    mock.api.gmcp.get = vi.fn(() => ({ char: { info: { name: 'Jens' } } }));
 
     const cleanup = setupWalker(mock.api);
     expect(mock.commandHooks[0].callback('wk home')).toBeNull();
-    expect(mock.api.command.send).not.toHaveBeenCalled();
-    expect(printedText(mock)).toContain(
-      '[zc] ustawiono cel: Pokoik w Kle (22759); step! = krok, step!! = auto i5',
-    );
-
-    const step = mock.aliases.find((alias) => alias.pattern.test('step!'))!;
-    step.callback('step!'.match(step.pattern) as RegExpMatchArray);
-    expect(mock.api.command.send).toHaveBeenCalledWith('e');
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/walk',
+      '/prowadz 22759',
+      '/idz 22759 0.5',
+      '/walkerw',
+    ]);
     cleanup();
   });
 
-  it('routes wk through the dynamic walker in Pustkowia - okolice', () => {
-    vi.useFakeTimers();
-    const room13191 = {
-      id: 13191,
-      area: 62,
-      name: '13191',
-      x: 265,
-      y: 67,
-      z: 1,
-      exits: { southwest: 13190, up: 13192 },
-      specialExits: {},
-    } as any;
-    const destination = { id: 13192, area: 62, name: '13192', x: 265, y: 67, z: 2, exits: {} } as any;
+  it('disables /walk again once the built-in walker arrives at the wk target', () => {
+    const room1 = { id: 1, area: 12, name: 'start', x: 0, y: 0, z: 0, exits: { east: 22759 } } as any;
+    stubLocalStorage({
+      shortcuts: JSON.stringify([{ key: 'home', id: 22759, label: 'Pokoik w Kle' }]),
+    });
+
+    const mock = createMockApi({ room: room1 });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 12, areaName: 'Ziemie Czaszki', rooms: [] }]) as any;
+    mock.api.gmcp.get = vi.fn(() => ({ char: { info: { name: 'Jens' } } }));
+
+    const cleanup = setupWalker(mock.api);
+    expect(mock.commandHooks[0].callback('wk home')).toBeNull();
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/walk',
+      '/prowadz 22759',
+      '/idz 22759 0.5',
+      '/walkerw',
+    ]);
+
+    (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 22759, delay: 0.5 });
+    (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
+
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/walk',
+      '/prowadz 22759',
+      '/idz 22759 0.5',
+      '/walkerw',
+      '/walk',
+    ]);
+    cleanup();
+  });
+
+  it('routes wk through the built-in walker in Pustkowia - okolice', () => {
+    const room13191 = { id: 13191, area: 62, name: '13191', x: 265, y: 67, z: 1, exits: {} } as any;
     stubLocalStorage({
       shortcuts: JSON.stringify([{ key: 'up', id: 13192, label: 'Wyzej' }]),
     });
     const mock = createMockApi({ room: room13191 });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 62, areaName: 'Pustkowia - okolice', rooms: [] }]) as any;
-    mock.api.map.getRoomById = vi.fn((id) => id === 13192 ? destination : null);
-    mock.api.map.findPath = vi.fn(() => [13191, 13192]);
-    mock.api.gmcp.get = vi.fn(() => ({
-      char: { info: { name: 'Jens' } },
-      room: { info: { exits: ['up'] } },
-    }));
+    mock.api.gmcp.get = vi.fn(() => ({ char: { info: { name: 'Jens' } } }));
 
     const cleanup = setupWalker(mock.api);
     expect(mock.commandHooks[0].callback('wk up')).toBeNull();
-    expect(mock.api.command.send).not.toHaveBeenCalled();
-
-    const step = mock.aliases.find((alias) => alias.pattern.test('step!'))!;
-    step.callback('step!'.match(step.pattern) as RegExpMatchArray);
-    expect(mock.api.command.send).toHaveBeenCalledExactlyOnceWith('u');
-    expect(printedText(mock)).toContain('--> u');
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/walk',
+      '/prowadz 13192',
+      '/idz 13192 0.5',
+      '/walkerw',
+    ]);
     cleanup();
   });
 
-  it('routes wk through the dynamic walker in Pustkowia Chaosu', () => {
-    vi.useFakeTimers();
-    const room13116 = {
-      id: 13116,
-      area: 63,
-      name: '13116',
-      x: 276,
-      y: 84,
-      z: 0,
-      exits: { north: 13112, south: 12684 },
-      specialExits: {},
-    } as any;
-    const destination = { id: 13112, area: 63, name: '13112', x: 276, y: 85, z: 0, exits: {} } as any;
+  it('routes wk through the built-in walker in Pustkowia Chaosu', () => {
+    const room13116 = { id: 13116, area: 63, name: '13116', x: 276, y: 84, z: 0, exits: {} } as any;
     stubLocalStorage({
       shortcuts: JSON.stringify([{ key: 'chaos', id: 13112, label: 'Polnoc' }]),
     });
     const mock = createMockApi({ room: room13116 });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 63, areaName: 'Pustkowia Chaosu', rooms: [] }]) as any;
-    mock.api.map.getRoomById = vi.fn((id) => id === 13112 ? destination : null);
-    mock.api.map.findPath = vi.fn(() => [13116, 13112]);
-    mock.api.gmcp.get = vi.fn(() => ({
-      char: { info: { name: 'Jens' } },
-      room: { info: { exits: ['north'] } },
-    }));
+    mock.api.gmcp.get = vi.fn(() => ({ char: { info: { name: 'Jens' } } }));
 
     const cleanup = setupWalker(mock.api);
     expect(mock.commandHooks[0].callback('wk chaos')).toBeNull();
-    expect(mock.api.command.send).not.toHaveBeenCalled();
-
-    const step = mock.aliases.find((alias) => alias.pattern.test('step!'))!;
-    step.callback('step!'.match(step.pattern) as RegExpMatchArray);
-    expect(mock.api.command.send).toHaveBeenCalledExactlyOnceWith('n');
-    expect(printedText(mock)).toContain('--> n');
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/walk',
+      '/prowadz 13112',
+      '/idz 13112 0.5',
+      '/walkerw',
+    ]);
     cleanup();
   });
 
-  it('starts ZC auto-walking with wk <shortcut> ! and notifies on arrival', async () => {
-    vi.useFakeTimers();
-    const notification = vi.fn();
-    class NotificationMock {
-      static permission = 'granted';
-      static requestPermission = vi.fn();
-      constructor(message: string) {
-        notification(message);
-      }
-    }
-    vi.stubGlobal('Notification', NotificationMock);
-
-    const room1 = { id: 1, area: 12, name: 'start', x: 0, y: 0, z: 0, exits: { east: 22759 } } as any;
-    const destination = { id: 22759, area: 12, name: 'Pokoik w Kle', x: 1, y: 0, z: 0, exits: {} } as any;
-    let current = room1;
+  it('only enables /walk once per session across repeated wk shortcuts', () => {
+    const room1 = { id: 1, area: 12, name: 'start', x: 0, y: 0, z: 0, exits: {} } as any;
     stubLocalStorage({
-      shortcuts: JSON.stringify([{ key: 'home', id: 22759, label: 'Pokoik w Kle' }]),
+      shortcuts: JSON.stringify([
+        { key: 'home', id: 22759, label: 'Pokoik w Kle' },
+        { key: 'b', id: 15922, label: 'Benicjooo' },
+      ]),
     });
-    const mock = createMockApi();
-    mock.api.map.getRoom = vi.fn(() => current);
+    const mock = createMockApi({ room: room1 });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 12, areaName: 'Ziemie Czaszki', rooms: [] }]) as any;
-    mock.api.map.getRoomById = vi.fn((id) => id === 22759 ? destination : null);
-    mock.api.map.findPath = vi.fn(() => [1, 22759]);
-    mock.api.gmcp.get = vi.fn(() => ({
-      char: { info: { name: 'Jens' } },
-      room: { info: { exits: ['east'] } },
-    }));
+    mock.api.gmcp.get = vi.fn(() => ({ char: { info: { name: 'Jens' } } }));
 
     const cleanup = setupWalker(mock.api);
-    expect(mock.commandHooks[0].callback('wk home !')).toBeNull();
-    expect(mock.api.command.send).toHaveBeenCalledExactlyOnceWith('e');
-
-    current = destination;
-    mock.api.events.emit('gmcp.room.info', {});
-    await vi.advanceTimersByTimeAsync(0);
-    expect(notification).toHaveBeenCalledExactlyOnceWith('Arrived 🏁');
-    expect(printedText(mock)).toContain('[zc] dotarto do 22759 (Pokoik w Kle)');
-    expect(mock.api.events.emit).toHaveBeenCalledWith(DYNAMIC_WALKER_ARRIVED_EVENT, {
-      roomId: 22759,
-    });
+    expect(mock.commandHooks[0].callback('wk home')).toBeNull();
+    expect(mock.commandHooks[0].callback('wk b')).toBeNull();
+    expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
+      '/walk',
+      '/prowadz 22759',
+      '/idz 22759 0.5',
+      '/walkerw',
+      '/prowadz 15922',
+      '/idz 15922 0.5',
+      '/walkerw',
+    ]);
     cleanup();
   });
 
@@ -619,9 +620,7 @@ describe('ZC walker manual stepping', () => {
       { key: 'b', id: 15922, label: 'Benicjooo' },
       { key: 'remote', id: 99999, label: 'Inna domena' },
     ]);
-    expect(printedText(mock)).toContain(
-      '[walker] usunieto skrot home: Pokoik w Kle (22759)',
-    );
+    expect(printedText(mock)).toContain('[walker] usunieto skrot home: Pokoik w Kle (22759)');
 
     const printedBorders = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
       .map(([line]) => line)
@@ -647,7 +646,7 @@ describe('ZC walker manual stepping', () => {
     ];
     const storage = stubLocalStorage({ shortcuts: JSON.stringify(shortcuts) });
     const mock = createMockApi({ room: { id: 1, area: 7 } });
-    mock.api.map.findPath = vi.fn((_from, to) => to === 22759 ? [1, 10, 22759] : null);
+    mock.api.map.findPath = vi.fn((_from, to) => (to === 22759 ? [1, 10, 22759] : null));
     mock.api.gmcp.get = vi.fn(() => ({ char: { info: { name: 'Gertruda' } } }));
 
     const cleanup = setupWalker(mock.api);
@@ -663,9 +662,7 @@ describe('ZC walker manual stepping', () => {
     expect(JSON.parse(storage.values.get('p:walker:shortcuts:gertruda')!)).toEqual([
       { key: 'home', id: 22759, label: 'Pokoik w Kle' },
     ]);
-    expect(JSON.parse(storage.values.get('shortcuts')!)).toEqual([
-      { key: 'home', id: 22759, label: 'Pokoik w Kle' },
-    ]);
+    expect(JSON.parse(storage.values.get('shortcuts')!)).toEqual([{ key: 'home', id: 22759, label: 'Pokoik w Kle' }]);
     cleanup();
   });
 
@@ -713,12 +710,8 @@ describe('ZC walker manual stepping', () => {
       { key: 'market', id: 100, label: 'Targ' },
       { key: 'home', id: 22759, label: 'Pokoik w Kle' },
     ]);
-    expect(mock.api.command.send).toHaveBeenCalledWith(
-      '/dodaj_skrot 22759 "home" Pokoik w Kle',
-    );
-    expect(printedText(mock)).toContain(
-      '[walker] zapisano skrot home: Pokoik w Kle (22759)',
-    );
+    expect(mock.api.command.send).toHaveBeenCalledWith('/dodaj_skrot 22759 "home" Pokoik w Kle');
+    expect(printedText(mock)).toContain('[walker] zapisano skrot home: Pokoik w Kle (22759)');
     cleanup();
   });
 });

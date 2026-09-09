@@ -1,6 +1,6 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import { withDelay } from '../../../lib/withDelay';
-import { DYNAMIC_WALKER_ARRIVED_EVENT, DYNAMIC_WALKER_START_EVENT } from '../walker';
+import { DYNAMIC_WALKER_ARRIVED_EVENT, DYNAMIC_WALKER_START_EVENT } from '../movement/walker';
 import { createTroView, type TroViewRow } from './view';
 
 export const TRO_STORAGE_KEY = 'mobLocations';

@@ -1,6 +1,6 @@
 import type { MapDirection, PluginApi, Room } from '@arkadia/plugin-types';
-import { notify, requestPermission } from '../../lib/notifications';
-import { getCharName, onCharName } from '../../lib/getCharName';
+import { notify, requestPermission } from '../../../lib/notifications';
+import { getCharName, onCharName } from '../../../lib/getCharName';
 
 const TAG_GATE = 'gate_knock';
 
@@ -148,9 +148,18 @@ const ZC_HIDDEN_OPEN_EXITS: Readonly<Record<number, readonly MapDirection[]>> = 
 };
 
 const DIRECTION_TO_COMMAND: Record<MapDirection, string> = {
-  north: 'n', south: 's', east: 'e', west: 'w',
-  northeast: 'ne', northwest: 'nw', southeast: 'se', southwest: 'sw',
-  up: 'u', down: 'd', in: 'in', out: 'out',
+  north: 'n',
+  south: 's',
+  east: 'e',
+  west: 'w',
+  northeast: 'ne',
+  northwest: 'nw',
+  southeast: 'se',
+  southwest: 'sw',
+  up: 'u',
+  down: 'd',
+  in: 'in',
+  out: 'out',
 };
 
 const DIRECTION_VECTORS: Partial<Record<MapDirection, readonly [number, number, number]>> = {
@@ -167,17 +176,39 @@ const DIRECTION_VECTORS: Partial<Record<MapDirection, readonly [number, number, 
 };
 
 const EXIT_ALIASES: Record<string, MapDirection> = {
-  n: 'north', north: 'north', polnoc: 'north',
-  s: 'south', south: 'south', poludnie: 'south',
-  e: 'east', east: 'east', wschod: 'east',
-  w: 'west', west: 'west', zachod: 'west',
-  ne: 'northeast', northeast: 'northeast', 'polnocny-wschod': 'northeast',
-  nw: 'northwest', northwest: 'northwest', 'polnocny-zachod': 'northwest',
-  se: 'southeast', southeast: 'southeast', 'poludniowy-wschod': 'southeast',
-  sw: 'southwest', southwest: 'southwest', 'poludniowy-zachod': 'southwest',
-  u: 'up', up: 'up', gora: 'up', gore: 'up',
-  d: 'down', down: 'down', dol: 'down',
-  in: 'in', out: 'out',
+  n: 'north',
+  north: 'north',
+  polnoc: 'north',
+  s: 'south',
+  south: 'south',
+  poludnie: 'south',
+  e: 'east',
+  east: 'east',
+  wschod: 'east',
+  w: 'west',
+  west: 'west',
+  zachod: 'west',
+  ne: 'northeast',
+  northeast: 'northeast',
+  'polnocny-wschod': 'northeast',
+  nw: 'northwest',
+  northwest: 'northwest',
+  'polnocny-zachod': 'northwest',
+  se: 'southeast',
+  southeast: 'southeast',
+  'poludniowy-wschod': 'southeast',
+  sw: 'southwest',
+  southwest: 'southwest',
+  'poludniowy-zachod': 'southwest',
+  u: 'up',
+  up: 'up',
+  gora: 'up',
+  gore: 'up',
+  d: 'down',
+  down: 'down',
+  dol: 'down',
+  in: 'in',
+  out: 'out',
 };
 
 interface LocationShortcut {
@@ -202,9 +233,7 @@ function printWalkerFeedback(api: PluginApi, message: string): void {
 }
 
 function printStepDirection(api: PluginApi, selected: string, expected?: string): void {
-  const directionColor = api.colors.fromHex(
-    expected === undefined ? WALKER_FEEDBACK_COLOR : WALKER_ALTERNATIVE_COLOR,
-  );
+  const directionColor = api.colors.fromHex(expected === undefined ? WALKER_FEEDBACK_COLOR : WALKER_ALTERNATIVE_COLOR);
   const line = new api.AnsiAwareBuffer('--> ');
   line.append(selected, directionColor);
   if (expected !== undefined) {
@@ -270,9 +299,9 @@ export function rankOpenExits(
         : null;
     })
     .filter((candidate): candidate is RankedExit => candidate !== null)
-    .sort((left, right) =>
-      right.directionSimilarity - left.directionSimilarity ||
-      left.distanceSquared - right.distanceSquared,
+    .sort(
+      (left, right) =>
+        right.directionSimilarity - left.directionSimilarity || left.distanceSquared - right.distanceSquared,
     );
 }
 
@@ -282,11 +311,7 @@ function getOpenExits(api: PluginApi): string[] | null {
   return Array.isArray(exits) && exits.every((exit) => typeof exit === 'string') ? exits : null;
 }
 
-const DYNAMIC_WALKER_AREAS = new Set([
-  'ziemie czaszki',
-  'pustkowia - okolice',
-  'pustkowia chaosu',
-]);
+const DYNAMIC_WALKER_AREAS = new Set(['ziemie czaszki', 'pustkowia - okolice', 'pustkowia chaosu']);
 
 function isInDynamicWalkerArea(api: PluginApi): boolean {
   const current = api.map.getRoom();
@@ -296,9 +321,12 @@ function isInDynamicWalkerArea(api: PluginApi): boolean {
   if (directAreaName && DYNAMIC_WALKER_AREAS.has(directAreaName)) return true;
 
   const areas = api.map.getAreas();
-  return Array.isArray(areas) && areas.some((area) =>
-    area.areaId === current.area &&
-    DYNAMIC_WALKER_AREAS.has(area.areaName.trim().toLocaleLowerCase('pl-PL')),
+  return (
+    Array.isArray(areas) &&
+    areas.some(
+      (area) =>
+        area.areaId === current.area && DYNAMIC_WALKER_AREAS.has(area.areaName.trim().toLocaleLowerCase('pl-PL')),
+    )
   );
 }
 
@@ -315,9 +343,7 @@ function parseShortcutList(raw: string | null): LocationShortcut[] | null {
 function isLocationShortcut(entry: unknown): entry is LocationShortcut {
   if (!entry || typeof entry !== 'object') return false;
   const shortcut = entry as Partial<LocationShortcut>;
-  return typeof shortcut.key === 'string' &&
-    Number.isSafeInteger(shortcut.id) &&
-    typeof shortcut.label === 'string';
+  return typeof shortcut.key === 'string' && Number.isSafeInteger(shortcut.id) && typeof shortcut.label === 'string';
 }
 
 function getLocationShortcuts(api: PluginApi): LocationShortcut[] | null {
@@ -355,16 +381,14 @@ function getLocationShortcuts(api: PluginApi): LocationShortcut[] | null {
 }
 
 function getLocationShortcut(api: PluginApi, key: string): LocationShortcut | null {
-  return getLocationShortcuts(api)?.find(
-    (shortcut) => shortcut.key.toLocaleLowerCase('pl-PL') === key.toLocaleLowerCase('pl-PL'),
-  ) ?? null;
+  return (
+    getLocationShortcuts(api)?.find(
+      (shortcut) => shortcut.key.toLocaleLowerCase('pl-PL') === key.toLocaleLowerCase('pl-PL'),
+    ) ?? null
+  );
 }
 
-function saveLocationShortcuts(
-  api: PluginApi,
-  shortcuts: LocationShortcut[],
-  syncClient = true,
-): boolean {
+function saveLocationShortcuts(api: PluginApi, shortcuts: LocationShortcut[], syncClient = true): boolean {
   const character = getCharName(api);
   if (!character) return false;
 
@@ -392,8 +416,8 @@ function saveCurrentLocationShortcut(api: PluginApi, key: string, customLabel?: 
   }
 
   const normalisedKey = key.toLocaleLowerCase('pl-PL');
-  const existingIndex = shortcuts.findIndex((entry) =>
-    isLocationShortcut(entry) && entry.key.toLocaleLowerCase('pl-PL') === normalisedKey,
+  const existingIndex = shortcuts.findIndex(
+    (entry) => isLocationShortcut(entry) && entry.key.toLocaleLowerCase('pl-PL') === normalisedKey,
   );
   const label = customLabel?.trim() || current.name || String(current.id);
   const shortcut: LocationShortcut = { key, id: current.id, label };
@@ -401,9 +425,7 @@ function saveCurrentLocationShortcut(api: PluginApi, key: string, customLabel?: 
   if (existingIndex === -1) shortcuts.push(shortcut);
   else {
     const existing = shortcuts[existingIndex];
-    shortcuts[existingIndex] = existing && typeof existing === 'object'
-      ? { ...existing, ...shortcut }
-      : shortcut;
+    shortcuts[existingIndex] = existing && typeof existing === 'object' ? { ...existing, ...shortcut } : shortcut;
   }
 
   if (saveLocationShortcuts(api, shortcuts, false)) {
@@ -521,11 +543,13 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     }
 
     const nextRoomId = path[0] === current.id ? path[1] : path[0];
-    const preferredDirection = (Object.entries(current.exits) as [MapDirection, number][])
-      .find(([, roomId]) => roomId === nextRoomId)?.[0];
-    const specialCommand = nextRoomId === undefined
-      ? undefined
-      : Object.entries(current.specialExits ?? {}).find(([, roomId]) => roomId === nextRoomId)?.[0];
+    const preferredDirection = (Object.entries(current.exits) as [MapDirection, number][]).find(
+      ([, roomId]) => roomId === nextRoomId,
+    )?.[0];
+    const specialCommand =
+      nextRoomId === undefined
+        ? undefined
+        : Object.entries(current.specialExits ?? {}).find(([, roomId]) => roomId === nextRoomId)?.[0];
     if (nextRoomId === undefined || (!preferredDirection && !specialCommand)) {
       disableAutoWalking();
       printWalkerFeedback(api, `[zc] findPath: nie umiem ustalic pierwszego kierunku z ${current.id} do ${target.id}`);
@@ -554,12 +578,8 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
       selectedCommand = specialCommand;
       printStepDirection(api, specialCommand);
     } else {
-      const alternative = rankOpenExits(
-        current,
-        target,
-        preferredDirection!,
-        availableExitNames,
-        (id) => api.map.getRoomById(id),
+      const alternative = rankOpenExits(current, target, preferredDirection!, availableExitNames, (id) =>
+        api.map.getRoomById(id),
       )[0];
       if (!alternative) {
         disableAutoWalking();
@@ -624,13 +644,47 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     takeNextStep();
   };
 
-  const walkToShortcut = (shortcut: LocationShortcut, startAutomatically = false) => {
+  // The client's built-in walker resets this to off on every client start, so
+  // one enable per plugin session is enough — /walk is a toggle, not a set.
+  let altExitWalkModeEnabled = false;
+  const ensureAltExitWalkMode = () => {
+    if (altExitWalkModeEnabled) return;
+    void api.command.send('/walk');
+    altExitWalkModeEnabled = true;
+  };
+
+  // Turn alt-exit search back off once the built-in walker's own trip
+  // (started from walkToShortcut) reaches its destination.
+  let awaitingBuiltInArrival = false;
+  let builtInWalkerActive = false;
+  const onBuiltInWalkerUpdate = (state: WalkerState) => {
+    const arrived = builtInWalkerActive && !state.active && !state.paused;
+    builtInWalkerActive = state.active && !state.paused;
+    if (arrived && awaitingBuiltInArrival) {
+      awaitingBuiltInArrival = false;
+      if (altExitWalkModeEnabled) {
+        void api.command.send('/walk');
+        altExitWalkModeEnabled = false;
+      }
+    }
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (api.events as any).on('walker.update', onBuiltInWalkerUpdate);
+
+  // The client's built-in walker now has its own alt-exit search (toggled via
+  // /walk), so ZC/Pustkowia shortcuts ride that instead of our manual stepper.
+  // The stepper (startZcWalking/step!/step!!/DYNAMIC_WALKER_START_EVENT) stays
+  // around as the fallback used by other core-plugin modules (e.g. trolle).
+  const walkToShortcut = (shortcut: LocationShortcut, _startAutomatically = false) => {
+    if (targetId !== null) stop();
     if (isInDynamicWalkerArea(api)) {
-      startZcWalking(shortcut.id, shortcut.label);
-      if (startAutomatically) startAutoWalking();
+      awaitingBuiltInArrival = true;
+      ensureAltExitWalkMode();
+      void api.command.send(`/prowadz ${shortcut.id}`);
+      void api.command.send(`/idz ${shortcut.id} 0.5`);
+      void api.command.send('/walkerw');
       return;
     }
-    if (targetId !== null) stop();
     void api.command.send(`/idz ${shortcut.id} 2`);
     void api.command.send('/walkerw');
   };
@@ -720,9 +774,10 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
           : null;
       })
       .filter((row): row is NonNullable<typeof row> => row !== null)
-      .sort((left, right) =>
-        left.shortcut.key.localeCompare(right.shortcut.key, 'pl', { sensitivity: 'base' }) ||
-        left.savedIndex - right.savedIndex,
+      .sort(
+        (left, right) =>
+          left.shortcut.key.localeCompare(right.shortcut.key, 'pl', { sensitivity: 'base' }) ||
+          left.savedIndex - right.savedIndex,
       );
 
     if (rows.length === 0) {
@@ -738,9 +793,19 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     const walkLabel = '[ idz ]';
     const previewLabel = '👁';
     const deleteLabel = '🗑';
-    const border = [keyWidth, idWidth, distanceWidth, labelWidth, leadLabel.length, walkLabel.length, previewLabel.length, deleteLabel.length]
-      .map((width) => `+${'-'.repeat(width + 2)}`)
-      .join('') + '+';
+    const border =
+      [
+        keyWidth,
+        idWidth,
+        distanceWidth,
+        labelWidth,
+        leadLabel.length,
+        walkLabel.length,
+        previewLabel.length,
+        deleteLabel.length,
+      ]
+        .map((width) => `+${'-'.repeat(width + 2)}`)
+        .join('') + '+';
     const borderColor = api.colors.fromHex('#777777');
     const rowColor = api.colors.fromHex('#929292');
     const shortcutColor = api.colors.fromHex('#2f855a');
@@ -892,6 +957,8 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     recentRoomIds = [];
     api.events.off('gmcp.room.info', onRoomInfo);
     api.events.off('gmcp.char.info', syncClientShortcuts);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api.events as any).off('walker.update', onBuiltInWalkerUpdate);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api.events as any).off(DYNAMIC_WALKER_START_EVENT, onDynamicWalkerStart);
     api.commandHooks.unregister(commandHookId);

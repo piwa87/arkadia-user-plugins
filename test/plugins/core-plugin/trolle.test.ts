@@ -1,14 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  loadMobLocations,
-  setupTro,
-  TRO_STORAGE_KEY,
-  type MobLocation,
-} from '../../../src/plugins/core-plugin/trolle';
+import { loadMobLocations, setupTro, TRO_STORAGE_KEY, type MobLocation } from '../../../src/plugins/core-plugin/trolle';
 import {
   DYNAMIC_WALKER_ARRIVED_EVENT,
   DYNAMIC_WALKER_START_EVENT,
-} from '../../../src/plugins/core-plugin/walker';
+} from '../../../src/plugins/core-plugin/movement/walker';
 import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
 
 class FakeElement {
@@ -66,15 +61,12 @@ function runAlias(aliases: ReturnType<typeof createMockApi>['aliases'], command:
 function tableRows(mock: ReturnType<typeof createMockApi>): MockAnsiAwareBuffer[] {
   return (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
     .map(([value]) => value)
-    .filter((value): value is MockAnsiAwareBuffer => (
-      value instanceof MockAnsiAwareBuffer && value.text.startsWith('| ')
-    ));
+    .filter(
+      (value): value is MockAnsiAwareBuffer => value instanceof MockAnsiAwareBuffer && value.text.startsWith('| '),
+    );
 }
 
-function latestBufferWithText(
-  mock: ReturnType<typeof createMockApi>,
-  text: string,
-): MockAnsiAwareBuffer {
+function latestBufferWithText(mock: ReturnType<typeof createMockApi>, text: string): MockAnsiAwareBuffer {
   const buffers = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
     .map(([value]) => value)
     .filter((value): value is MockAnsiAwareBuffer => value instanceof MockAnsiAwareBuffer);
@@ -88,7 +80,10 @@ const entries: MobLocation[] = [
   { active: '0', mobType: 'besti', roomId: 14000, time: 1_787_752_600, note: 'z gildii' },
 ];
 const hiddenEntry: MobLocation = {
-  active: '1', mobType: 'kamienny', roomId: 15000, time: 1_787_752_000,
+  active: '1',
+  mobType: 'kamienny',
+  roomId: 15000,
+  time: 1_787_752_000,
 };
 const entryRecord = {
   '13771pbt': entries[0],
@@ -108,24 +103,28 @@ afterEach(() => {
 
 describe('trolle mobLocations', () => {
   it('reads the client object indexed by keys such as 13771pbt', () => {
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify({
-        ...entryRecord,
-        invalid: { active: '1', mobType: '', roomId: 'bad', time: 0 },
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify({
+          ...entryRecord,
+          invalid: { active: '1', mobType: '', roomId: 'bad', time: 0 },
+        }),
       }),
-    }));
+    );
 
     expect(loadMobLocations()).toEqual([...entries, hiddenEntry]);
   });
 
   it('shows a live-distance table sorted by distance', () => {
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify(entryRecord),
-    }));
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify(entryRecord),
+      }),
+    );
     const mock = createMockApi({ room: { id: 13000, area: 52 } });
-    mock.api.map.findPath = vi.fn((_from, to) => (
-      to === 14000 ? [13000, 14000] : [13000, 13001, 13771]
-    ));
+    mock.api.map.findPath = vi.fn((_from, to) => (to === 14000 ? [13000, 14000] : [13000, 13001, 13771]));
     mock.api.map.getRoomById = vi.fn((id) => ({ id, area: id === 14000 ? 62 : 52 })) as any;
     mock.api.map.getAreas = vi.fn(() => [
       { areaId: 52, areaName: 'Ziemie Czaszki', rooms: [] },
@@ -148,9 +147,12 @@ describe('trolle mobLocations', () => {
   });
 
   it('starts the dynamic walker manually from ID and automatically from distance', () => {
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
-    }));
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
+      }),
+    );
     const mock = createMockApi({ room: { id: 13000, area: 52 } });
     mock.api.map.findPath = vi.fn(() => [13000, 13771]);
     mock.api.map.getRoomById = vi.fn(() => ({ id: 13771, area: 52 })) as any;
@@ -175,9 +177,12 @@ describe('trolle mobLocations', () => {
   });
 
   it('previews for three seconds and restores the original map room', async () => {
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
-    }));
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
+      }),
+    );
     const mock = createMockApi({ room: { id: 13000, area: 52 } });
     mock.api.map.findPath = vi.fn(() => [13000, 13771]);
     mock.api.map.getRoomById = vi.fn(() => ({ id: 13771, area: 52 })) as any;
@@ -263,18 +268,26 @@ describe('trolle mobLocations', () => {
   });
 
   it('limits tro to the 30 nearest rows while tro_all shows everything', () => {
-    const manyEntries = Object.fromEntries(Array.from({ length: 35 }, (_, index) => {
-      const roomId = 20_035 - index;
-      return [`${roomId}pbt`, {
-        active: '1',
-        mobType: 'pbt',
-        roomId,
-        time: entries[0].time,
-      }];
-    }));
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify(manyEntries),
-    }));
+    const manyEntries = Object.fromEntries(
+      Array.from({ length: 35 }, (_, index) => {
+        const roomId = 20_035 - index;
+        return [
+          `${roomId}pbt`,
+          {
+            active: '1',
+            mobType: 'pbt',
+            roomId,
+            time: entries[0].time,
+          },
+        ];
+      }),
+    );
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify(manyEntries),
+      }),
+    );
     const mock = createMockApi({ room: { id: 20_000, area: 52 } });
     mock.api.map.findPath = vi.fn((_from, to) => new Array((to as number) - 20_000 + 1).fill(0));
     mock.api.map.getRoomById = vi.fn((id) => ({ id, area: 52 })) as any;
@@ -302,9 +315,7 @@ describe('trolle mobLocations', () => {
       createElement: (tag: string) => new FakeElement(tag),
     });
     const mock = createMockApi({ room: { id: 13000, area: 52 } });
-    mock.api.map.findPath = vi.fn((_from, to) => (
-      to === 14000 ? [13000, 14000] : [13000, 13001, 13771]
-    ));
+    mock.api.map.findPath = vi.fn((_from, to) => (to === 14000 ? [13000, 14000] : [13000, 13001, 13771]));
     mock.api.map.getRoomById = vi.fn((id) => ({ id, area: id === 14000 ? 62 : 52 })) as any;
     mock.api.map.getAreas = vi.fn(() => [
       { areaId: 52, areaName: 'Ziemie Czaszki', rooms: [] },
@@ -372,24 +383,25 @@ describe('trolle mobLocations', () => {
   });
 
   it('refreshes graphical distances only when the dynamic walker arrives', async () => {
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
-    }));
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }),
+      }),
+    );
     vi.stubGlobal('document', {
       createElement: (tag: string) => new FakeElement(tag),
     });
     let currentRoomId = 13000;
     const mock = createMockApi();
     mock.api.map.getRoom = vi.fn(() => ({ id: currentRoomId, area: 52 })) as any;
-    mock.api.map.findPath = vi.fn((from, to) => (
-      from === to ? [from] : [from, to]
-    ));
+    mock.api.map.findPath = vi.fn((from, to) => (from === to ? [from] : [from, to]));
     const cleanup = setupTro(mock.api);
 
     runAlias(mock.aliases, 'trow');
     await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
     const popupResult = vi.mocked(mock.api.ui.registerPersistentPopup).mock.results[0];
-    const popupHandle = await popupResult.value as any;
+    const popupHandle = (await popupResult.value) as any;
     popupHandle.isOpen = true;
 
     currentRoomId = 13771;
@@ -404,10 +416,7 @@ describe('trolle mobLocations', () => {
     cleanup();
     (mock.api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: 13771 });
     expect(popupHandle.setBody).toHaveBeenCalledOnce();
-    expect(mock.api.events.off).toHaveBeenCalledWith(
-      DYNAMIC_WALKER_ARRIVED_EVENT,
-      expect.any(Function),
-    );
+    expect(mock.api.events.off).toHaveBeenCalledWith(DYNAMIC_WALKER_ARRIVED_EVENT, expect.any(Function));
   });
 
   it('tro! walks to the nearest reachable living pbt and ignores besti and dead trolls', () => {
@@ -415,14 +424,17 @@ describe('trolle mobLocations', () => {
     const nearestBesti: MobLocation = { active: '1', mobType: 'besti', roomId: 13002, time: 1 };
     const nearestLivingTroll: MobLocation = { active: '1', mobType: 'pbt', roomId: 13003, time: 1 };
     const unreachableTroll: MobLocation = { active: '1', mobType: 'pbt', roomId: 13999, time: 1 };
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify({
-        '13001pbt': nearestDead,
-        '13002besti': nearestBesti,
-        '13003pbt': nearestLivingTroll,
-        '13999pbt': unreachableTroll,
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify({
+          '13001pbt': nearestDead,
+          '13002besti': nearestBesti,
+          '13003pbt': nearestLivingTroll,
+          '13999pbt': unreachableTroll,
+        }),
       }),
-    }));
+    );
     const mock = createMockApi({ room: { id: 13000, area: 52 } });
     mock.api.map.findPath = vi.fn((_from, to) => {
       if (to === 13999) return null;
@@ -440,12 +452,15 @@ describe('trolle mobLocations', () => {
   });
 
   it('tro! reports when no living pbt is reachable', () => {
-    vi.stubGlobal('localStorage', makeLocalStorageMock({
-      [TRO_STORAGE_KEY]: JSON.stringify({
-        '13001pbt': { active: '0', mobType: 'pbt', roomId: 13001, time: 1 },
-        '13002besti': { active: '1', mobType: 'besti', roomId: 13002, time: 1 },
+    vi.stubGlobal(
+      'localStorage',
+      makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify({
+          '13001pbt': { active: '0', mobType: 'pbt', roomId: 13001, time: 1 },
+          '13002besti': { active: '1', mobType: 'besti', roomId: 13002, time: 1 },
+        }),
       }),
-    }));
+    );
     const mock = createMockApi({ room: { id: 13000, area: 52 } });
     mock.api.map.findPath = vi.fn(() => [13000, 13001]);
     setupTro(mock.api);
@@ -453,9 +468,6 @@ describe('trolle mobLocations', () => {
     runAlias(mock.aliases, 'tro!');
 
     expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Brak osiagalnego zywego trolla.');
-    expect(mock.api.events.emit).not.toHaveBeenCalledWith(
-      DYNAMIC_WALKER_START_EVENT,
-      expect.anything(),
-    );
+    expect(mock.api.events.emit).not.toHaveBeenCalledWith(DYNAMIC_WALKER_START_EVENT, expect.anything());
   });
 });
