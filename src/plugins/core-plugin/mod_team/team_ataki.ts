@@ -88,8 +88,6 @@ export function setupAtaki(api: PluginApi, tag: string): void {
         ['CIEBIE!', c9],
       ]);
       send('play_ding');
-      send('gzataktimeroff');
-      send('zi-');
       return line;
     },
     tag,

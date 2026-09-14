@@ -4,9 +4,9 @@ import { registerTextAlias } from '../../../lib/registerTextAlias';
 import type { DobywanieState } from '../dobywanie/state';
 
 // gertruda's weapon-drawing (dobywanie) aliases. Migrated from the CMUD
-// `aliasy_dobywania` class (id 150825). Unlike jens, gertruda dual-wields:
-// three loadouts — two swords (db_m), two axes (db_t), or sword + axe (db_mt).
-// `dob1/dob2/dob3` pick which loadout `dob`/`db` draws.
+// `aliasy_dobywania` class (id 150825). Gertruda dual-wields five loadouts:
+// two swords, two axes, two maces, sword + mace, or sword + axe.
+// `dob1`-`dob5` pick which loadout `dob`/`db` draws.
 //
 // The CMUD script was variable-driven; those variables are the constants below.
 // Kept as `string` (not string literals) so an empty value legitimately takes
@@ -18,26 +18,24 @@ const POCH_2: string = 'drugiej wyszukanej pochwy';
 // Axe slings (temb_1 / temb_2). temb_2 is unset → its guards fall to `wyj topor`.
 const TEMB_1: string = 'ogrzego temblaka';
 const TEMB_2: string = '';
-// mister — has a masterwork axe that needs `przekrec stylisko` after drawing.
-const MISTER = true;
-// magik — a magic axe drawn via the `chdobadz` custom command.
-const MAGIK: string = 'mithrylowego topora';
 // Dagger scabbard for dobs/opus.
 const DAGGER_SCABBARD = 'kunsztownej pochwy';
 
-type Loadout = 'miecze' | 'topory' | 'miecz_topor';
+type Loadout = 'miecze' | 'topory' | 'maczugi' | 'miecz_maczuga' | 'miecz_topor';
 const LOADOUT_KEY = 'gertruda_dob_loadout';
+const MAGIK_KEY = 'gertruda_dob_magik';
 
 export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): void {
   // CMUD `dob` defaulted to `db_m` (two swords); dob1/2/3 reassign it.
   let loadout: Loadout = storage.get<Loadout>(LOADOUT_KEY) ?? 'miecze';
+  let magik = storage.get<string>(MAGIK_KEY) ?? '';
 
   // db_m — draw two swords
   const drawSwords = (): void => {
     state.drawn = true;
     api.command.send(POCH_1 ? `wez miecz z ${POCH_1}` : 'wyj miecz');
     api.command.send(POCH_2 ? `wez miecz z ${POCH_2}` : 'wyj miecz');
-    if (MAGIK) api.command.send(`chdobadz ${MAGIK}`);
+    if (magik) api.command.send(`chdobadz ${magik}`);
     api.command.send('chdobadz mieczy');
   };
 
@@ -46,12 +44,17 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
     state.drawn = true;
     api.command.send(TEMB_1 ? `wez topor z ${TEMB_1}` : 'wyj topor');
     api.command.send(TEMB_2 ? `wez topor z ${TEMB_2}` : 'wyj topor');
-    if (MISTER) {
-      api.command.send('dobadz misternego topora');
-      api.command.send('przekrec stylisko');
-    }
-    if (MAGIK) api.command.send(`chdobadz ${MAGIK}`);
+    if (magik) api.command.send(`chdobadz ${magik}`);
     api.command.send('gzdobadz toporow');
+  };
+
+  // db_mac — draw two maces
+  const drawMaces = (): void => {
+    state.drawn = true;
+    api.command.send(TEMB_1 ? `wez maczuge z ${TEMB_1}` : 'wyj maczuge');
+    api.command.send(TEMB_2 ? `wez maczuge z ${TEMB_2}` : 'wyj maczuge');
+    if (magik) api.command.send(`chdobadz ${magik}`);
+    api.command.send('dobadz maczugi');
   };
 
   // db_mt — draw a sword and an axe
@@ -59,11 +62,16 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
     state.drawn = true;
     api.command.send(POCH_1 ? `wez miecz z ${POCH_1}` : 'wyj miecz');
     api.command.send(TEMB_1 ? `wez topor z ${TEMB_1}` : 'wyj topor');
-    if (MISTER) {
-      api.command.send('dobadz misternego topora');
-      api.command.send('przekrec stylisko');
-    }
-    if (MAGIK) api.command.send(`chdobadz ${MAGIK}`);
+    if (magik) api.command.send(`chdobadz ${magik}`);
+    api.command.send('chdobadz');
+  };
+
+  // db_mmac — draw a sword and a mace
+  const drawSwordMace = (): void => {
+    state.drawn = true;
+    api.command.send(POCH_1 ? `wez miecz z ${POCH_1}` : 'wyj miecz');
+    api.command.send(TEMB_1 ? `wez maczuge z ${TEMB_1}` : 'wyj maczuge');
+    if (magik) api.command.send(`chdobadz ${magik}`);
     api.command.send('chdobadz');
   };
 
@@ -74,6 +82,12 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
         break;
       case 'topory':
         drawAxes();
+        break;
+      case 'maczugi':
+        drawMaces();
+        break;
+      case 'miecz_maczuga':
+        drawSwordMace();
         break;
       case 'miecz_topor':
         drawSwordAxe();
@@ -90,7 +104,7 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
     return true;
   });
 
-  // db_m / db_t / db_mt — draw a specific loadout explicitly
+  // db_m / db_t / db_mac / db_mmac / db_mt — draw a specific loadout explicitly
   api.aliases.register(/^db_m$/, () => {
     drawSwords();
     return true;
@@ -99,12 +113,20 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
     drawAxes();
     return true;
   });
+  api.aliases.register(/^db_mac$/, () => {
+    drawMaces();
+    return true;
+  });
+  api.aliases.register(/^db_mmac$/, () => {
+    drawSwordMace();
+    return true;
+  });
   api.aliases.register(/^db_mt$/, () => {
     drawSwordAxe();
     return true;
   });
 
-  // dob1/dob2/dob3 — pick which loadout `dob` draws (persisted). CMUD also
+  // dob1-dob5 — pick which loadout `dob` draws (persisted). CMUD also
   // fired a `sig` status label; kept as a raw command.
   api.aliases.register(/^dob1$/, () => {
     api.command.send('sig Miecze x2');
@@ -119,18 +141,58 @@ export function setupGertrudaDobywanie(api: PluginApi, state: DobywanieState): v
     return true;
   });
   api.aliases.register(/^dob3$/, () => {
+    api.command.send('sig Maczugi x2');
+    loadout = 'maczugi';
+    storage.set(LOADOUT_KEY, loadout);
+    return true;
+  });
+  api.aliases.register(/^dob4$/, () => {
+    api.command.send('sig Miecz + maczuga');
+    loadout = 'miecz_maczuga';
+    storage.set(LOADOUT_KEY, loadout);
+    return true;
+  });
+  api.aliases.register(/^dob5$/, () => {
     api.command.send('sig Miecz + topor');
     loadout = 'miecz_topor';
     storage.set(LOADOUT_KEY, loadout);
     return true;
   });
 
-  // opu — sheathe all weapons
+  // magik+ <slowo> — enable a magic weapon for the draw aliases.
+  api.aliases.register(/^magik\+\s+(.+)$/i, (matches) => {
+    const value = matches?.[1]?.trim();
+    if (!value) return true;
+    magik = value;
+    storage.set(MAGIK_KEY, magik);
+    return true;
+  });
+
+  // magik- — disable the magic weapon for the draw aliases.
+  api.aliases.register(/^magik-$/i, () => {
+    magik = '';
+    storage.remove(MAGIK_KEY);
+    return true;
+  });
+
+  // opu — sheathe weapons from the selected loadout
   api.aliases.register(/^opu$/, () => {
     state.drawn = false;
-    api.command.send(POCH_1 ? `wloz miecz do ${POCH_1}` : 'wlz miecz');
-    api.command.send(POCH_2 ? `wloz miecz do ${POCH_2}` : 'wlz miecz');
-    api.command.send(TEMB_1 ? `wloz topor do ${TEMB_1}` : 'wlz topor');
+    if (loadout === 'miecze' || loadout === 'miecz_maczuga' || loadout === 'miecz_topor') {
+      api.command.send(POCH_1 ? `wloz miecz do ${POCH_1}` : 'wlz miecz');
+    }
+    if (loadout === 'miecze') {
+      api.command.send(POCH_2 ? `wloz miecz do ${POCH_2}` : 'wlz miecz');
+    }
+    if (loadout === 'topory' || loadout === 'miecz_topor') {
+      api.command.send(TEMB_1 ? `wloz topor do ${TEMB_1}` : 'wlz topor');
+    }
+    if (loadout === 'maczugi' || loadout === 'miecz_maczuga') {
+      api.command.send(TEMB_1 ? `wloz maczuge do ${TEMB_1}` : 'wlz maczuge');
+    }
+    if (loadout === 'maczugi') {
+      api.command.send(TEMB_2 ? `wloz maczuge do ${TEMB_2}` : 'wlz maczuge');
+    }
     // temb_2 sheathe was commented out in the CMUD source.
     api.command.send('otu');
     return true;

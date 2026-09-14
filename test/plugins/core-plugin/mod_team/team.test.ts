@@ -444,6 +444,21 @@ describe('mod_team', () => {
       destroyTeam(mock.api);
     });
 
+    it('does not send obsolete commands when an enemy attacks the player', () => {
+      const mock = createMockApi();
+      (mock.api.team.getMembers as any).mockReturnValue([]);
+      setupTeam(mock.api);
+
+      const line = runLine(mock, 'Wyrosniety koscisty pajak rzuca sie do ataku na ciebie!');
+      expect(line!.text).toContain('atak');
+      expect(line!.text).toContain('CIEBIE!');
+      expect(sentCommands(mock)).toContain('play_ding');
+      expect(sentCommands(mock)).not.toContain('gzataktimeroff');
+      expect(sentCommands(mock)).not.toContain('zi-');
+
+      destroyTeam(mock.api);
+    });
+
     it('marks an attack on a teammate with their bind label', () => {
       const mock = createMockApi();
       (mock.api.team.getMembers as any).mockReturnValue(['Vindael']); // B form: "Vindaela"

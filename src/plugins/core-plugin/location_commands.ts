@@ -1,10 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 
 /** Commands sent automatically after entering selected map locations. */
-const LOCATION_COMMANDS: ReadonlyMap<number, string> = new Map([
-  [13774, '/roza 1'],
-  [20812, '/roza 0'],
-]);
+const LOCATION_COMMANDS: ReadonlyMap<number, string> = new Map();
 
 export function setupLocationCommands(api: PluginApi): () => void {
   const onEnterLocation = (event: { id: number }) => {

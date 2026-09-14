@@ -9,8 +9,8 @@ import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
  * on unload.
  *
  * Standard sequences:
- *   Take: wez <item> × N → napt
- *   Sell: 4 cycles of napt → wyj (bronie|zb) → sprzedaj je, 1s cooldown between
+ *   Take: w<group> → wez <item> × N → napt
+ *   Sell: sprzedaj wszystkie tarcze → sprzedaj kolczugi → 4 sell cycles
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -98,28 +98,28 @@ const GROUPS: LootGroup[] = [
     key: 'ork',
     label: 'ork',
     items: ORK_SHIT,
-    takeAliases: ['wezork'],
+    takeAliases: ['work'],
     sellAliases: ['spork'],
   },
   {
     key: 'gob',
     label: 'goblin',
     items: GOB_SHIT,
-    takeAliases: ['wezgob'],
+    takeAliases: ['wgob'],
     sellAliases: ['spgob'],
   },
   {
     key: 'cam',
     label: 'campo',
     items: CAMPO_SHIT,
-    takeAliases: ['wezcam'],
+    takeAliases: ['wcam'],
     sellAliases: ['spcam'],
   },
   {
     key: 'has',
     label: 'has',
     items: HAS_SHIT,
-    takeAliases: ['wezhas'],
+    takeAliases: ['whas'],
     sellAliases: ['sphas'],
   },
 ];
@@ -145,92 +145,65 @@ function takeSequence(api: PluginApi, items: string[]): void {
 }
 
 const SELL_CYCLES: string[][] = [
-  ['wyj bronie', 'sprzedaj je'],
-  ['wyjzb', 'sprzedaj je'],
-  ['wyj bronie', 'sprzedaj je'],
-  ['wyjzb', 'sprzedaj je'],
+  ['napt', 'wyj bronie', 'sprzedaj je'],
+  ['napt', 'wyjzb', 'sprzedaj je'],
+  ['napt', 'wyj bronie', 'sprzedaj je'],
+  ['napt', 'wyjzb', 'sprzedaj je'],
 ];
 
-/**
- * Standard sell: 4 cycles alternating bronie/wyjzb, 1s cooldown between.
- * Uses async/await via promise delay so commands don't pile up too fast.
- */
+/** Standard sell: sell shields and chainmail, then run the four sell cycles. */
 async function sellSequence(api: PluginApi): Promise<void> {
-  for (let i = 0; i < SELL_CYCLES.length; i++) {
-    api.command.send('napt', false);
-    for (const cmd of SELL_CYCLES[i]) {
-      api.command.send(cmd, false);
-    }
-    if (i < SELL_CYCLES.length - 1) {
-      await delay(1000);
+  await api.command.send('sprzedaj wszystkie tarcze', false);
+  await delay(1000);
+  await api.command.send('sprzedaj kolczugi', false);
+
+  for (let index = 0; index < SELL_CYCLES.length; index++) {
+    await delay(1000);
+    for (const command of SELL_CYCLES[index]) {
+      await api.command.send(command, false);
     }
   }
 }
 
-// ── Take callbacks ──────────────────────────────────────────────────────────────
-
-function takeOrk(api: PluginApi): void {
-  takeSequence(api, ORK_SHIT);
+function sellGroup(api: PluginApi): void {
+  void sellSequence(api);
 }
 
-function takeGob(api: PluginApi): void {
-  takeSequence(api, GOB_SHIT);
+function getGroup(key: string): LootGroup | undefined {
+  return GROUPS.find((group) => group.key === key);
 }
 
-function takeCam(api: PluginApi): void {
-  takeSequence(api, CAMPO_SHIT);
+function registerTakeAlias(api: PluginApi, group: LootGroup): void {
+  api.aliases.register(new RegExp(`^${group.takeAliases[0]}$`, 'i'), () => {
+    takeSequence(api, group.items);
+    return true;
+  });
 }
 
-function takeHas(api: PluginApi): void {
-  takeSequence(api, HAS_SHIT);
+function registerSellAlias(api: PluginApi, group: LootGroup): void {
+  for (const alias of group.sellAliases ?? []) {
+    api.aliases.register(new RegExp(`^${alias}$`, 'i'), () => {
+      sellGroup(api);
+      return true;
+    });
+  }
 }
 
 // ── Registration ────────────────────────────────────────────────────────────────
 
 export function setupLootShitAliases(api: PluginApi): void {
-  // ── Specific aliases: wez<group> / sp<group> ─────────────────────────────
+  // ── Specific aliases: w<group> / sp<group> ────────────────────────────────
 
-  api.aliases.register(/^wezork$/i, () => {
-    takeOrk(api);
-    return true;
-  });
-  api.aliases.register(/^spork$/i, () => {
-    sellSequence(api);
-    return true;
-  });
+  for (const group of GROUPS) {
+    registerTakeAlias(api, group);
+    registerSellAlias(api, group);
+  }
 
-  api.aliases.register(/^wezgob$/i, () => {
-    takeGob(api);
-    return true;
-  });
-  api.aliases.register(/^spgob$/i, () => {
-    sellSequence(api);
-    return true;
-  });
+  // ── Parameterized aliases: w <group> / sp <group> ────────────────────────
 
-  api.aliases.register(/^wezcam$/i, () => {
-    takeCam(api);
-    return true;
-  });
-  api.aliases.register(/^spcam$/i, () => {
-    sellSequence(api);
-    return true;
-  });
-
-  api.aliases.register(/^wezhas$/i, () => {
-    takeHas(api);
-    return true;
-  });
-  api.aliases.register(/^sphas$/i, () => {
-    sellSequence(api);
-    return true;
-  });
-
-  // ── Parameterized aliases: wez <group> / sp <group> ──────────────────────
-
-  api.aliases.register(/^wez\s+(ork|gob|cam|has)$/i, (matches) => {
+  api.aliases.register(/^w\s+(ork|gob|cam|has)$/i, (matches) => {
     const key = matches![1].toLowerCase();
-    const group = GROUPS.find((g) => g.key === key);
+    const group = getGroup(key);
     if (!group) return true;
     takeSequence(api, group.items);
     return true;
@@ -238,16 +211,25 @@ export function setupLootShitAliases(api: PluginApi): void {
 
   api.aliases.register(/^sp\s+(ork|gob|cam|has)$/i, (matches) => {
     const key = matches![1].toLowerCase();
-    const group = GROUPS.find((g) => g.key === key);
+    const group = getGroup(key);
     if (!group) return true;
-    sellSequence(api);
+    sellGroup(api);
     return true;
   });
 
   // ── sall — sell all groups ────────────────────────────────────────────────
 
   api.aliases.register(/^sall$/i, () => {
-    sellSequence(api);
+    void sellSequence(api);
+    return true;
+  });
+
+  // ── zlomuj — gather and store scrap ──────────────────────────────────────
+
+  api.aliases.register(/^zlomuj$/i, () => {
+    api.command.send('wez wszystko', false);
+    api.command.send('odloz szczatki', false);
+    api.command.send('napt', false);
     return true;
   });
 
