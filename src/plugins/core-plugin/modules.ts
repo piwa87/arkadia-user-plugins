@@ -31,6 +31,13 @@ export { setupHpBar } from './kondycje/kondycje_hp_bar';
 export { createZmeczenieState, setupZmeczenieTriggers } from './kondycje/zmeczenie_triggers';
 export { setupLampAliases } from './lampa';
 export { setupLocationsAliases } from './locations';
+export {
+  getKnowledgeReportState,
+  getMissingKnowledgeEntries,
+  setupKnowledgeReportData,
+  subscribeKnowledgeReport,
+} from './knowledge/report-data';
+export { setupNearestKnowledgeAlias } from './knowledge/nearest-alias';
 export { setupLocationCommands } from './location_commands';
 export { setupLootAliases } from './loot';
 export { setupLootShitAliases } from './loot-shit';

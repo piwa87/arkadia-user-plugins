@@ -37,6 +37,8 @@ import {
   setupZmeczenieTriggers,
   setupLampAliases,
   setupLocationsAliases,
+  setupKnowledgeReportData,
+  setupNearestKnowledgeAlias,
   setupLocationCommands,
   setupLootAliases,
   setupLootShitAliases,
@@ -147,6 +149,7 @@ let cleanupAtakiTriggers: (() => void) | null = null;
 let cleanupTriggerTags: (() => void) | null = null;
 let cleanupTeam: (() => void) | null = null;
 let cleanupBindAliases: (() => void) | null = null;
+let cleanupKnowledgeReport: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -199,6 +202,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupLocationTriggers = setupLocationTriggers(api);
   cleanupLocationCommands = setupLocationCommands(api);
   setupLocationsAliases(api);
+  cleanupKnowledgeReport = await setupKnowledgeReportData(api);
+  setupNearestKnowledgeAlias(api);
   setupLootAliases(api);
   setupLootShitAliases(api);
   setupMapAliases(api);
@@ -291,6 +296,8 @@ export async function destroy(): Promise<void> {
   cleanupLocationTriggers = null;
   cleanupLocationCommands?.();
   cleanupLocationCommands = null;
+  cleanupKnowledgeReport?.();
+  cleanupKnowledgeReport = null;
   cleanupDoo?.();
   cleanupDoo = null;
   cleanupAtakiTriggers?.();

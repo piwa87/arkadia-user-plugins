@@ -8,6 +8,7 @@ const CURRENT_FILE = fileURLToPath(import.meta.url);
 export const ROOT_DIR = path.resolve(path.dirname(CURRENT_FILE), "..");
 export const SRC_DIR = path.join(ROOT_DIR, "src");
 export const PLUGINS_DIR = path.join(SRC_DIR, "plugins");
+export const DATA_DIR = path.join(SRC_DIR, "data");
 export const DIST_DIR = path.join(ROOT_DIR, "dist");
 export const DEFAULT_PORT = Number(process.env.PORT || 3030);
 
@@ -60,6 +61,13 @@ async function copyPrebuiltPlugins({ exclude = [] } = {}) {
     await fs.copyFile(file, dest);
   }));
   return files;
+}
+
+async function copyStaticData() {
+  const exists = await fs.stat(DATA_DIR).then(() => true).catch(() => false);
+  if (!exists) return;
+
+  await fs.cp(DATA_DIR, path.join(DIST_DIR, "data"), { recursive: true });
 }
 
 export function relativePluginOutput(filePath) {
@@ -316,6 +324,7 @@ export async function buildProject({ exclude = [] } = {}) {
   });
 
   const prebuilt = await copyPrebuiltPlugins({ exclude });
+  await copyStaticData();
 
   const compiledPlugins = entryPoints.map((f) => ({
     name: path.basename(f, ".ts"),

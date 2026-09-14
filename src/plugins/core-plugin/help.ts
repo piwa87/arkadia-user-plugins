@@ -12,6 +12,9 @@ export function setupHelpAliases(api: PluginApi): void {
       { section: 'HELP' },
       { cmd: 'help!', desc: 'show this help' },
 
+      { section: 'KNOWLEDGE' },
+      { cmd: 'wiedza20', desc: '20 nearest missing knowledge entries in the current GMCP domain' },
+
       { section: 'COMBAT' },
       { cmd: 'c', desc: 'attack target 1 (zabij CEL)' },
       { cmd: 'c<n>', desc: "attack enemy <n> from the client's list (/z n)" },
