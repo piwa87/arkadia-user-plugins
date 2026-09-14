@@ -225,6 +225,34 @@ export function getMissingKnowledgeEntries(options: {
   });
 }
 
+async function loadKnowledgeSourceEntries(): Promise<KnowledgeSourceEntry[]> {
+  const urls = [
+    new URL('data/knowledge.json', import.meta.url),
+    new URL('../data/knowledge.json', import.meta.url),
+  ].filter((url, index, candidates) =>
+    candidates.findIndex((candidate) => candidate.href === url.href) === index,
+  );
+  const failures: string[] = [];
+
+  for (const dataUrl of urls) {
+    try {
+      const response = await fetch(dataUrl);
+      if (!response.ok) {
+        failures.push(`${dataUrl.href}: HTTP ${response.status}`);
+        continue;
+      }
+      const json: unknown = await response.json();
+      if (!Array.isArray(json)) throw new Error('knowledge.json nie zawiera tablicy');
+      return json as KnowledgeSourceEntry[];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push(`${dataUrl.href}: ${message}`);
+    }
+  }
+
+  throw new Error(failures.join('; '));
+}
+
 export async function setupKnowledgeReportData(api: PluginApi): Promise<() => void> {
   const events = api.events as unknown as UntypedEventsApi;
   let sourceEntries: KnowledgeSourceEntry[] = [];
@@ -259,12 +287,7 @@ export async function setupKnowledgeReportData(api: PluginApi): Promise<() => vo
   events.on('knowledgeDetailsUpdated', handleKnowledgeUpdated);
 
   try {
-    const dataUrl = new URL('data/knowledge.json', import.meta.url);
-    const response = await fetch(dataUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json: unknown = await response.json();
-    if (!Array.isArray(json)) throw new Error('knowledge.json nie zawiera tablicy');
-    sourceEntries = json as KnowledgeSourceEntry[];
+    sourceEntries = await loadKnowledgeSourceEntries();
     rebuild();
     requestReport();
   } catch (error) {

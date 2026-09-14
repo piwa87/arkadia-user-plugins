@@ -150,6 +150,7 @@ let cleanupTriggerTags: (() => void) | null = null;
 let cleanupTeam: (() => void) | null = null;
 let cleanupBindAliases: (() => void) | null = null;
 let cleanupKnowledgeReport: (() => void) | null = null;
+let cleanupNearestKnowledgeAlias: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
   const ORDINALS = ['', '2. ', '3. ', '4. '];
@@ -203,7 +204,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupLocationCommands = setupLocationCommands(api);
   setupLocationsAliases(api);
   cleanupKnowledgeReport = await setupKnowledgeReportData(api);
-  setupNearestKnowledgeAlias(api);
+  cleanupNearestKnowledgeAlias = setupNearestKnowledgeAlias(api);
   setupLootAliases(api);
   setupLootShitAliases(api);
   setupMapAliases(api);
@@ -298,6 +299,8 @@ export async function destroy(): Promise<void> {
   cleanupLocationCommands = null;
   cleanupKnowledgeReport?.();
   cleanupKnowledgeReport = null;
+  cleanupNearestKnowledgeAlias?.();
+  cleanupNearestKnowledgeAlias = null;
   cleanupDoo?.();
   cleanupDoo = null;
   cleanupAtakiTriggers?.();

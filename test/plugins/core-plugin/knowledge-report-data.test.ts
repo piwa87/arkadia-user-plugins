@@ -86,4 +86,20 @@ describe('knowledge report data', () => {
     expect(mock.eventListeners.get('knowledgeDetailsReport')).toEqual([]);
     expect(mock.eventListeners.get('knowledgeDetailsUpdated')).toEqual([]);
   });
+
+  it('retries one directory higher when data next to a dist plugin returns 404', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: true, json: async () => source }));
+    const mock = createMockApi();
+
+    await setupKnowledgeReportData(mock.api);
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const calls = (vi.mocked(fetch).mock.calls as unknown[][]).map(([url]) => String(url));
+    expect(calls[0]).toMatch(/\/data\/knowledge\.json$/);
+    expect(calls[1]).toMatch(/\/data\/knowledge\.json$/);
+    expect(calls[1]).not.toBe(calls[0]);
+    expect(mock.api.events.emit).toHaveBeenCalledWith('requestKnowledgeDetailsReport');
+  });
 });
