@@ -134,6 +134,31 @@ describe('nearest knowledge alias', () => {
     expect(rows[1].text).not.toContain('👁');
   });
 
+  it('restores the original map room when cleaned up during a preview', () => {
+    vi.useFakeTimers();
+    const mock = createMockApi({ room: { id: 1 } });
+    mock.api.map.findPath = vi.fn(() => [1, 2]);
+    (mock.api.gmcp.get as ReturnType<typeof vi.fn>).mockReturnValue({
+      room: { info: { map: { domain: 'Ishtar' } } },
+    });
+    const cleanup = setupNearestKnowledgeAlias(
+      mock.api,
+      () => ({ status: 'ready', character: 'gertruda', entries: [], updatedAt: 1 }),
+      () => [entry(2, 'wpis')],
+    );
+
+    mock.aliases.find((candidate) => candidate.pattern.test('wiedza20'))!.callback();
+    const row = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
+      .map(([value]) => value)
+      .find((value): value is MockAnsiAwareBuffer => (
+        value instanceof MockAnsiAwareBuffer && value.text.startsWith('| 2 ')
+      ))!;
+    row.klik('👁');
+    cleanup();
+
+    expect(mock.api.command.send).toHaveBeenLastCalledWith('/ustaw 1');
+  });
+
   it('reports when knowledge data is still loading', () => {
     const mock = createMockApi({ room: { id: 1 } });
     setupNearestKnowledgeAlias(

@@ -1,5 +1,8 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { createRoomDistanceLookup } from '../../../lib/mapDistance';
+import { createMapPreviewController } from '../../../lib/mapPreview';
 import { notify, requestPermission } from '../../../lib/notifications';
+import { printOutputTable } from '../../../lib/outputTable';
 import { getCharName, onCharName } from '../../../lib/getCharName';
 
 const TAG_GATE = 'gate_knock';
@@ -296,8 +299,10 @@ function saveCurrentLocationShortcut(api: PluginApi, key: string, customLabel?: 
 }
 
 function setupZcAndShortcutWalker(api: PluginApi): () => void {
-  let previewTimer: ReturnType<typeof setTimeout> | null = null;
-  let previewOriginId: number | null = null;
+  const mapPreview = createMapPreviewController(api, {
+    durationMs: 2_000,
+    missingRoomMessage: '[walker] mapa nie zna biezacej lokacji',
+  });
 
   const cleanupShortcutMigration = onCharName(api, () => {
     getLocationShortcuts(api);
@@ -433,26 +438,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (api.events as any).on(WALKER_ROUTE_START_EVENT, onWalkerRouteStart);
 
-  const previewShortcut = (shortcut: LocationShortcut) => {
-    if (previewTimer === null) {
-      const currentId = api.map.getRoom()?.id;
-      if (currentId === undefined) {
-        printWalkerFeedback(api, '[walker] mapa nie zna biezacej lokacji');
-        return;
-      }
-      previewOriginId = currentId;
-    } else {
-      clearTimeout(previewTimer);
-    }
-
-    void api.command.send(`/ustaw ${shortcut.id}`);
-    previewTimer = setTimeout(() => {
-      previewTimer = null;
-      const originId = previewOriginId;
-      previewOriginId = null;
-      if (originId !== null) void api.command.send(`/ustaw ${originId}`);
-    }, 2_000);
-  };
+  const previewShortcut = (shortcut: LocationShortcut) => mapPreview.preview(shortcut.id);
 
   const removeShortcut = (shortcut: LocationShortcut, showAll: boolean) => {
     const shortcuts = getLocationShortcuts(api);
@@ -490,14 +476,15 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
       return;
     }
 
+    const getDistance = createRoomDistanceLookup(api.map, currentId);
     const rows = shortcuts
       .map((shortcut, savedIndex) => {
-        const path = currentId === shortcut.id ? [currentId] : api.map.findPath(currentId, shortcut.id);
-        return path || showAll
+        const distance = getDistance(shortcut.id);
+        return distance !== null || showAll
           ? {
               shortcut,
               savedIndex,
-              distanceLabel: path ? `${Math.max(0, path.length - 1)} lok.` : '-',
+              distanceLabel: distance === null ? '-' : `${distance} lok.`,
             }
           : null;
       })
@@ -513,27 +500,10 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
       return;
     }
 
-    const keyWidth = Math.max(...rows.map(({ shortcut }) => shortcut.key.length));
-    const idWidth = Math.max(...rows.map(({ shortcut }) => String(shortcut.id).length));
-    const distanceWidth = Math.max(...rows.map(({ distanceLabel }) => distanceLabel.length));
-    const labelWidth = Math.max(...rows.map(({ shortcut }) => shortcut.label.length));
     const leadLabel = '[ prowadz ]';
     const walkLabel = '[ idz ]';
     const previewLabel = '👁';
     const deleteLabel = '🗑';
-    const border =
-      [
-        keyWidth,
-        idWidth,
-        distanceWidth,
-        labelWidth,
-        leadLabel.length,
-        walkLabel.length,
-        previewLabel.length,
-        deleteLabel.length,
-      ]
-        .map((width) => `+${'-'.repeat(width + 2)}`)
-        .join('') + '+';
     const borderColor = api.colors.fromHex('#777777');
     const rowColor = api.colors.fromHex('#929292');
     const shortcutColor = api.colors.fromHex('#2f855a');
@@ -542,61 +512,68 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     const previewColor = api.colors.fromHex('#607d9b');
     const deleteColor = api.colors.fromHex('#8f4a4a');
 
-    const printBorder = () => {
-      const line = new api.AnsiAwareBuffer(border);
-      line.color([0, border.length], borderColor);
-      api.output.print(line);
-    };
-
-    printBorder();
-    for (const { shortcut, distanceLabel } of rows) {
-      const line = new api.AnsiAwareBuffer();
-      line.append('| ', rowColor);
-      line.append(shortcut.key, shortcutColor);
-      line.append(`${' '.repeat(keyWidth - shortcut.key.length)} | `, rowColor);
-      line.append(
-        `${String(shortcut.id).padEnd(idWidth)} | ${distanceLabel.padStart(distanceWidth)} | ${shortcut.label.padEnd(labelWidth)} | `,
-        rowColor,
-      );
-      line.append(leadLabel, {
-        ...leadColor,
-        underline: true,
-        hyperlink: {
-          title: `/prowadz ${shortcut.id}`,
-          onClick: () => {
-            void api.command.send(`/prowadz ${shortcut.id}`);
-          },
+    printOutputTable({
+      api,
+      rows,
+      borderState: borderColor,
+      rowState: () => rowColor,
+      columns: [
+        { cell: ({ shortcut }) => ({ text: shortcut.key, state: shortcutColor }) },
+        { cell: ({ shortcut }) => ({ text: String(shortcut.id) }) },
+        { align: 'right', cell: ({ distanceLabel }) => ({ text: distanceLabel }) },
+        { cell: ({ shortcut }) => ({ text: shortcut.label }) },
+        {
+          cell: ({ shortcut }) => ({
+            text: leadLabel,
+            state: {
+              ...leadColor,
+              underline: true,
+              hyperlink: {
+                title: `/prowadz ${shortcut.id}`,
+                onClick: () => { void api.command.send(`/prowadz ${shortcut.id}`); },
+              },
+            },
+          }),
         },
-      });
-      line.append(' | ', rowColor);
-      line.append(walkLabel, {
-        ...walkColor,
-        underline: true,
-        hyperlink: {
-          title: `wk ${shortcut.key}`,
-          onClick: () => walkToShortcut(shortcut),
+        {
+          cell: ({ shortcut }) => ({
+            text: walkLabel,
+            state: {
+              ...walkColor,
+              underline: true,
+              hyperlink: {
+                title: `wk ${shortcut.key}`,
+                onClick: () => walkToShortcut(shortcut),
+              },
+            },
+          }),
         },
-      });
-      line.append(' | ', rowColor);
-      line.append(previewLabel, {
-        ...previewColor,
-        hyperlink: {
-          title: `Podglad przez 2 sekundy: ${shortcut.label} (${shortcut.id})`,
-          onClick: () => previewShortcut(shortcut),
+        {
+          cell: ({ shortcut }) => ({
+            text: previewLabel,
+            state: {
+              ...previewColor,
+              hyperlink: {
+                title: `Podglad przez 2 sekundy: ${shortcut.label} (${shortcut.id})`,
+                onClick: () => previewShortcut(shortcut),
+              },
+            },
+          }),
         },
-      });
-      line.append(' | ', rowColor);
-      line.append(deleteLabel, {
-        ...deleteColor,
-        hyperlink: {
-          title: `Usun: ${shortcut.key} (${shortcut.id})`,
-          onClick: () => removeShortcut(shortcut, showAll),
+        {
+          cell: ({ shortcut }) => ({
+            text: deleteLabel,
+            state: {
+              ...deleteColor,
+              hyperlink: {
+                title: `Usun: ${shortcut.key} (${shortcut.id})`,
+                onClick: () => removeShortcut(shortcut, showAll),
+              },
+            },
+          }),
         },
-      });
-      line.append(' |', rowColor);
-      api.output.print(line);
-    }
-    printBorder();
+      ],
+    });
   };
 
   const commandHookId = api.commandHooks.register((command: string) => {
@@ -645,10 +622,8 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
 
   return () => {
     cleanupShortcutMigration();
-    if (previewTimer !== null) clearTimeout(previewTimer);
+    mapPreview.dispose();
     clearRouteTimer();
-    previewTimer = null;
-    previewOriginId = null;
     api.events.off('gmcp.char.info', syncClientShortcuts);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api.events as any).off('walker.update', onBuiltInWalkerUpdate);

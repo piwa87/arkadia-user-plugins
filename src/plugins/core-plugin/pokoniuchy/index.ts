@@ -1,5 +1,8 @@
-import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
+import type { PluginApi } from '@arkadia/plugin-types';
 import { escapeRegex } from '../../../lib/escapeRegex';
+import { createRoomDistanceLookup } from '../../../lib/mapDistance';
+import { createMapPreviewController } from '../../../lib/mapPreview';
+import { printOutputTable } from '../../../lib/outputTable';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { storage } from '../../../lib/storage';
 import { runVid } from '../movement/movement_aliases';
@@ -85,15 +88,6 @@ function getAreaName(api: PluginApi, areaId: number): string {
   const areas = api.map.getAreas();
   if (!Array.isArray(areas)) return `Obszar ${areaId}`;
   return areas.find((area) => area.areaId === areaId)?.areaName ?? `Obszar ${areaId}`;
-}
-
-function distanceFromCurrent(api: PluginApi, roomId: number): string {
-  const currentId = api.map.getRoom()?.id;
-  if (currentId === undefined) return '-';
-  if (currentId === roomId) return '0';
-
-  const path = api.map.findPath(currentId, roomId);
-  return path ? String(Math.max(0, path.length - 1)) : '-';
 }
 
 type FindingHandler = (finding: PokFinding) => void;
@@ -184,29 +178,21 @@ function printList(api: PluginApi, state: PokState, actions: ListActions): void 
     return;
   }
 
-  const orderedRows = state.findings
+  const currentRoomId = api.map.getRoom()?.id;
+  const getDistance = currentRoomId === undefined
+    ? () => null
+    : createRoomDistanceLookup(api.map, currentRoomId);
+  const rows = state.findings
     .map((finding, savedIndex) => ({
       finding,
       savedIndex,
-      distance: distanceFromCurrent(api, finding.roomId),
+      distance: getDistance(finding.roomId),
     }))
-    .sort((left, right) => {
-      const leftDistance = left.distance === '-' ? Number.POSITIVE_INFINITY : Number(left.distance);
-      const rightDistance = right.distance === '-' ? Number.POSITIVE_INFINITY : Number(right.distance);
-      return leftDistance - rightDistance || left.savedIndex - right.savedIndex;
-    });
-  const findings = orderedRows.map((row) => row.finding);
-  const distances = orderedRows.map((row) => row.distance);
-  const distanceLabels = distances.map((distance) => distance === '-' ? '-' : `${distance} lok.`);
-
-  const idWidth = Math.max(...findings.map((finding) => String(finding.roomId).length));
-  const distanceWidth = Math.max(...distanceLabels.map((distance) => distance.length));
-  const shortWidth = Math.max(...findings.map((finding) => finding.short.length));
-  const areaWidth = Math.max(...findings.map((finding) => finding.areaName.length));
-  const checkWidth = 3;
-  const actionWidth = 2;
-
-  const border = `+${'-'.repeat(idWidth + 2)}+${'-'.repeat(distanceWidth + 2)}+${'-'.repeat(shortWidth + 2)}+${'-'.repeat(areaWidth + 2)}+${'-'.repeat(checkWidth + 2)}+${'-'.repeat(actionWidth + 2)}+${'-'.repeat(actionWidth + 2)}+`;
+    .sort(
+      (left, right) =>
+        (left.distance ?? Number.POSITIVE_INFINITY) - (right.distance ?? Number.POSITIVE_INFINITY) ||
+        left.savedIndex - right.savedIndex,
+    );
   const borderColor = api.colors.fromHex('#777777');
   const idColor = api.colors.fromHex('#2f855a');
   const rowColor = api.colors.fromHex('#929292');
@@ -218,80 +204,80 @@ function printList(api: PluginApi, state: PokState, actions: ListActions): void 
   const previewColor = api.colors.fromHex('#607d9b');
   const deleteColor = api.colors.fromHex('#8f4a4a');
 
-  const printColored = (text: string, color: FormatStateSnapshot) => {
-    const buffer = new api.AnsiAwareBuffer(text);
-    buffer.color([0, text.length], color);
-    api.output.print(buffer);
-  };
-
-  printColored(border, borderColor);
-
-  findings.forEach((finding, index) => {
-    const buffer = new api.AnsiAwareBuffer();
-    const roomId = String(finding.roomId);
-    const isCurrentRoom = distances[index] === '0';
-    const dataColor = finding.slain
-      ? isCurrentRoom
-        ? completedCurrentRowColor
-        : completedRowColor
-      : isCurrentRoom
-        ? currentRowColor
-        : rowColor;
-    buffer.append('| ', dataColor);
-    buffer.append(roomId, {
-      ...idColor,
-      underline: true,
-      hyperlink: {
-        title: `/prowadz ${finding.roomId}`,
-        onClick: () => {
-          void api.command.send(`/prowadz ${finding.roomId}`);
-        },
+  printOutputTable({
+    api,
+    rows,
+    borderState: borderColor,
+    rowState: ({ finding, distance }) => finding.slain
+      ? distance === 0 ? completedCurrentRowColor : completedRowColor
+      : distance === 0 ? currentRowColor : rowColor,
+    columns: [
+      {
+        cell: ({ finding }) => ({
+          text: String(finding.roomId),
+          state: {
+            ...idColor,
+            underline: true,
+            hyperlink: {
+              title: `/prowadz ${finding.roomId}`,
+              onClick: () => { void api.command.send(`/prowadz ${finding.roomId}`); },
+            },
+          },
+        }),
       },
-    });
-    // Pass an explicit non-link state after the ID. Without it the client's
-    // buffer carries the hyperlink format into the rest of the row.
-    buffer.append(`${' '.repeat(idWidth - roomId.length)} | `, dataColor);
-    buffer.append(distanceLabels[index].padStart(distanceWidth), {
-      ...dataColor,
-      underline: true,
-      hyperlink: {
-        title: `/prowadz ${finding.roomId}, potem vid`,
-        onClick: () => actions.leadAndWalk(finding),
+      {
+        align: 'right',
+        cell: ({ finding, distance }) => ({
+          text: distance === null ? '-' : `${distance} lok.`,
+          state: {
+            underline: true,
+            hyperlink: {
+              title: `/prowadz ${finding.roomId}, potem vid`,
+              onClick: () => actions.leadAndWalk(finding),
+            },
+          },
+        }),
       },
-    });
-    buffer.append(
-      ` | ${finding.short.padEnd(shortWidth)} | ${finding.areaName.padEnd(areaWidth)} | `,
-      dataColor,
-    );
-    const checkIcon = finding.slain ? '[✓]' : '[ ]';
-    buffer.append(checkIcon, {
-      ...(finding.slain ? completedColor : pendingColor),
-      hyperlink: {
-        title: finding.slain ? 'Oznacz jako nieodwiedzone' : 'Oznacz jako zabite/odwiedzone',
-        onClick: () => toggleSlain(api, state, finding, actions),
+      { cell: ({ finding }) => ({ text: finding.short }) },
+      { cell: ({ finding }) => ({ text: finding.areaName }) },
+      {
+        cell: ({ finding }) => ({
+          text: finding.slain ? '[✓]' : '[ ]',
+          state: {
+            ...(finding.slain ? completedColor : pendingColor),
+            hyperlink: {
+              title: finding.slain ? 'Oznacz jako nieodwiedzone' : 'Oznacz jako zabite/odwiedzone',
+              onClick: () => toggleSlain(api, state, finding, actions),
+            },
+          },
+        }),
       },
-    });
-    buffer.append(`${' '.repeat(checkWidth - checkIcon.length)} | `, dataColor);
-    buffer.append('👁', {
-      ...previewColor,
-      hyperlink: {
-        title: `Podglad przez 3 sekundy: ${finding.short} (${finding.roomId})`,
-        onClick: () => actions.preview(finding),
+      {
+        cell: ({ finding }) => ({
+          text: '👁',
+          state: {
+            ...previewColor,
+            hyperlink: {
+              title: `Podglad przez 3 sekundy: ${finding.short} (${finding.roomId})`,
+              onClick: () => actions.preview(finding),
+            },
+          },
+        }),
       },
-    });
-    buffer.append(`${' '.repeat(actionWidth - '👁'.length)} | `, dataColor);
-    buffer.append('🗑', {
-      ...deleteColor,
-      hyperlink: {
-        title: `Usun: ${finding.short} (${finding.roomId})`,
-        onClick: () => removeFinding(api, state, finding, actions),
+      {
+        cell: ({ finding }) => ({
+          text: '🗑',
+          state: {
+            ...deleteColor,
+            hyperlink: {
+              title: `Usun: ${finding.short} (${finding.roomId})`,
+              onClick: () => removeFinding(api, state, finding, actions),
+            },
+          },
+        }),
       },
-    });
-    buffer.append(`${' '.repeat(actionWidth - '🗑'.length)} |`, dataColor);
-    api.output.print(buffer);
+    ],
   });
-
-  printColored(border, borderColor);
   const clearButton = new api.AnsiAwareBuffer();
   clearButton.append('[CLEAR]', {
     ...completedColor,
@@ -329,34 +315,15 @@ function saveFinding(api: PluginApi, state: PokState, short: string): void {
 
 export function setupPok(api: PluginApi): () => void {
   const state = createPokState();
-  let previewTimer: ReturnType<typeof setTimeout> | null = null;
-  let previewOriginId: number | null = null;
+  const mapPreview = createMapPreviewController(api, {
+    durationMs: 3_000,
+    missingRoomMessage: '[poko] Nie mozna uruchomic podgladu: mapa nie zna biezacej lokacji.',
+  });
   let leadAndWalkTimer: ReturnType<typeof setTimeout> | null = null;
   let pendingLocalUpdate: PendingLocalUpdate | null = null;
   let localUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const finishPreview = () => {
-    const originId = previewOriginId;
-    previewTimer = null;
-    previewOriginId = null;
-    if (originId !== null) void api.command.send(`/ustaw ${originId}`);
-  };
-
-  const preview: FindingHandler = (finding) => {
-    if (previewTimer === null) {
-      const currentId = api.map.getRoom()?.id;
-      if (currentId === undefined) {
-        api.output.print('[poko] Nie mozna uruchomic podgladu: mapa nie zna biezacej lokacji.');
-        return;
-      }
-      previewOriginId = currentId;
-    } else {
-      clearTimeout(previewTimer);
-    }
-
-    void api.command.send(`/ustaw ${finding.roomId}`);
-    previewTimer = setTimeout(finishPreview, 3000);
-  };
+  const preview: FindingHandler = (finding) => mapPreview.preview(finding.roomId);
 
   const leadAndWalk: FindingHandler = (finding) => {
     if (leadAndWalkTimer !== null) clearTimeout(leadAndWalkTimer);
@@ -512,10 +479,9 @@ export function setupPok(api: PluginApi): () => void {
   });
 
   return () => {
-    if (previewTimer !== null) clearTimeout(previewTimer);
+    mapPreview.dispose();
     if (leadAndWalkTimer !== null) clearTimeout(leadAndWalkTimer);
     clearPendingLocalUpdate();
     api.events.off('parsedObjects', onParsedObjects);
-    finishPreview();
   };
 }
