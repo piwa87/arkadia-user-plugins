@@ -1,4 +1,4 @@
-import type { MapDirection, PluginApi, Room } from '@arkadia/plugin-types';
+import type { PluginApi } from '@arkadia/plugin-types';
 import { notify, requestPermission } from '../../../lib/notifications';
 import { getCharName, onCharName } from '../../../lib/getCharName';
 
@@ -138,78 +138,10 @@ function setupStandardWalker(api: PluginApi): () => void {
   };
 }
 
-const ZC_MOVE_TIMEOUT_MS = 5_000;
-const ZC_AUTO_DELAY_MS = 500;
-export const DYNAMIC_WALKER_START_EVENT = 'dynamicWalker.start';
-export const DYNAMIC_WALKER_ARRIVED_EVENT = 'dynamicWalker.arrived';
-const ZC_HIDDEN_OPEN_EXITS: Readonly<Record<number, readonly MapDirection[]>> = {
-  20841: ['north'],
-  20842: ['south'],
-};
-
-const DIRECTION_TO_COMMAND: Record<MapDirection, string> = {
-  north: 'n',
-  south: 's',
-  east: 'e',
-  west: 'w',
-  northeast: 'ne',
-  northwest: 'nw',
-  southeast: 'se',
-  southwest: 'sw',
-  up: 'u',
-  down: 'd',
-  in: 'in',
-  out: 'out',
-};
-
-const DIRECTION_VECTORS: Partial<Record<MapDirection, readonly [number, number, number]>> = {
-  north: [0, 1, 0],
-  northeast: [1, 1, 0],
-  east: [1, 0, 0],
-  southeast: [1, -1, 0],
-  south: [0, -1, 0],
-  southwest: [-1, -1, 0],
-  west: [-1, 0, 0],
-  northwest: [-1, 1, 0],
-  up: [0, 0, 1],
-  down: [0, 0, -1],
-};
-
-const EXIT_ALIASES: Record<string, MapDirection> = {
-  n: 'north',
-  north: 'north',
-  polnoc: 'north',
-  s: 'south',
-  south: 'south',
-  poludnie: 'south',
-  e: 'east',
-  east: 'east',
-  wschod: 'east',
-  w: 'west',
-  west: 'west',
-  zachod: 'west',
-  ne: 'northeast',
-  northeast: 'northeast',
-  'polnocny-wschod': 'northeast',
-  nw: 'northwest',
-  northwest: 'northwest',
-  'polnocny-zachod': 'northwest',
-  se: 'southeast',
-  southeast: 'southeast',
-  'poludniowy-wschod': 'southeast',
-  sw: 'southwest',
-  southwest: 'southwest',
-  'poludniowy-zachod': 'southwest',
-  u: 'up',
-  up: 'up',
-  gora: 'up',
-  gore: 'up',
-  d: 'down',
-  down: 'down',
-  dol: 'down',
-  in: 'in',
-  out: 'out',
-};
+export const WALKER_ROUTE_START_EVENT = 'walkerRoute.start';
+export const WALKER_ROUTE_ARRIVED_EVENT = 'walkerRoute.arrived';
+const WALKER_SETTLE_MS = 1_500;
+const WALKER_MAX_RETRIES = 3;
 
 interface LocationShortcut {
   key: string;
@@ -220,7 +152,6 @@ interface LocationShortcut {
 const ACTIVE_SHORTCUTS_KEY = 'shortcuts';
 const SHORTCUTS_MIGRATION_KEY = 'p:walker:shortcuts:migrated';
 const WALKER_FEEDBACK_COLOR = '#3f7255';
-const WALKER_ALTERNATIVE_COLOR = '#8f4a4a';
 
 function printWalkerLine(api: PluginApi, message: string, color: string): void {
   const line = new api.AnsiAwareBuffer();
@@ -232,100 +163,25 @@ function printWalkerFeedback(api: PluginApi, message: string): void {
   printWalkerLine(api, message, WALKER_FEEDBACK_COLOR);
 }
 
-function printStepDirection(api: PluginApi, selected: string, expected?: string): void {
-  const directionColor = api.colors.fromHex(expected === undefined ? WALKER_FEEDBACK_COLOR : WALKER_ALTERNATIVE_COLOR);
-  const line = new api.AnsiAwareBuffer('--> ');
-  line.append(selected, directionColor);
-  if (expected !== undefined) {
-    line.append(' (');
-    line.append(expected, directionColor);
-    line.append(')');
-  }
-  api.output.print(line);
-}
-
 function characterShortcutsKey(character: string): string {
   return `p:walker:shortcuts:${character}`;
 }
 
-interface RankedExit {
-  direction: MapDirection;
-  roomId: number;
-  directionSimilarity: number;
-  distanceSquared: number;
-}
+const ALT_EXIT_AREAS = new Set(['ziemie czaszki', 'pustkowia - okolice', 'pustkowia chaosu']);
 
-function normaliseExit(exit: string): MapDirection | undefined {
-  return EXIT_ALIASES[exit.trim().toLowerCase().replace(/\s+/g, '-')];
-}
-
-export function squaredDistance(from: Room, target: Room): number {
-  return (from.x - target.x) ** 2 + (from.y - target.y) ** 2 + (from.z - target.z) ** 2;
-}
-
-function directionSimilarity(left: MapDirection, right: MapDirection): number {
-  const a = DIRECTION_VECTORS[left];
-  const b = DIRECTION_VECTORS[right];
-  if (!a || !b) return 0;
-
-  const dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  const magnitudeA = Math.hypot(...a);
-  const magnitudeB = Math.hypot(...b);
-  return dot / (magnitudeA * magnitudeB);
-}
-
-export function rankOpenExits(
-  current: Room,
-  target: Room,
-  preferredDirection: MapDirection,
-  openExitNames: readonly string[],
-  getRoomById: (roomId: number) => Room | null,
-): RankedExit[] {
-  const openDirections = new Set(
-    openExitNames.map(normaliseExit).filter((direction): direction is MapDirection => Boolean(direction)),
-  );
-
-  return (Object.entries(current.exits) as [MapDirection, number][])
-    .filter(([direction]) => openDirections.has(direction))
-    .map(([direction, roomId]) => {
-      const room = getRoomById(roomId);
-      return room
-        ? {
-            direction,
-            roomId,
-            directionSimilarity: directionSimilarity(preferredDirection, direction),
-            distanceSquared: squaredDistance(room, target),
-          }
-        : null;
-    })
-    .filter((candidate): candidate is RankedExit => candidate !== null)
-    .sort(
-      (left, right) =>
-        right.directionSimilarity - left.directionSimilarity || left.distanceSquared - right.distanceSquared,
-    );
-}
-
-function getOpenExits(api: PluginApi): string[] | null {
-  const gmcp = api.gmcp.get() as { room?: { info?: { exits?: unknown } } };
-  const exits = gmcp.room?.info?.exits;
-  return Array.isArray(exits) && exits.every((exit) => typeof exit === 'string') ? exits : null;
-}
-
-const DYNAMIC_WALKER_AREAS = new Set(['ziemie czaszki', 'pustkowia - okolice', 'pustkowia chaosu']);
-
-function isInDynamicWalkerArea(api: PluginApi): boolean {
+function isInAltExitArea(api: PluginApi): boolean {
   const current = api.map.getRoom();
   if (!current) return false;
 
   const directAreaName = current.areaId?.trim().toLocaleLowerCase('pl-PL');
-  if (directAreaName && DYNAMIC_WALKER_AREAS.has(directAreaName)) return true;
+  if (directAreaName && ALT_EXIT_AREAS.has(directAreaName)) return true;
 
   const areas = api.map.getAreas();
   return (
     Array.isArray(areas) &&
     areas.some(
       (area) =>
-        area.areaId === current.area && DYNAMIC_WALKER_AREAS.has(area.areaName.trim().toLocaleLowerCase('pl-PL')),
+        area.areaId === current.area && ALT_EXIT_AREAS.has(area.areaName.trim().toLocaleLowerCase('pl-PL')),
     )
   );
 }
@@ -440,15 +296,8 @@ function saveCurrentLocationShortcut(api: PluginApi, key: string, customLabel?: 
 }
 
 function setupZcAndShortcutWalker(api: PluginApi): () => void {
-  let targetId: number | null = null;
-  let waitingFromRoomId: number | null = null;
-  let autoWalking = false;
-  let moveTimeout: ReturnType<typeof setTimeout> | null = null;
-  let confirmTimer: ReturnType<typeof setTimeout> | null = null;
-  let stepTimer: ReturnType<typeof setTimeout> | null = null;
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   let previewOriginId: number | null = null;
-  let recentRoomIds: number[] = [];
 
   const cleanupShortcutMigration = onCharName(api, () => {
     getLocationShortcuts(api);
@@ -457,192 +306,6 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     getLocationShortcuts(api);
   };
   api.events.on('gmcp.char.info', syncClientShortcuts);
-
-  const clearTimers = () => {
-    if (moveTimeout !== null) clearTimeout(moveTimeout);
-    if (confirmTimer !== null) clearTimeout(confirmTimer);
-    if (stepTimer !== null) clearTimeout(stepTimer);
-    moveTimeout = null;
-    confirmTimer = null;
-    stepTimer = null;
-  };
-
-  const disableAutoWalking = () => {
-    autoWalking = false;
-    if (stepTimer !== null) clearTimeout(stepTimer);
-    stepTimer = null;
-  };
-
-  const stop = (message?: string) => {
-    clearTimers();
-    autoWalking = false;
-    targetId = null;
-    waitingFromRoomId = null;
-    recentRoomIds = [];
-    if (message) printWalkerFeedback(api, `[zc] ${message}`);
-  };
-
-  const arrive = (room: Room) => {
-    stop(`dotarto do ${room.id} (${room.name})`);
-    notify('Arrived 🏁');
-    // Custom event shared inside core-plugin; absent from the published event union.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: room.id });
-  };
-
-  const detectTwoRoomLoop = (roomId: number): boolean => {
-    recentRoomIds.push(roomId);
-    if (recentRoomIds.length > 5) recentRoomIds.shift();
-    if (
-      recentRoomIds.length !== 5 ||
-      recentRoomIds[0] !== recentRoomIds[2] ||
-      recentRoomIds[0] !== recentRoomIds[4] ||
-      recentRoomIds[1] !== recentRoomIds[3] ||
-      recentRoomIds[0] === recentRoomIds[1]
-    ) {
-      return false;
-    }
-
-    disableAutoWalking();
-    printWalkerLine(
-      api,
-      `[zc] petla ${recentRoomIds[0]} <-> ${recentRoomIds[1]}; automat zatrzymany, cel pozostaje ustawiony`,
-      WALKER_ALTERNATIVE_COLOR,
-    );
-    return true;
-  };
-
-  const takeNextStep = () => {
-    if (targetId === null) {
-      disableAutoWalking();
-      printWalkerFeedback(api, '[zc] brak celu; uzyj wk <skrot> albo /zcwalk <ID-lokacji>');
-      return;
-    }
-    if (waitingFromRoomId !== null) {
-      printWalkerFeedback(api, `[zc] czekam na potwierdzenie ruchu z lokacji ${waitingFromRoomId}`);
-      return;
-    }
-
-    const current = api.map.getRoom();
-    const target = api.map.getRoomById(targetId);
-    if (!current || !target) {
-      disableAutoWalking();
-      printWalkerFeedback(api, '[zc] brak danych mapy o obecnej lokacji albo celu');
-      return;
-    }
-    if (current.id === target.id) {
-      arrive(target);
-      return;
-    }
-
-    const path = api.map.findPath(current.id, target.id);
-    if (!path) {
-      disableAutoWalking();
-      printWalkerFeedback(api, `[zc] findPath: brak trasy z ${current.id} do ${target.id}`);
-      return;
-    }
-
-    const nextRoomId = path[0] === current.id ? path[1] : path[0];
-    const preferredDirection = (Object.entries(current.exits) as [MapDirection, number][]).find(
-      ([, roomId]) => roomId === nextRoomId,
-    )?.[0];
-    const specialCommand =
-      nextRoomId === undefined
-        ? undefined
-        : Object.entries(current.specialExits ?? {}).find(([, roomId]) => roomId === nextRoomId)?.[0];
-    if (nextRoomId === undefined || (!preferredDirection && !specialCommand)) {
-      disableAutoWalking();
-      printWalkerFeedback(api, `[zc] findPath: nie umiem ustalic pierwszego kierunku z ${current.id} do ${target.id}`);
-      return;
-    }
-
-    const preferredCommand = preferredDirection ? DIRECTION_TO_COMMAND[preferredDirection] : specialCommand!;
-    const openExits = getOpenExits(api);
-    const hiddenOpenExits = ZC_HIDDEN_OPEN_EXITS[current.id] ?? [];
-    if (!openExits && hiddenOpenExits.length === 0 && !specialCommand) {
-      disableAutoWalking();
-      printWalkerFeedback(api, '[zc] GMCP nie podal aktualnych wyjsc; nie wykonuje ruchu w ciemno');
-      return;
-    }
-
-    const availableExitNames = [...(openExits ?? []), ...hiddenOpenExits];
-    const openDirections = new Set(
-      availableExitNames.map(normaliseExit).filter((direction): direction is MapDirection => Boolean(direction)),
-    );
-    let selectedCommand: string;
-
-    if (preferredDirection && openDirections.has(preferredDirection)) {
-      selectedCommand = preferredCommand;
-      printStepDirection(api, preferredCommand);
-    } else if (specialCommand) {
-      selectedCommand = specialCommand;
-      printStepDirection(api, specialCommand);
-    } else {
-      const alternative = rankOpenExits(current, target, preferredDirection!, availableExitNames, (id) =>
-        api.map.getRoomById(id),
-      )[0];
-      if (!alternative) {
-        disableAutoWalking();
-        printWalkerFeedback(api, '[zc] brak dostepnego, znanego mapie kierunku alternatywnego');
-        return;
-      }
-
-      const alternativeCommand = DIRECTION_TO_COMMAND[alternative.direction];
-      selectedCommand = alternativeCommand;
-      printStepDirection(api, alternativeCommand, preferredCommand);
-    }
-
-    waitingFromRoomId = current.id;
-    void api.command.send(selectedCommand);
-    moveTimeout = setTimeout(() => {
-      moveTimeout = null;
-      waitingFromRoomId = null;
-      disableAutoWalking();
-      printWalkerFeedback(api, `[zc] brak potwierdzenia ruchu przez ${selectedCommand}; cel pozostaje ustawiony`);
-    }, ZC_MOVE_TIMEOUT_MS);
-  };
-
-  const onRoomInfo = () => {
-    if (targetId === null || waitingFromRoomId === null || confirmTimer !== null) return;
-    confirmTimer = setTimeout(() => {
-      confirmTimer = null;
-      const confirmedRoom = api.map.getRoom();
-      if (!confirmedRoom || confirmedRoom.id === waitingFromRoomId) return;
-
-      waitingFromRoomId = null;
-      if (moveTimeout !== null) clearTimeout(moveTimeout);
-      moveTimeout = null;
-      if (targetId !== null && confirmedRoom.id === targetId) {
-        arrive(confirmedRoom);
-      } else if (autoWalking) {
-        if (detectTwoRoomLoop(confirmedRoom.id)) return;
-        stepTimer = setTimeout(() => {
-          stepTimer = null;
-          takeNextStep();
-        }, ZC_AUTO_DELAY_MS);
-      }
-    }, 0);
-  };
-  api.events.on('gmcp.room.info', onRoomInfo);
-
-  const startZcWalking = (id: number, label?: string) => {
-    // Walker events are present in the client but not yet in published plugin-types.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (api.events as any).emit('walker.stop');
-    clearTimers();
-    autoWalking = false;
-    targetId = id;
-    recentRoomIds = [];
-    const currentRoomId = api.map.getRoom()?.id;
-    if (currentRoomId !== undefined) recentRoomIds.push(currentRoomId);
-    const target = label ? `${label} (${id})` : String(id);
-    printWalkerFeedback(api, `[zc] ustawiono cel: ${target}; step! = krok, step!! = auto i5`);
-  };
-
-  const startAutoWalking = () => {
-    autoWalking = true;
-    takeNextStep();
-  };
 
   // The client's built-in walker resets this to off on every client start, so
   // one enable per plugin session is enough — /walk is a toggle, not a set.
@@ -655,55 +318,120 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
 
   // Turn alt-exit search back off once the built-in walker's own trip
   // (started from walkToShortcut) reaches its destination.
-  let awaitingBuiltInArrival = false;
   let builtInWalkerActive = false;
+  let routeTargetId: number | null = null;
+  let routeDelay = 2;
+  let routeRetries = 0;
+  let reportRouteArrival = false;
+  let routeConfirmTimer: ReturnType<typeof setTimeout> | null = null;
+  const clearRouteTimer = () => {
+    if (routeConfirmTimer !== null) clearTimeout(routeConfirmTimer);
+    routeConfirmTimer = null;
+  };
+  const turnOffAltExitMode = () => {
+    if (!altExitWalkModeEnabled) return;
+    void api.command.send('/walk');
+    altExitWalkModeEnabled = false;
+  };
+  const finishRoute = (arrived: boolean) => {
+    clearRouteTimer();
+    const target = routeTargetId;
+    routeTargetId = null;
+    turnOffAltExitMode();
+    if (arrived && reportRouteArrival && target !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId: target });
+    }
+    reportRouteArrival = false;
+  };
+  const getConfirmedRoomId = (): number | null => {
+    const current = api.map.getRoom();
+    const gmcp = api.gmcp.get() as { room?: { info?: { map?: { x?: unknown; y?: unknown; name?: unknown } } } };
+    const position = gmcp.room?.info?.map;
+    if (typeof position?.x !== 'number' || typeof position.y !== 'number' || typeof position.name !== 'string') {
+      return current?.id ?? null;
+    }
+    const matches = (room: { x: number; y: number; name: string }) =>
+      room.x === position.x && room.y === position.y && room.name === position.name;
+    if (current && matches(current)) return current.id;
+    const rooms = api.map.getAreas().flatMap((area) => area.rooms).filter(matches);
+    if (rooms.length !== 1) return null;
+    api.map.setLocation(rooms[0].id);
+    return rooms[0].id;
+  };
+  const checkRouteAfterSettling = () => {
+    routeConfirmTimer = null;
+    const target = routeTargetId;
+    if (target === null) return;
+    const currentId = getConfirmedRoomId();
+    if (currentId === target) {
+      finishRoute(true);
+      return;
+    }
+    const path = currentId === null ? null : api.map.findPath(currentId, target);
+    if (routeRetries >= WALKER_MAX_RETRIES || !path || path.length < 2) {
+      printWalkerFeedback(api, `[walker] nie dotarto do ${target}; obecna lokacja: ${currentId ?? 'nieznana'}`);
+      finishRoute(false);
+      return;
+    }
+    routeRetries += 1;
+    printWalkerFeedback(api, `[walker] trasa urwala sie w ${currentId}; ponawiam do ${target} (${routeRetries}/${WALKER_MAX_RETRIES})`);
+    void api.command.send(`/idz ${target} ${routeDelay}`);
+  };
   const onBuiltInWalkerUpdate = (state: WalkerState) => {
     const arrived = builtInWalkerActive && !state.active && !state.paused;
     builtInWalkerActive = state.active && !state.paused;
-    if (arrived && awaitingBuiltInArrival) {
-      awaitingBuiltInArrival = false;
-      if (altExitWalkModeEnabled) {
-        void api.command.send('/walk');
-        altExitWalkModeEnabled = false;
-      }
+    if (arrived && routeTargetId !== null) {
+      clearRouteTimer();
+      routeConfirmTimer = setTimeout(checkRouteAfterSettling, WALKER_SETTLE_MS);
     }
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (api.events as any).on('walker.update', onBuiltInWalkerUpdate);
+  const onWalkerStop = () => {
+    if (routeTargetId !== null) finishRoute(false);
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (api.events as any).on('walker.stop', onWalkerStop);
 
-  // The client's built-in walker now has its own alt-exit search (toggled via
-  // /walk), so ZC/Pustkowia shortcuts ride that instead of our manual stepper.
-  // The stepper (startZcWalking/step!/step!!/DYNAMIC_WALKER_START_EVENT) stays
-  // around as the fallback used by other core-plugin modules (e.g. trolle).
+  // ZC/Pustkowia routes use the client walker with alt-exit search.
   const walkToShortcut = (shortcut: LocationShortcut, _startAutomatically = false) => {
-    if (targetId !== null) stop();
-    if (isInDynamicWalkerArea(api)) {
-      awaitingBuiltInArrival = true;
+    clearRouteTimer();
+    routeTargetId = shortcut.id;
+    routeRetries = 0;
+    reportRouteArrival = false;
+    if (isInAltExitArea(api)) {
+      routeDelay = 0.5;
       ensureAltExitWalkMode();
       void api.command.send(`/prowadz ${shortcut.id}`);
-      void api.command.send(`/idz ${shortcut.id} 0.5`);
+      void api.command.send(`/idz ${shortcut.id} ${routeDelay}`);
       void api.command.send('/walkerw');
       return;
     }
-    void api.command.send(`/idz ${shortcut.id} 2`);
+    routeDelay = 2;
+    void api.command.send(`/idz ${shortcut.id} ${routeDelay}`);
     void api.command.send('/walkerw');
   };
 
-  const onDynamicWalkerStart = (request: unknown) => {
+  const onWalkerRouteStart = (request: unknown) => {
     if (!request || typeof request !== 'object') return;
-    const { roomId, label, automatic } = request as {
-      roomId?: unknown;
-      label?: unknown;
-      automatic?: unknown;
-    };
+    const { roomId, automatic } = request as { roomId?: unknown; automatic?: unknown };
     if (!Number.isSafeInteger(roomId)) return;
-
-    startZcWalking(roomId as number, typeof label === 'string' ? label : undefined);
-    if (automatic === true) startAutoWalking();
+    const target = roomId as number;
+    if (automatic === false) {
+      void api.command.send(`/prowadz ${target}`);
+      return;
+    }
+    if (api.map.getRoom()?.id === target) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId: target });
+      return;
+    }
+    walkToShortcut({ key: '', id: target, label: '' }, true);
+    reportRouteArrival = true;
   };
-  // Custom core-plugin event; not present in the published plugin-types.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (api.events as any).on(DYNAMIC_WALKER_START_EVENT, onDynamicWalkerStart);
+  (api.events as any).on(WALKER_ROUTE_START_EVENT, onWalkerRouteStart);
 
   const previewShortcut = (shortcut: LocationShortcut) => {
     if (previewTimer === null) {
@@ -873,11 +601,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
 
   const commandHookId = api.commandHooks.register((command: string) => {
     const trimmed = command.trim();
-    if (/^prr$/i.test(trimmed) && targetId !== null) {
-      stop('zatrzymano');
-      return undefined;
-    }
-
+    if (/^(?:\/stop|prr)$/i.test(trimmed) && routeTargetId !== null) finishRoute(false);
     if (/^wk$/i.test(trimmed)) {
       printShortcuts();
       return null;
@@ -919,48 +643,19 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     return undefined;
   }, 100);
 
-  api.aliases.register(/^\/zcwalk\s+(\d+)$/i, (matches) => {
-    const id = Number(matches?.[1]);
-    if (!Number.isSafeInteger(id)) {
-      printWalkerFeedback(api, '[zc] uzycie: /zcwalk <ID-lokacji>');
-      return true;
-    }
-    startZcWalking(id);
-    return true;
-  });
-
-  api.aliases.register(/^\/zcstop$/i, () => {
-    stop('zatrzymano');
-    return true;
-  });
-
-  api.aliases.register(/^step!$/i, () => {
-    disableAutoWalking();
-    takeNextStep();
-    return true;
-  });
-
-  api.aliases.register(/^step!!$/i, () => {
-    startAutoWalking();
-    return true;
-  });
-
   return () => {
     cleanupShortcutMigration();
-    clearTimers();
     if (previewTimer !== null) clearTimeout(previewTimer);
+    clearRouteTimer();
     previewTimer = null;
     previewOriginId = null;
-    autoWalking = false;
-    targetId = null;
-    waitingFromRoomId = null;
-    recentRoomIds = [];
-    api.events.off('gmcp.room.info', onRoomInfo);
     api.events.off('gmcp.char.info', syncClientShortcuts);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api.events as any).off('walker.update', onBuiltInWalkerUpdate);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (api.events as any).off(DYNAMIC_WALKER_START_EVENT, onDynamicWalkerStart);
+    (api.events as any).off('walker.stop', onWalkerStop);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api.events as any).off(WALKER_ROUTE_START_EVENT, onWalkerRouteStart);
     api.commandHooks.unregister(commandHookId);
   };
 }

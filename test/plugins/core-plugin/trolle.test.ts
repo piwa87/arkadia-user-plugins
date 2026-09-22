@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadMobLocations, setupTro, TRO_STORAGE_KEY, type MobLocation } from '../../../src/plugins/core-plugin/trolle';
 import {
-  DYNAMIC_WALKER_ARRIVED_EVENT,
-  DYNAMIC_WALKER_START_EVENT,
+  WALKER_ROUTE_ARRIVED_EVENT,
+  WALKER_ROUTE_START_EVENT,
 } from '../../../src/plugins/core-plugin/movement/walker';
-import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
+import { createMockApi, MockAnsiAwareBuffer, runLine } from '../../helpers/mockApi';
 
 class FakeElement {
   children: FakeElement[] = [];
@@ -146,7 +146,7 @@ describe('trolle mobLocations', () => {
     expect(clickableSegments.every((segment) => segment.state?.underline === false)).toBe(true);
   });
 
-  it('starts the dynamic walker manually from ID and automatically from distance', () => {
+  it('sets the manual target from ID and uses the client walker from distance', () => {
     vi.stubGlobal(
       'localStorage',
       makeLocalStorageMock({
@@ -164,15 +164,12 @@ describe('trolle mobLocations', () => {
     row.klik('13771');
     row.klik('1 lok.');
 
-    expect(mock.api.events.emit).toHaveBeenNthCalledWith(1, DYNAMIC_WALKER_START_EVENT, {
+    expect(mock.api.events.emit).toHaveBeenNthCalledWith(1, WALKER_ROUTE_START_EVENT, {
       roomId: 13771,
-      label: 'pbt',
       automatic: false,
     });
-    expect(mock.api.events.emit).toHaveBeenNthCalledWith(2, DYNAMIC_WALKER_START_EVENT, {
+    expect(mock.api.events.emit).toHaveBeenNthCalledWith(2, WALKER_ROUTE_START_EVENT, {
       roomId: 13771,
-      label: 'pbt',
-      automatic: true,
     });
   });
 
@@ -338,10 +335,8 @@ describe('trolle mobLocations', () => {
     expect(windowText).toContain('Najblizsze 30 Wszystkie');
 
     window.button('1').onclick!();
-    expect(mock.api.events.emit).toHaveBeenCalledWith(DYNAMIC_WALKER_START_EVENT, {
+    expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, {
       roomId: 14000,
-      label: 'besti',
-      automatic: true,
     });
 
     window.button('💀').onclick!();
@@ -382,7 +377,7 @@ describe('trolle mobLocations', () => {
     expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Oznaczono jako zywe: 2.');
   });
 
-  it('refreshes graphical distances only when the dynamic walker arrives', async () => {
+  it('refreshes graphical distances only when the client walker arrives', async () => {
     vi.stubGlobal(
       'localStorage',
       makeLocalStorageMock({
@@ -407,16 +402,16 @@ describe('trolle mobLocations', () => {
     currentRoomId = 13771;
     mock.api.events.emit('mapMove');
     expect(popupHandle.setBody).not.toHaveBeenCalled();
-    (mock.api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: 13771 });
+    (mock.api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 13771 });
 
     expect(popupHandle.setBody).toHaveBeenCalledOnce();
     const refreshedWindow = vi.mocked(popupHandle.setBody).mock.calls[0][0] as FakeElement;
     expect(refreshedWindow.text.replace(/\s+/g, ' ')).toContain('13771 0 pbt');
 
     cleanup();
-    (mock.api.events as any).emit(DYNAMIC_WALKER_ARRIVED_EVENT, { roomId: 13771 });
+    (mock.api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 13771 });
     expect(popupHandle.setBody).toHaveBeenCalledOnce();
-    expect(mock.api.events.off).toHaveBeenCalledWith(DYNAMIC_WALKER_ARRIVED_EVENT, expect.any(Function));
+    expect(mock.api.events.off).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.any(Function));
   });
 
   it('tro! walks to the nearest reachable living pbt and ignores besti and dead trolls', () => {
@@ -444,10 +439,8 @@ describe('trolle mobLocations', () => {
 
     runAlias(mock.aliases, 'tro!');
 
-    expect(mock.api.events.emit).toHaveBeenCalledWith(DYNAMIC_WALKER_START_EVENT, {
+    expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, {
       roomId: 13003,
-      label: 'pbt',
-      automatic: true,
     });
   });
 
@@ -468,6 +461,68 @@ describe('trolle mobLocations', () => {
     runAlias(mock.aliases, 'tro!');
 
     expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Brak osiagalnego zywego trolla.');
-    expect(mock.api.events.emit).not.toHaveBeenCalledWith(DYNAMIC_WALKER_START_EVENT, expect.anything());
+    expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, expect.anything());
+  });
+
+  it('marks an unattended troll dead after 2.5 seconds at the destination', async () => {
+    const storage = makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) });
+    vi.stubGlobal('localStorage', storage);
+    let roomId = 13000;
+    const mock = createMockApi();
+    mock.api.map.getRoom = vi.fn(() => ({ id: roomId, area: 52 })) as any;
+    mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+    setupTro(mock.api);
+
+    runAlias(mock.aliases, 'tro!');
+    roomId = 13771;
+    (mock.api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId });
+    await vi.advanceTimersByTimeAsync(2499);
+    expect(loadMobLocations()[0].active).toBe('1');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(loadMobLocations()[0].active).toBe('0');
+    expect(mock.api.command.send).not.toHaveBeenCalledWith('zabij trolla');
+  });
+
+  it.each(['Wielki cuchnacy troll atakuje cie!', 'atak   Wielki cuchnacy troll atakuje CIE!'])(
+    'keeps the troll alive when it attacks: %s', async (attack) => {
+      vi.stubGlobal('localStorage', makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) }));
+      let roomId = 13000;
+      const mock = createMockApi();
+      mock.api.map.getRoom = vi.fn(() => ({ id: roomId, area: 52 })) as any;
+      mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+      setupTro(mock.api);
+
+      runAlias(mock.aliases, 'tro!');
+      roomId = 13771;
+      (mock.api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId });
+      runLine(mock, attack);
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(loadMobLocations()[0].active).toBe('1');
+    },
+  );
+
+  it('marks a troll dead from its death line after manual travel', () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) }));
+    const mock = createMockApi({ room: { id: 13771, area: 52 } });
+    setupTro(mock.api);
+
+    runLine(mock, 'Wielki cuchnacy troll umarl.');
+    expect(loadMobLocations()[0].active).toBe('0');
+  });
+
+  it('counts an attack received just before the walker reports arrival', async () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) }));
+    let roomId = 13000;
+    const mock = createMockApi();
+    mock.api.map.getRoom = vi.fn(() => ({ id: roomId, area: 52 })) as any;
+    mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+    setupTro(mock.api);
+
+    runAlias(mock.aliases, 'tro!');
+    roomId = 13771;
+    runLine(mock, 'Wielki cuchnacy troll atakuje cie!');
+    (mock.api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId });
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(loadMobLocations()[0].active).toBe('1');
   });
 });

@@ -1,13 +1,15 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
-import { withDelay } from '../../../lib/withDelay';
-import { DYNAMIC_WALKER_ARRIVED_EVENT, DYNAMIC_WALKER_START_EVENT } from '../movement/walker';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
+import {
+  WALKER_ROUTE_ARRIVED_EVENT,
+  WALKER_ROUTE_START_EVENT,
+} from '../movement/walker';
 import { createTroView, type TroViewRow } from './view';
 
 export const TRO_STORAGE_KEY = 'mobLocations';
 const TRO_DEFAULT_ROW_LIMIT = 30;
 const VISIBLE_MOB_TYPES = new Set(['pbt', 'besti']);
-// One-shot trigger armed only while a tro! walk is in flight; see armZabijTrolla below.
-const TAG_TRO_ZABIJ = 'tro_zabij_oneshot';
+const TAG_TRO = 'tro';
 
 export interface MobLocation {
   active: string;
@@ -112,14 +114,12 @@ function getOrderedRows(api: PluginApi): MobRow[] {
     );
 }
 
-function startDynamicWalker(api: PluginApi, entry: MobLocation, automatic: boolean): void {
+function startWalkerRoute(api: PluginApi, entry: MobLocation, automatic = true): void {
   // Custom event shared inside core-plugin; absent from the published event union.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (api.events as any).emit(DYNAMIC_WALKER_START_EVENT, {
-    roomId: entry.roomId,
-    label: entry.mobType,
-    automatic,
-  });
+  (api.events as any).emit(WALKER_ROUTE_START_EVENT, automatic
+    ? { roomId: entry.roomId }
+    : { roomId: entry.roomId, automatic: false });
 }
 
 function mutateStoredEntry(api: PluginApi, selected: StoredMobLocation, mutation: 'toggle' | 'remove' | 'kill'): void {
@@ -250,7 +250,7 @@ function printMobTable(
       underline: false,
       hyperlink: {
         title: `Ustaw cel: ${entry.mobType} (${entry.roomId})`,
-        onClick: () => startDynamicWalker(api, entry, false),
+        onClick: () => startWalkerRoute(api, entry, false),
       },
     });
     buffer.append(`${' '.repeat(idWidth - roomId.length)} | `, dataColor);
@@ -259,7 +259,7 @@ function printMobTable(
       underline: false,
       hyperlink: {
         title: `Idz do: ${entry.mobType} (${entry.roomId})`,
-        onClick: () => startDynamicWalker(api, entry, true),
+        onClick: () => startWalkerRoute(api, entry),
       },
     });
     buffer.append(` | ${entry.mobType.padEnd(typeWidth)} | `, dataColor);
@@ -365,8 +365,8 @@ export function setupTro(api: PluginApi): () => void {
         distance,
         current: distance === 0,
       })),
-    setTarget: (row) => startDynamicWalker(api, toStoredEntry(row).entry, false),
-    startWalking: (row) => startDynamicWalker(api, toStoredEntry(row).entry, true),
+    setTarget: (row) => startWalkerRoute(api, toStoredEntry(row).entry, false),
+    startWalking: (row) => startWalkerRoute(api, toStoredEntry(row).entry),
     toggle: (row) => {
       mutateStoredEntry(api, toStoredEntry(row), 'toggle');
       view.refresh();
@@ -385,47 +385,78 @@ export function setupTro(api: PluginApi): () => void {
   const refreshViewOnArrival = () => view.refresh();
   // Custom core-plugin event; not present in the published plugin-types.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (api.events as any).on(DYNAMIC_WALKER_ARRIVED_EVENT, refreshViewOnArrival);
+  (api.events as any).on(WALKER_ROUTE_ARRIVED_EVENT, refreshViewOnArrival);
 
-  // tro! arms this while walking to a target: on arrival, wait a random 1-3s
-  // "human" delay, send `zabij trolla`, then watch for the client's reply
-  // saying nobody is there — that means the troll is already dead.
-  let zabijOffArrival: (() => void) | null = null;
-  let zabijDelayTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingTarget: StoredMobLocation | null = null;
+  let attackTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingArrivalCleanup: (() => void) | null = null;
+  let observedAttack = false;
 
-  const cancelZabijTrolla = () => {
-    zabijOffArrival?.();
-    zabijOffArrival = null;
-    if (zabijDelayTimer !== null) clearTimeout(zabijDelayTimer);
-    zabijDelayTimer = null;
-    api.triggers.removeByTag(TAG_TRO_ZABIJ);
+  const cancelAttackWatch = () => {
+    if (attackTimer !== null) clearTimeout(attackTimer);
+    attackTimer = null;
   };
 
-  const armZabijTrolla = (target: StoredMobLocation) => {
-    cancelZabijTrolla();
+  const markCurrentTrollDead = () => {
+    const roomId = api.map.getRoom()?.id;
+    if (roomId === undefined) return;
+    const current = loadMobLocationStore().locations.find(
+      ({ entry }) => entry.roomId === roomId && normalizedMobType(entry) === 'pbt' && entry.active === '1',
+    );
+    if (!current) return;
+    mutateStoredEntry(api, current, 'kill');
+    view.refresh();
+  };
+
+  registerTokenGate(api, 'umarl', /^Wielki cuchnacy troll umarl\.$/i, (line) => {
+    if (api.map.getRoom()?.id === pendingTarget?.entry.roomId) {
+      pendingArrivalCleanup?.();
+      pendingArrivalCleanup = null;
+      cancelAttackWatch();
+      pendingTarget = null;
+      observedAttack = false;
+    }
+    markCurrentTrollDead();
+    return line;
+  }, TAG_TRO);
+
+  registerTokenGate(api, 'atakuje', /^(?:atak\s+)?Wielki cuchnacy troll atakuje cie!$/i, (line) => {
+    if (pendingTarget && api.map.getRoom()?.id === pendingTarget.entry.roomId) observedAttack = true;
+    if (attackTimer !== null) {
+      cancelAttackWatch();
+      pendingTarget = null;
+    }
+    return line;
+  }, TAG_TRO);
+
+  const armAttackWatch = (target: StoredMobLocation) => {
+    cancelAttackWatch();
+    pendingTarget = target;
+    observedAttack = false;
     const onArrived = (payload: unknown) => {
       if (!payload || typeof payload !== 'object') return;
       const { roomId } = payload as { roomId?: unknown };
       if (roomId !== target.entry.roomId) return;
-      cancelZabijTrolla();
-      withDelay(1000, 3000, () => {
-        void api.command.send('zabij trolla');
-        api.triggers.registerOneTime(
-          /Nie widzisz zadnej takiej osoby\./,
-          (line) => {
-            mutateStoredEntry(api, target, 'kill');
-            view.refresh();
-            return line;
-          },
-          TAG_TRO_ZABIJ,
-        );
-      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (api.events as any).off(WALKER_ROUTE_ARRIVED_EVENT, onArrived);
+      pendingArrivalCleanup = null;
+      if (pendingTarget !== target) return;
+      if (observedAttack) {
+        pendingTarget = null;
+        return;
+      }
+      attackTimer = setTimeout(() => {
+        attackTimer = null;
+        if (pendingTarget !== target || api.map.getRoom()?.id !== target.entry.roomId) return;
+        pendingTarget = null;
+        mutateStoredEntry(api, target, 'kill');
+        view.refresh();
+      }, 2500);
     };
     // Custom core-plugin event; not present in the published plugin-types.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (api.events as any).on(DYNAMIC_WALKER_ARRIVED_EVENT, onArrived);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    zabijOffArrival = () => (api.events as any).off(DYNAMIC_WALKER_ARRIVED_EVENT, onArrived);
+    (api.events as any).on(WALKER_ROUTE_ARRIVED_EVENT, onArrived);
+    pendingArrivalCleanup = () => (api.events as any).off(WALKER_ROUTE_ARRIVED_EVENT, onArrived);
   };
 
   api.aliases.register(/^(?:tro_all|tro_lista|tro)$/i, (matches) => {
@@ -448,17 +479,20 @@ export function setupTro(api: PluginApi): () => void {
       api.output.print('[tro] Brak osiagalnego zywego trolla.');
       return true;
     }
-    armZabijTrolla(nearestTroll.stored);
-    startDynamicWalker(api, nearestTroll.stored.entry, true);
+    pendingArrivalCleanup?.();
+    armAttackWatch(nearestTroll.stored);
+    startWalkerRoute(api, nearestTroll.stored.entry);
     return true;
   });
 
   return () => {
     if (previewTimer !== null) clearTimeout(previewTimer);
     finishPreview();
-    cancelZabijTrolla();
+    pendingArrivalCleanup?.();
+    cancelAttackWatch();
+    api.triggers.removeByTag(TAG_TRO);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (api.events as any).off(DYNAMIC_WALKER_ARRIVED_EVENT, refreshViewOnArrival);
+    (api.events as any).off(WALKER_ROUTE_ARRIVED_EVENT, refreshViewOnArrival);
     menuEntry.remove();
     view.stop();
   };
