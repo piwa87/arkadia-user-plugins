@@ -28,6 +28,6 @@ Walker wysyłał zwykłe komendy ruchu do gry i drukował wybrany kierunek jako 
 
 ## Stan obecny i ewentualny powrót
 
-Obecnie `tro!`, kliknięcie dystansu w `tro`/`trow` i `wk` korzystają z walkera klienta. Kliknięcie ID trolla ustawia cel przez `/prowadz <ID>`. Ręczne aliasy `/zcwalk`, `step!`, `step!!` i `/zcstop` nie są rejestrowane. Komenda `/walk` należy do klienta i w obszarach ZC/Pustkowia przełącza jego wyszukiwanie alternatywnych wyjść na czas przejścia.
+Obecnie `tro!`, kliknięcie dystansu w `tro`/`trow` i `wk` korzystają z walkera klienta. Kliknięcie ID trolla ustawia cel przez `/prowadz <ID>`. Ręczne aliasy `/zcwalk`, `step!`, `step!!` i `/zcstop` nie są rejestrowane. Komenda `/walk 1` włącza w kliencie wyszukiwanie alternatywnych wyjść na czas przejścia przez ZC/Pustkowia, a `/walk 0` jawnie wyłącza je po zakończeniu lub przerwaniu trasy.
 
 Przy przywracaniu starego algorytmu warto wydzielić go do osobnego modułu, przywrócić testy kroków z podanej rewizji i zdecydować, które akcje mają go uruchamiać. Nie należy jednocześnie prowadzić postaci dwoma automatami: dawny `startZcWalking` zatrzymywał walker klienta właśnie z tego powodu.

@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { col8 } from '../../../lib/colors/my-colors';
+import { FOOTER_ICONS, renderFooterChip } from '../../../lib/footerChip';
 
 export function setupFooter(
   api: PluginApi,
@@ -9,7 +9,11 @@ export function setupFooter(
 } {
   const renderContent = () => {
     if (!targets[0]) return '';
-    return `CEL: <span style="color: ${col8};">${targets[0]}</span>`;
+    return renderFooterChip({
+      icon: FOOTER_ICONS.target,
+      label: 'CEL',
+      value: targets[0],
+    });
   };
 
   const footerHandle = api.ui.registerFooterComponent('targets', renderContent(), 'start');

@@ -2,6 +2,7 @@ import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { SoundManager } from './my-sounds-plugin/soundManager';
 import { SOUNDS } from './my-sounds-plugin/sounds-data';
 import { storage } from '../lib/storage';
+import { FOOTER_ICONS, renderFooterChip } from '../lib/footerChip';
 
 let soundManager: SoundManager;
 const SOUND_ENABLED_KEY = 'soundsEnabled';
@@ -44,11 +45,21 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const savedEnabled = storage.get<boolean>(SOUND_ENABLED_KEY) ?? false;
   soundManager.setSoundEnabled(savedEnabled);
 
+  const renderFooter = (enabled: boolean) =>
+    enabled
+      ? renderFooterChip({
+          icon: FOOTER_ICONS.sound,
+          label: 'DZWIEK',
+          value: 'ON',
+          tone: 'ok',
+        })
+      : '';
+
   // Register footer component for sounds state
-  const footerHandle = api.ui.registerFooterComponent('sounds', savedEnabled ? ' 🔊' : '');
+  const footerHandle = api.ui.registerFooterComponent('sounds', renderFooter(savedEnabled));
 
   const updateFooter = (enabled: boolean) => {
-    footerHandle.setContent(enabled ? ' 🔊' : '');
+    footerHandle.setContent(renderFooter(enabled));
   };
 
   // Register all sounds

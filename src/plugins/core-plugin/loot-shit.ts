@@ -163,6 +163,8 @@ async function sellSequence(api: PluginApi): Promise<void> {
       await api.command.send(command, false);
     }
   }
+
+  await api.command.send('oproznij worek', false);
 }
 
 function sellGroup(api: PluginApi): void {
@@ -195,8 +197,20 @@ export function setupLootShitAliases(api: PluginApi): void {
   // ── Specific aliases: w<group> / sp<group> ────────────────────────────────
 
   for (const group of GROUPS) {
+    if (group.key === 'has') continue;
     registerTakeAlias(api, group);
     registerSellAlias(api, group);
+  }
+
+  const hasGroup = getGroup('has');
+  if (hasGroup) {
+    api.aliases.register(/^whas$/i, () => {
+      wezWszystkie(api, hasGroup.items);
+      api.command.send('napelnij zalozony plecak', false);
+      api.command.send('napelnij zalozony worek', false);
+      return true;
+    });
+    registerSellAlias(api, hasGroup);
   }
 
   // ── Parameterized aliases: w <group> / sp <group> ────────────────────────
@@ -230,6 +244,21 @@ export function setupLootShitAliases(api: PluginApi): void {
     api.command.send('wez wszystko', false);
     api.command.send('odloz szczatki', false);
     api.command.send('napt', false);
+    return true;
+  });
+
+  api.aliases.register(/^zlom\+$/i, () => {
+    api.command.send('poodepnij wyszukana pochwe', false);
+    api.command.send('przewies worek przez prawe ramie', false);
+    api.command.send('otworz worek', false);
+    api.output.print('[zlom] tryb wlaczony');
+    return true;
+  });
+
+  api.aliases.register(/^zlom-$/i, () => {
+    api.command.send('zdejmij worek', false);
+    api.command.send('poprzypnij wyszukana pochwe na plecach', false);
+    api.output.print('[zlom] tryb wylaczony');
     return true;
   });
 

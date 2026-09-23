@@ -312,12 +312,13 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
   };
   api.events.on('gmcp.char.info', syncClientShortcuts);
 
-  // The client's built-in walker resets this to off on every client start, so
-  // one enable per plugin session is enough — /walk is a toggle, not a set.
+  // Alternative-exit walking is only useful in ZC/Pustkowia. Use the explicit
+  // setter commands so our local state cannot accidentally toggle the client
+  // into the opposite mode.
   let altExitWalkModeEnabled = false;
   const ensureAltExitWalkMode = () => {
     if (altExitWalkModeEnabled) return;
-    void api.command.send('/walk');
+    void api.command.send('/walk 1');
     altExitWalkModeEnabled = true;
   };
 
@@ -335,7 +336,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
   };
   const turnOffAltExitMode = () => {
     if (!altExitWalkModeEnabled) return;
-    void api.command.send('/walk');
+    void api.command.send('/walk 0');
     altExitWalkModeEnabled = false;
   };
   const finishRoute = (arrived: boolean) => {
@@ -413,6 +414,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
       void api.command.send('/walkerw');
       return;
     }
+    turnOffAltExitMode();
     routeDelay = 2;
     void api.command.send(`/idz ${shortcut.id} ${routeDelay}`);
     void api.command.send('/walkerw');
@@ -621,6 +623,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
   }, 100);
 
   return () => {
+    turnOffAltExitMode();
     cleanupShortcutMigration();
     mapPreview.dispose();
     clearRouteTimer();
