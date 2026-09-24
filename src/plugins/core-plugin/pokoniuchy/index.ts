@@ -199,7 +199,8 @@ function printList(api: PluginApi, state: PokState, actions: ListActions): void 
   const completedRowColor = api.colors.fromHex('#484848');
   const currentRowColor = api.colors.fromHex('#6f8f78');
   const completedCurrentRowColor = api.colors.fromHex('#4e6454');
-  const pendingColor = api.colors.fromHex('#777777');
+  const aliveMarkerColor = api.colors.fromHex('#777777');
+  const deadMarkerColor = api.colors.fromHex('#8f4a4a');
   const completedColor = api.colors.fromHex('#4f8a65');
   const previewColor = api.colors.fromHex('#607d9b');
   const deleteColor = api.colors.fromHex('#8f4a4a');
@@ -241,16 +242,20 @@ function printList(api: PluginApi, state: PokState, actions: ListActions): void 
       { cell: ({ finding }) => ({ text: finding.short }) },
       { cell: ({ finding }) => ({ text: finding.areaName }) },
       {
-        cell: ({ finding }) => ({
-          text: finding.slain ? '[✓]' : '[ ]',
-          state: {
-            ...(finding.slain ? completedColor : pendingColor),
-            hyperlink: {
-              title: finding.slain ? 'Oznacz jako nieodwiedzone' : 'Oznacz jako zabite/odwiedzone',
-              onClick: () => toggleSlain(api, state, finding, actions),
+        cell: ({ finding }) => {
+          const isSlain = finding.slain === true;
+          return {
+            text: isSlain ? '💀' : '  ',
+            state: {
+              ...(isSlain ? deadMarkerColor : aliveMarkerColor),
+              underline: false,
+              hyperlink: {
+                title: isSlain ? 'Oznacz jako zywego' : 'Oznacz jako ubitego',
+                onClick: () => toggleSlain(api, state, finding, actions),
+              },
             },
-          },
-        }),
+          };
+        },
       },
       {
         cell: ({ finding }) => ({
@@ -290,6 +295,44 @@ function printList(api: PluginApi, state: PokState, actions: ListActions): void 
   api.output.print(clearButton);
 }
 
+function printHelp(api: PluginApi): void {
+  const commandColor = api.colors.fromHex('#7dd3fc');
+  const borderColor = api.colors.fromHex('#4b5563');
+  const rows = [
+    ['poko+', 'wlacz wyszukiwanie i zapisywanie stworow'],
+    ['poko-', 'wylacz wyszukiwanie'],
+    ['poko / poko_lista', 'pokaz zapisane stwory i odleglosci'],
+    ['poko_tu', 'odswiez opis stwora w biezacej lokacji'],
+    ['poko_reset', 'usun wszystkie zapisane stwory'],
+    ['poko_help', 'pokaz ten help'],
+    ['ID lokacji', 'kliknij, aby wykonac /prowadz'],
+    ['odleglosc', 'kliknij, aby wykonac /prowadz, potem vid'],
+    ['puste / \ud83d\udc80', 'oznacz stwora jako zywego / ubitego'],
+    ['\ud83d\udc41', 'pokaz lokacje na mapie przez 3 sekundy'],
+    ['\ud83d\uddd1', 'usun pojedynczy wpis'],
+    ['CLEAR', 'oznacz wszystkie ubite stwory jako zywe'],
+  ] as const;
+  const commandWidth = Math.max(...rows.map(([command]) => command.length));
+  const lineWidth = Math.max(...rows.map(([command, description]) => commandWidth + 2 + description.length));
+
+  const printBorder = (text: string) => {
+    const buffer = new api.AnsiAwareBuffer(text);
+    buffer.color([0, text.length], borderColor);
+    api.output.print(buffer);
+  };
+
+  printBorder('\u2500'.repeat(lineWidth));
+  printBorder(' POKONIUCHY');
+  printBorder('\u2500'.repeat(lineWidth));
+  for (const [command, description] of rows) {
+    const line = `${command.padEnd(commandWidth)}  ${description}`;
+    const buffer = new api.AnsiAwareBuffer(line);
+    buffer.color([0, command.length], commandColor);
+    api.output.print(buffer);
+  }
+  printBorder('\u2500'.repeat(lineWidth));
+}
+
 function saveFinding(api: PluginApi, state: PokState, short: string): void {
   const room = api.map.getRoom();
   if (!room) {
@@ -313,7 +356,7 @@ function saveFinding(api: PluginApi, state: PokState, short: string): void {
   api.output.print(`[poko] #${state.findings.length}: ${short} (${room.id}, ${finding.areaName})`);
 }
 
-export function setupPok(api: PluginApi): () => void {
+export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
   const state = createPokState();
   const mapPreview = createMapPreviewController(api, {
     durationMs: 3_000,
@@ -421,7 +464,7 @@ export function setupPok(api: PluginApi): () => void {
       }
       return line;
     },
-    POK_TAG,
+    triggerTag,
   );
 
   api.aliases.register(/^poko\+$/i, () => {
@@ -475,6 +518,11 @@ export function setupPok(api: PluginApi): () => void {
     storage.remove(POK_STORAGE_KEY);
     state.findings.splice(0, state.findings.length);
     api.output.print('[poko] Lista zostala wyzerowana.');
+    return true;
+  });
+
+  api.aliases.register(/^poko_help$/i, () => {
+    printHelp(api);
     return true;
   });
 

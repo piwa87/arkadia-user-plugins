@@ -256,10 +256,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'wk+ <key> [label]', desc: 'save or update a character and client shortcut' },
 
       { section: 'POKONIUCHY' },
-      { cmd: 'poko+ / poko-', desc: 'enable / disable creature search' },
-      { cmd: 'poko / poko_lista', desc: 'show saved findings with live distance' },
-      { cmd: 'poko_tu', desc: 'look and update the saved creature in this room' },
-      { cmd: 'poko_reset', desc: 'clear all saved findings' },
+      { cmd: 'poko_help', desc: 'show Pokoniuchy commands and list controls' },
 
       { section: 'TROLLE / MOB LOCATIONS' },
       { cmd: 'tro / tro_lista', desc: 'show the 30 nearest pbt/besti entries with actions' },

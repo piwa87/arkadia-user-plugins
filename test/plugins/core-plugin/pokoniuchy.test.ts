@@ -49,6 +49,23 @@ describe('pokoniuchy', () => {
     expect(mock.tokenTriggers.some((trigger) => trigger.tag === 'pokoniuchy' && trigger.token === 'wiwerna')).toBe(true);
   });
 
+  it('prints a dedicated command and list-controls help', () => {
+    const mock = createMockApi();
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_help');
+
+    const output = vi.mocked(mock.api.output.print).mock.calls
+      .map(([value]) => value instanceof MockAnsiAwareBuffer ? value.text : String(value))
+      .join('\n');
+    expect(output).toContain('POKONIUCHY');
+    expect(output).toContain('poko+');
+    expect(output).toContain('poko_reset');
+    expect(output).toContain('ID lokacji');
+    expect(output).toContain('💀');
+    expect(output).toContain('CLEAR');
+  });
+
   it('does not save findings until searching is enabled', () => {
     const mock = createMockApi({ room: { id: 10276, area: 7 } });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 7, areaName: 'Poludniowe Kaedwen', rooms: [] }]) as any;
@@ -189,7 +206,7 @@ describe('pokoniuchy', () => {
     });
     const afterId = findingRow.segments.slice(findingRow.segments.indexOf(idSegment) + 1);
     expect(afterId.filter((segment) => segment.state?.hyperlink).map((segment) => segment.text)).toEqual([
-      '2 lok.', '[ ]', '👁', '🗑',
+      '2 lok.', '  ', '👁', '🗑',
     ]);
     expect(afterId[0].state).toMatchObject({ value: '#929292' });
     expect(rows.some((row) => /\b(?:NR|LOC|DIS|SHORT)\b/.test(row.text))).toBe(false);
@@ -235,7 +252,7 @@ describe('pokoniuchy', () => {
     ]);
   });
 
-  it('persists and toggles the slain/visited checkbox', () => {
+  it('persists and toggles the slain skull marker', () => {
     storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
       roomId: 10276,
       short: 'Galezowaty pokoniunkcyjny klabart',
@@ -256,12 +273,14 @@ describe('pokoniuchy', () => {
       return rows[rows.length - 1]!;
     };
 
-    latestRow().klik('[ ]');
+    latestRow().klik('  ');
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].slain).toBe(true);
 
-    const checkedRow = latestRow();
-    expect(checkedRow.segments.some((segment) => segment.state?.value === '#484848')).toBe(true);
-    checkedRow.klik('[✓]');
+    const slainRow = latestRow();
+    expect(slainRow.text).toContain('💀');
+    expect(slainRow.segments.some((segment) => segment.text === '💀' && segment.state?.value === '#8f4a4a')).toBe(true);
+    expect(slainRow.segments.some((segment) => segment.state?.value === '#484848')).toBe(true);
+    slainRow.klik('💀');
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].slain).toBe(false);
   });
 
