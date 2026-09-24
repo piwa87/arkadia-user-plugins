@@ -319,7 +319,7 @@ export async function buildProject({ exclude = [] } = {}) {
     platform: "browser",
     target: "es2020",
     sourcemap: false,
-    minify: false,
+    minify: true,
     logLevel: "info"
   });
 
