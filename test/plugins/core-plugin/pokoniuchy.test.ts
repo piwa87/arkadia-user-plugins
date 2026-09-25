@@ -109,17 +109,54 @@ describe('pokoniuchy', () => {
     });
   });
 
-  it('recognizes Drapiezny wezowaty wipper with trailing punctuation', () => {
-    const mock = createMockApi({ room: { id: 12346, area: 8 } });
+  it.each([
+    ['wipper', 'Ponury szybki wipper', 12346],
+    ['endriaga', 'Mala jadowita endriaga', 12350],
+    ['oszluzg', 'Stary powolny oszluzg', 12351],
+    ['widlogon', 'Wielki wsciekly widlogon', 12352],
+  ])('recognizes any two-adjective %s description', (_creature, short, roomId) => {
+    const mock = createMockApi({ room: { id: roomId, area: 8 } });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
     setupPok(mock.api);
     runAlias(mock.aliases, 'poko+');
 
-    runLine(mock, 'Drapiezny wezowaty wipper.');
+    runLine(mock, `${short}.`);
 
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toContainEqual({
-      roomId: 12346,
-      short: 'Drapiezny wezowaty wipper',
+      roomId,
+      short,
+      areaId: 8,
+      areaName: 'Testowy obszar',
+    });
+  });
+
+  it('recognizes any two-adjective wiwerna description', () => {
+    const mock = createMockApi({ room: { id: 12348, area: 8 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Grozna wezowata wiwerna.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toContainEqual({
+      roomId: 12348,
+      short: 'Grozna wezowata wiwerna',
+      areaId: 8,
+      areaName: 'Testowy obszar',
+    });
+  });
+
+  it('recognizes any two-adjective smok description', () => {
+    const mock = createMockApi({ room: { id: 12349, area: 8 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Stary potezny smok.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toContainEqual({
+      roomId: 12349,
+      short: 'Stary potezny smok',
       areaId: 8,
       areaName: 'Testowy obszar',
     });

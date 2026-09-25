@@ -12,7 +12,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   const info: PluginInfo = {
     name: '(s)poko pluuuug',
-    version: '1.0.0',
+    version: '1.0.1',
     author: 'vonhookin',
     description: 'Wyszukiwanie i zapisywanie pokoniuchow; poko_help = pomoc',
   };

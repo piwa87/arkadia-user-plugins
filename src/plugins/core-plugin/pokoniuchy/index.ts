@@ -13,23 +13,20 @@ const LEGACY_POK_STORAGE_KEY = 'mod_pok:findings';
 
 // Shorty widoczne w dostarczonej tabeli. Kolejne odmiany mozna dopisywac tutaj.
 export const POK_SHORTS = [
-  'Drapiezny wezowaty wipper',
-  'Duza drapiezna endriaga',
-  'Duza zwinna endriaga',
   'Galezowaty pokoniunkcyjny klabart',
   'Omszala jadowita kergulena',
   'Pokoniunkcyjny glazowy stwor',
-  'Pospolita wezowata wiwerna',
   'Potezna skrzydlata bestia',
   'Rdzawofutra masywna mantikora',
-  'Szybki agresywny widlogon',
   'Wezowaty grozny stwor',
-  'Wielki skrzydlaty oszluzg',
 ] as const;
 
-const GATE_WORDS = ['bestia', 'endriaga', 'kergulena', 'klabart', 'mantikora', 'oszluzg', 'stwor', 'widlogon', 'wipper', 'wiwerna'];
-const SHORT_PATTERN = new RegExp(`\\b(?:${POK_SHORTS.map(escapeRegex).join('|')})\\b`, 'i');
-const SHORT_SCAN_PATTERN = new RegExp(`\\b(?:${POK_SHORTS.map(escapeRegex).join('|')})\\b`, 'gi');
+const VARIABLE_CREATURE_NOUNS = ['endriaga', 'oszluzg', 'smok', 'widlogon', 'wipper', 'wiwerna'] as const;
+const VARIABLE_SHORT_SOURCE = `[A-Za-z]+ [A-Za-z]+ (?:${VARIABLE_CREATURE_NOUNS.join('|')})`;
+const SHORT_SOURCE = `(?:${POK_SHORTS.map(escapeRegex).join('|')}|${VARIABLE_SHORT_SOURCE})`;
+const GATE_WORDS = ['bestia', 'endriaga', 'kergulena', 'klabart', 'mantikora', 'oszluzg', 'smok', 'stwor', 'widlogon', 'wipper', 'wiwerna'];
+const SHORT_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'i');
+const SHORT_SCAN_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'gi');
 
 export interface PokFinding {
   roomId: number;
@@ -122,6 +119,11 @@ function selectCreatureDescription(currentShort: string, descriptions: string[])
 function capitalizeFirst(description: string): string {
   const [first = '', ...rest] = [...description];
   return first.toLocaleUpperCase('pl-PL') + rest.join('');
+}
+
+function canonicalizeShort(short: string): string {
+  return POK_SHORTS.find((candidate) => candidate.toLowerCase() === short.toLowerCase())
+    ?? capitalizeFirst(short);
 }
 
 function findFindingIndex(state: PokState, finding: PokFinding): number {
@@ -449,8 +451,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
         const foundShorts: string[] = [];
         let match: RegExpExecArray | null;
         while ((match = SHORT_SCAN_PATTERN.exec(text)) !== null) {
-          const canonical = POK_SHORTS.find((candidate) => candidate.toLowerCase() === match![0].toLowerCase());
-          if (canonical) foundShorts.push(canonical);
+          foundShorts.push(canonicalizeShort(match[0]));
         }
 
         if (pendingLocalUpdate && foundShorts.length === 1) {
