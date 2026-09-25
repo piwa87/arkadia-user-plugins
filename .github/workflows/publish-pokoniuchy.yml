@@ -40,5 +40,5 @@ jobs:
             -H "Authorization: Bearer $TOKEN" \
             -F "slug=pokoniuchy-plugin" \
             -F "version=$VERSION" \
-            -F "changelog=Rozpoznawanie zmiennych opisow wiwern, smokow, wipperow, endriag, oszluzgow i widlogonow." \
+            -F "changelog=Wydanie $VERSION" \
             -F "file=@dist/pokoniuchy-plugin.js"

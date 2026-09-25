@@ -24,8 +24,9 @@ export const POK_SHORTS = [
 ] as const;
 
 const VARIABLE_CREATURE_NOUNS = ['endriaga', 'oszluzg', 'smok', 'widlogon', 'wipper', 'wiwerna'] as const;
+const IGNORED_VARIABLE_SHORTS = new Set(['kolczasta mloda wiwerna']);
 const VARIABLE_SHORT_SOURCE = `[A-Za-z]+ [A-Za-z]+ (?:${VARIABLE_CREATURE_NOUNS.join('|')})`;
-const SHORT_SOURCE = `(?:${POK_SHORTS.map(escapeRegex).join('|')}|${VARIABLE_SHORT_SOURCE})`;
+const SHORT_SOURCE = `(?:${POK_SHORTS.map(escapeRegex).join('|')}|^${VARIABLE_SHORT_SOURCE})`;
 const GATE_WORDS = ['bestia', 'endriaga', 'kergulena', 'klabart', 'mantikora', 'oszluzg', 'smok', 'stwor', 'widlogon', 'wipper', 'wiwerna'];
 const SHORT_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'i');
 const SHORT_SCAN_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'gi');
@@ -513,6 +514,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
         const foundShorts: string[] = [];
         let match: RegExpExecArray | null;
         while ((match = SHORT_SCAN_PATTERN.exec(text)) !== null) {
+          if (IGNORED_VARIABLE_SHORTS.has(match[0].toLowerCase())) continue;
           foundShorts.push(canonicalizeShort(match[0]));
         }
 

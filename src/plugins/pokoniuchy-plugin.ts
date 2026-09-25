@@ -11,8 +11,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupPok = setupPok(api, TRIGGER_TAG);
 
   const info: PluginInfo = {
-    name: '(s)poko pluuuug',
-    version: '1.0.2',
+    name: 'Pokoniuchy Plugin',
+    version: '1.0.3',
     author: 'vonhookin',
     description: 'Wyszukiwanie i zapisywanie pokoniuchow; poko_help = pomoc',
   };

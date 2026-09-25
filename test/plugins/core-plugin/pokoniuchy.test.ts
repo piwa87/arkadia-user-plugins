@@ -202,6 +202,46 @@ describe('pokoniuchy', () => {
     });
   });
 
+  it.each([
+    'Na twoim lewym ramieniu siedzi kolczasta mloda wiwerna.',
+    'Na twej glowie siedzi kolczasta mloda wiwerna.',
+    'Na twoim plecaku siedzi kolczasta mloda wiwerna.',
+  ])('ignores a wiwerna sitting on the character: %s', (line) => {
+    const mock = createMockApi({ room: { id: 12348, area: 8 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, line);
+
+    expect(storage.get(POK_STORAGE_KEY)).toBeNull();
+  });
+
+  it('ignores a personal wiwerna mentioned while sending it away', () => {
+    const mock = createMockApi({ room: { id: 21710, area: 9 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 9, areaName: 'Wschodni Mahakam', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(
+      mock,
+      'Wysylasz kolczasta mloda wiwerne na poczte. Kolczasta mloda wiwerna rozklada skrzydla i jednym mocnym machnieciem podrywa sie w powietrze. Po krotkiej chwili niknie ci z oczu.',
+    );
+
+    expect(storage.get(POK_STORAGE_KEY)).toBeNull();
+  });
+
+  it('always ignores the personal kolczasta mloda wiwerna short', () => {
+    const mock = createMockApi({ room: { id: 21710, area: 9 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 9, areaName: 'Wschodni Mahakam', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Kolczasta mloda wiwerna rozklada skrzydla.');
+
+    expect(storage.get(POK_STORAGE_KEY)).toBeNull();
+  });
+
   it('recognizes any two-adjective smok description', () => {
     const mock = createMockApi({ room: { id: 12349, area: 8 } });
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
