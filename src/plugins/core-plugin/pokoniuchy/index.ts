@@ -9,6 +9,8 @@ import { runVid } from '../movement/movement_aliases';
 
 export const POK_TAG = 'pokoniuchy';
 export const POK_STORAGE_KEY = 'pokoniuchy:findings';
+export const POK_WORLD_REBIRTH_STORAGE_KEY = 'pokoniuchy:lastWorldRebirth';
+export const WORLD_REBIRTH_STORAGE_KEY = 'last_world_rebirth';
 const LEGACY_POK_STORAGE_KEY = 'mod_pok:findings';
 
 // Shorty widoczne w dostarczonej tabeli. Kolejne odmiany mozna dopisywac tutaj.
@@ -79,6 +81,24 @@ function loadFindings(): PokFinding[] {
 
 export function createPokState(): PokState {
   return { active: false, findings: loadFindings() };
+}
+
+function readWorldRebirth(): number | null {
+  try {
+    const raw = localStorage.getItem(WORLD_REBIRTH_STORAGE_KEY);
+    if (raw === null) return null;
+    const timestamp = Number(raw);
+    return Number.isInteger(timestamp) && timestamp > 0 ? timestamp : null;
+  } catch {
+    return null;
+  }
+}
+
+function loadKnownWorldRebirth(): number | null {
+  const timestamp = storage.get<unknown>(POK_WORLD_REBIRTH_STORAGE_KEY);
+  return typeof timestamp === 'number' && Number.isInteger(timestamp) && timestamp > 0
+    ? timestamp
+    : null;
 }
 
 function getAreaName(api: PluginApi, areaId: number): string {
@@ -367,6 +387,29 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
   let leadAndWalkTimer: ReturnType<typeof setTimeout> | null = null;
   let pendingLocalUpdate: PendingLocalUpdate | null = null;
   let localUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+  let worldRebirthCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  let knownWorldRebirth = loadKnownWorldRebirth();
+
+  const checkWorldRebirth = () => {
+    const currentWorldRebirth = readWorldRebirth();
+    if (currentWorldRebirth === null || currentWorldRebirth === knownWorldRebirth) return;
+
+    if (knownWorldRebirth !== null && state.findings.length > 0) {
+      api.output.print(
+        '[poko] UWAGA: Swiat odrodzil sie od ostatniego uruchomienia. '
+        + 'Zapisane lokacje pokoniuchow moga byc nieaktualne (poko_reset usuwa liste).',
+      );
+    }
+
+    knownWorldRebirth = currentWorldRebirth;
+    try {
+      storage.set(POK_WORLD_REBIRTH_STORAGE_KEY, currentWorldRebirth);
+    } catch {
+      // Keep the current timestamp in memory if localStorage is unavailable.
+    }
+  };
+
+  checkWorldRebirth();
 
   const preview: FindingHandler = (finding) => mapPreview.preview(finding.roomId);
 
@@ -438,6 +481,25 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
   };
 
   api.events.on('parsedObjects', onParsedObjects);
+
+  registerTokenGate(
+    api,
+    'odrodzil',
+    /Swiat odrodzil sie\s*:/,
+    (line) => {
+      try {
+        if (worldRebirthCheckTimer !== null) clearTimeout(worldRebirthCheckTimer);
+        worldRebirthCheckTimer = setTimeout(() => {
+          worldRebirthCheckTimer = null;
+          checkWorldRebirth();
+        }, 0);
+      } catch {
+        // Rebirth detection must never interrupt processing the output batch.
+      }
+      return line;
+    },
+    triggerTag,
+  );
 
   registerTokenGate(
     api,
@@ -530,6 +592,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
   return () => {
     mapPreview.dispose();
     if (leadAndWalkTimer !== null) clearTimeout(leadAndWalkTimer);
+    if (worldRebirthCheckTimer !== null) clearTimeout(worldRebirthCheckTimer);
     clearPendingLocalUpdate();
     api.events.off('parsedObjects', onParsedObjects);
   };

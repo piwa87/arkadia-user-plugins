@@ -8,7 +8,7 @@ describe('pokoniuchy-plugin', () => {
 
     const info = await init(mock.api);
 
-    expect(info).toMatchObject({ name: '(s)poko pluuuug', version: '1.0.1' });
+    expect(info).toMatchObject({ name: '(s)poko pluuuug', version: '1.0.2' });
     expect(mock.aliases.some((alias) => alias.pattern.test('poko_help'))).toBe(true);
     expect(mock.tokenTriggers.length).toBeGreaterThan(0);
     expect(new Set(mock.tokenTriggers.map((trigger) => trigger.tag))).toEqual(

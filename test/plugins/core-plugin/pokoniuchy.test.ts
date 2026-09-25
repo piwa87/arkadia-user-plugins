@@ -3,6 +3,8 @@ import { storage } from '../../../src/lib/storage';
 import {
   POK_SHORTS,
   POK_STORAGE_KEY,
+  POK_WORLD_REBIRTH_STORAGE_KEY,
+  WORLD_REBIRTH_STORAGE_KEY,
   createPokState,
   setupPok,
   type PokFinding,
@@ -47,6 +49,60 @@ describe('pokoniuchy', () => {
 
     expect(mock.triggers.filter((trigger) => trigger.tag === 'pokoniuchy')).toHaveLength(0);
     expect(mock.tokenTriggers.some((trigger) => trigger.tag === 'pokoniuchy' && trigger.token === 'wiwerna')).toBe(true);
+  });
+
+  it('remembers the current world rebirth without warning on first observation', () => {
+    localStorage.setItem(WORLD_REBIRTH_STORAGE_KEY, '1789474382');
+    const mock = createMockApi();
+
+    setupPok(mock.api);
+
+    expect(storage.get(POK_WORLD_REBIRTH_STORAGE_KEY)).toBe(1789474382);
+    expect(mock.api.output.print).not.toHaveBeenCalledWith(expect.stringContaining('Swiat odrodzil sie'));
+  });
+
+  it('warns once when saved findings come from an earlier world rebirth', () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 22259,
+      short: 'Grozna wezowata wiwerna',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }]);
+    storage.set(POK_WORLD_REBIRTH_STORAGE_KEY, 1788264782);
+    localStorage.setItem(WORLD_REBIRTH_STORAGE_KEY, '1789474382');
+    const mock = createMockApi();
+
+    setupPok(mock.api);
+    setupPok(mock.api);
+
+    expect(mock.api.output.print).toHaveBeenCalledTimes(1);
+    expect(mock.api.output.print).toHaveBeenCalledWith(expect.stringContaining(
+      'Zapisane lokacje pokoniuchow moga byc nieaktualne',
+    ));
+    expect(storage.get(POK_WORLD_REBIRTH_STORAGE_KEY)).toBe(1789474382);
+  });
+
+  it('detects a world rebirth reported by the system command after setup', async () => {
+    vi.useFakeTimers();
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 22259,
+      short: 'Grozna wezowata wiwerna',
+      areaId: 9,
+      areaName: 'Wschodni Mahakam',
+    }]);
+    storage.set(POK_WORLD_REBIRTH_STORAGE_KEY, 1788264782);
+    localStorage.setItem(WORLD_REBIRTH_STORAGE_KEY, '1788264782');
+    const mock = createMockApi();
+    setupPok(mock.api);
+
+    localStorage.setItem(WORLD_REBIRTH_STORAGE_KEY, '1789474382');
+    runLine(mock, 'Swiat odrodzil sie  : Wt, 15 IX 2026, 14:13:02');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(mock.api.output.print).toHaveBeenCalledWith(expect.stringContaining(
+      'Zapisane lokacje pokoniuchow moga byc nieaktualne',
+    ));
+    expect(storage.get(POK_WORLD_REBIRTH_STORAGE_KEY)).toBe(1789474382);
   });
 
   it('prints a dedicated command and list-controls help', () => {
