@@ -8,10 +8,14 @@ import { storage } from '../../../lib/storage';
 import { runVid } from '../movement/movement_aliases';
 
 export const POK_TAG = 'pokoniuchy';
+export const POK_PLUGIN_VERSION = '1.1.0';
 export const POK_STORAGE_KEY = 'pokoniuchy:findings';
 export const POK_WORLD_REBIRTH_STORAGE_KEY = 'pokoniuchy:lastWorldRebirth';
 export const WORLD_REBIRTH_STORAGE_KEY = 'last_world_rebirth';
 const LEGACY_POK_STORAGE_KEY = 'mod_pok:findings';
+const ISSUES_URL = 'https://github.com/piwa87/arkadia-user-plugins/issues';
+const BUG_REPORT_URL = `${ISSUES_URL}/new?template=pokoniuchy_bug.yml&version=${POK_PLUGIN_VERSION}`;
+const FEATURE_REQUEST_URL = `${ISSUES_URL}/new?template=pokoniuchy_feature.yml&version=${POK_PLUGIN_VERSION}`;
 
 // Shorty widoczne w dostarczonej tabeli. Kolejne odmiany mozna dopisywac tutaj.
 export const POK_SHORTS = [
@@ -327,6 +331,7 @@ function printHelp(api: PluginApi): void {
     ['poko / poko_lista', 'pokaz zapisane stwory i odleglosci'],
     ['poko_tu', 'odswiez opis stwora w biezacej lokacji'],
     ['poko_reset', 'usun wszystkie zapisane stwory'],
+    ['poko_zglos', 'zglos blad lub pomysl na GitHubie'],
     ['poko_help', 'pokaz ten help'],
     ['ID lokacji', 'kliknij, aby wykonac /prowadz'],
     ['odleglosc', 'kliknij, aby wykonac /prowadz, potem vid'],
@@ -354,6 +359,38 @@ function printHelp(api: PluginApi): void {
     api.output.print(buffer);
   }
   printBorder('\u2500'.repeat(lineWidth));
+}
+
+function printReportMenu(api: PluginApi): void {
+  const labelColor = api.colors.fromHex('#929292');
+  const bugColor = api.colors.fromHex('#d06b64');
+  const ideaColor = api.colors.fromHex('#6f9f72');
+  const issuesColor = api.colors.fromHex('#607d9b');
+  const buffer = new api.AnsiAwareBuffer('[poko] Zgloszenie: ', labelColor);
+
+  const appendLink = (label: string, url: string, color: ReturnType<PluginApi['colors']['fromHex']>) => {
+    buffer.append(label, {
+      ...color,
+      underline: true,
+      hyperlink: {
+        title: url,
+        onClick: () => {
+          try {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          } catch {
+            api.output.print(`[poko] Otworz w przegladarce: ${url}`);
+          }
+        },
+      },
+    });
+  };
+
+  appendLink('[BLAD]', BUG_REPORT_URL, bugColor);
+  buffer.append('  ', labelColor);
+  appendLink('[POMYSL]', FEATURE_REQUEST_URL, ideaColor);
+  buffer.append('  ', labelColor);
+  appendLink('[ZGLOSZENIA]', ISSUES_URL, issuesColor);
+  api.output.print(buffer);
 }
 
 function saveFinding(api: PluginApi, state: PokState, short: string): void {
@@ -583,6 +620,11 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
     storage.remove(POK_STORAGE_KEY);
     state.findings.splice(0, state.findings.length);
     api.output.print('[poko] Lista zostala wyzerowana.');
+    return true;
+  });
+
+  api.aliases.register(/^poko_zglos$/i, () => {
+    printReportMenu(api);
     return true;
   });
 

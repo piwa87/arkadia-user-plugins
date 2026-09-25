@@ -36,6 +36,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe('pokoniuchy', () => {
@@ -117,9 +118,49 @@ describe('pokoniuchy', () => {
     expect(output).toContain('POKONIUCHY');
     expect(output).toContain('poko+');
     expect(output).toContain('poko_reset');
+    expect(output).toContain('poko_zglos');
     expect(output).toContain('ID lokacji');
     expect(output).toContain('💀');
     expect(output).toContain('CLEAR');
+  });
+
+  it('prints clickable GitHub links for bugs, ideas and existing issues', () => {
+    const open = vi.fn();
+    vi.stubGlobal('window', { open });
+    const mock = createMockApi();
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_zglos');
+
+    const menu = (vi.mocked(mock.api.output.print).mock.calls as unknown[][])
+      .map(([value]) => value)
+      .find((value): value is MockAnsiAwareBuffer => (
+        value instanceof MockAnsiAwareBuffer && value.text.includes('[BLAD]')
+      ))!;
+    expect(menu.text).toBe('[poko] Zgloszenie: [BLAD]  [POMYSL]  [ZGLOSZENIA]');
+
+    menu.klik('[BLAD]');
+    menu.klik('[POMYSL]');
+    menu.klik('[ZGLOSZENIA]');
+
+    expect(open).toHaveBeenNthCalledWith(
+      1,
+      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_bug.yml&version=1.1.0',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(open).toHaveBeenNthCalledWith(
+      2,
+      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_feature.yml&version=1.1.0',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(open).toHaveBeenNthCalledWith(
+      3,
+      'https://github.com/piwa87/arkadia-user-plugins/issues',
+      '_blank',
+      'noopener,noreferrer',
+    );
   });
 
   it('does not save findings until searching is enabled', () => {

@@ -1,0 +1,42 @@
+name: Pomysl dla Pokoniuchy Plugin
+description: Zaproponuj nowe zachowanie lub usprawnienie.
+title: "[Pokoniuchy - pomysl] "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Wersja pluginu
+      description: Pole powinno zostac uzupelnione automatycznie przez link z komendy poko_zglos.
+      placeholder: np. 1.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Jaki problem rozwiazuje ten pomysl?
+      description: Opisz sytuacje w grze, w ktorej przydaloby sie usprawnienie.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proponowane rozwiazanie
+      description: Jak wedlug Ciebie plugin powinien sie zachowywac?
+    validations:
+      required: true
+
+  - type: textarea
+    id: game-output
+    attributes:
+      label: Przykladowy komunikat z gry
+      description: Jesli pomysl dotyczy tekstu z gry, wklej tutaj pelna linie.
+      render: text
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Dodatkowe informacje

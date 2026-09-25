@@ -1,0 +1,60 @@
+name: Blad w Pokoniuchy Plugin
+description: Zglos nieprawidlowe dzialanie pluginu.
+title: "[Pokoniuchy - blad] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dzieki za zgloszenie. Nie podawaj danych postaci ani prywatnych logow, ktore nie sa potrzebne do odtworzenia problemu.
+
+  - type: input
+    id: version
+    attributes:
+      label: Wersja pluginu
+      description: Pole powinno zostac uzupelnione automatycznie przez link z komendy poko_zglos.
+      placeholder: np. 1.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: game-output
+    attributes:
+      label: Dokladny komunikat z gry
+      description: Wklej pelna linie lub linie, przy ktorych wystapil problem.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Jak odtworzyc problem?
+      description: Opisz wykonane komendy i kolejnosc zdarzen.
+      placeholder: |
+        1. Wpisalem...
+        2. Gra wyswietlila...
+        3. Plugin zrobil...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Oczekiwane zachowanie
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Faktyczne zachowanie
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Dodatkowe informacje
+      description: Opcjonalnie dodaj zrzut ekranu lub inne istotne informacje.

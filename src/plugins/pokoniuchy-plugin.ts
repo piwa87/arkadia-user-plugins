@@ -1,5 +1,5 @@
 import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
-import { setupPok } from './core-plugin/pokoniuchy';
+import { POK_PLUGIN_VERSION, setupPok } from './core-plugin/pokoniuchy';
 
 const TRIGGER_TAG = 'pokoniuchyStandalone';
 
@@ -12,7 +12,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   const info: PluginInfo = {
     name: 'Pokoniuchy Plugin',
-    version: '1.0.3',
+    version: POK_PLUGIN_VERSION,
     author: 'vonhookin',
     description: 'Wyszukiwanie i zapisywanie pokoniuchow; poko_help = pomoc',
   };
