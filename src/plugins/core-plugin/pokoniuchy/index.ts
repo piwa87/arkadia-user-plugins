@@ -6,6 +6,7 @@ import { printOutputTable } from '../../../lib/outputTable';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { storage } from '../../../lib/storage';
 import { runVid } from '../movement/movement_aliases';
+import { createPokView, type PokView } from './view';
 
 export const POK_TAG = 'pokoniuchy';
 export const POK_PLUGIN_VERSION = '1.1.2';
@@ -37,6 +38,8 @@ const SHORT_SCAN_SOURCE = `(?:${EXACT_SHORT_SOURCE}|${VARIABLE_SHORT_SOURCE})`;
 const GATE_WORDS = ['bestia', 'endriaga', 'harpia', 'kergulena', 'klabart', 'mantikora', 'oszluzg', 'smok', 'stwor', 'widlogon', 'wipper', 'wiwerna'];
 const SHORT_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'i');
 const SHORT_SCAN_PATTERN = new RegExp(`\\b${SHORT_SCAN_SOURCE}\\b`, 'gi');
+const DEATH_PATTERN = new RegExp(`^(${SHORT_SCAN_SOURCE}) (?:umarl|umarla|umarlo)\\.$`, 'i');
+const VIEW_MOVE_REFRESH_DEBOUNCE_MS = 400;
 
 export interface PokFinding {
   roomId: number;
@@ -120,6 +123,7 @@ type FindingHandler = (finding: PokFinding) => void;
 interface ListActions {
   preview: FindingHandler;
   leadAndWalk: FindingHandler;
+  refresh: () => void;
 }
 
 interface PendingLocalUpdate {
@@ -160,7 +164,13 @@ function findFindingIndex(state: PokState, finding: PokFinding): number {
   );
 }
 
-function toggleSlain(api: PluginApi, state: PokState, finding: PokFinding, actions: ListActions): void {
+function toggleSlain(
+  api: PluginApi,
+  state: PokState,
+  finding: PokFinding,
+  actions: ListActions,
+  printAfter = true,
+): void {
   try {
     const index = findFindingIndex(state, finding);
     if (index === -1) return;
@@ -170,24 +180,32 @@ function toggleSlain(api: PluginApi, state: PokState, finding: PokFinding, actio
     );
     storage.set(POK_STORAGE_KEY, next);
     state.findings.splice(0, state.findings.length, ...next);
-    printList(api, state, actions);
+    actions.refresh();
+    if (printAfter) printList(api, state, actions);
   } catch {
     api.output.print('[poko] Nie udalo sie zmienic statusu znaleziska.');
   }
 }
 
-function clearSlainStatuses(api: PluginApi, state: PokState, actions: ListActions): void {
+function clearSlainStatuses(api: PluginApi, state: PokState, actions: ListActions, printAfter = true): void {
   try {
     const next = state.findings.map((finding) => ({ ...finding, slain: false }));
     storage.set(POK_STORAGE_KEY, next);
     state.findings.splice(0, state.findings.length, ...next);
-    printList(api, state, actions);
+    actions.refresh();
+    if (printAfter) printList(api, state, actions);
   } catch {
     api.output.print('[poko] Nie udalo sie odznaczyc stworow.');
   }
 }
 
-function removeFinding(api: PluginApi, state: PokState, finding: PokFinding, actions: ListActions): void {
+function removeFinding(
+  api: PluginApi,
+  state: PokState,
+  finding: PokFinding,
+  actions: ListActions,
+  printAfter = true,
+): void {
   try {
     const index = findFindingIndex(state, finding);
     if (index === -1) return;
@@ -196,23 +214,19 @@ function removeFinding(api: PluginApi, state: PokState, finding: PokFinding, act
     storage.set(POK_STORAGE_KEY, next);
     state.findings.splice(0, state.findings.length, ...next);
     api.output.print(`[poko] Usunieto #${index + 1}: ${finding.short} (${finding.roomId}).`);
-    printList(api, state, actions);
+    actions.refresh();
+    if (printAfter) printList(api, state, actions);
   } catch {
     api.output.print('[poko] Nie udalo sie usunac znaleziska.');
   }
 }
 
-function printList(api: PluginApi, state: PokState, actions: ListActions): void {
-  if (state.findings.length === 0) {
-    api.output.print('[poko] Brak zapisanych stworow.');
-    return;
-  }
-
+function getOrderedFindings(api: PluginApi, state: PokState) {
   const currentRoomId = api.map.getRoom()?.id;
   const getDistance = currentRoomId === undefined
     ? () => null
     : createRoomDistanceLookup(api.map, currentRoomId);
-  const rows = state.findings
+  return state.findings
     .map((finding, savedIndex) => ({
       finding,
       savedIndex,
@@ -223,6 +237,15 @@ function printList(api: PluginApi, state: PokState, actions: ListActions): void 
         (left.distance ?? Number.POSITIVE_INFINITY) - (right.distance ?? Number.POSITIVE_INFINITY) ||
         left.savedIndex - right.savedIndex,
     );
+}
+
+function printList(api: PluginApi, state: PokState, actions: ListActions): void {
+  if (state.findings.length === 0) {
+    api.output.print('[poko] Brak zapisanych stworow.');
+    return;
+  }
+
+  const rows = getOrderedFindings(api, state);
   const borderColor = api.colors.fromHex('#777777');
   const idColor = api.colors.fromHex('#2f855a');
   const rowColor = api.colors.fromHex('#929292');
@@ -332,6 +355,7 @@ function printHelp(api: PluginApi): void {
     ['poko+', 'wlacz wyszukiwanie i zapisywanie stworow'],
     ['poko-', 'wylacz wyszukiwanie'],
     ['poko / poko_lista', 'pokaz zapisane stwory i odleglosci'],
+    ['pokow', 'otworz okno zapisanych stworow'],
     ['poko_dodaj <opis>', 'dodaj dowolny wpis w biezacej lokacji'],
     ['poko_tu', 'odswiez opis stwora w biezacej lokacji'],
     ['poko_reset', 'usun wszystkie zapisane stwory'],
@@ -397,7 +421,7 @@ function printReportMenu(api: PluginApi): void {
   api.output.print(buffer);
 }
 
-function saveFinding(api: PluginApi, state: PokState, short: string): void {
+function saveFinding(api: PluginApi, state: PokState, short: string, onSaved?: () => void): void {
   const room = api.map.getRoom();
   if (!room) {
     api.output.print(`[poko] Znaleziono: ${short}, ale mapa nie zna biezacej lokacji.`);
@@ -417,6 +441,7 @@ function saveFinding(api: PluginApi, state: PokState, short: string): void {
   };
   state.findings.push(finding);
   storage.set(POK_STORAGE_KEY, state.findings);
+  onSaved?.();
   api.output.print(`[poko] #${state.findings.length}: ${short} (${room.id}, ${finding.areaName})`);
 }
 
@@ -430,6 +455,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
   let pendingLocalUpdate: PendingLocalUpdate | null = null;
   let localUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   let worldRebirthCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  let viewMoveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   let knownWorldRebirth = loadKnownWorldRebirth();
 
   const checkWorldRebirth = () => {
@@ -464,7 +490,35 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
     }, 500);
   };
 
-  const listActions: ListActions = { preview, leadAndWalk };
+  let view: PokView | null = null;
+  const listActions: ListActions = {
+    preview,
+    leadAndWalk,
+    refresh: () => view?.refresh(),
+  };
+  view = createPokView({
+    api,
+    getRows: () => getOrderedFindings(api, state).map(({ finding, distance }) => ({
+      finding,
+      distance,
+      current: distance === 0,
+    })),
+    setTarget: ({ finding }) => { void api.command.send(`/prowadz ${finding.roomId}`); },
+    startWalking: ({ finding }) => leadAndWalk(finding),
+    toggle: ({ finding }) => toggleSlain(api, state, finding, listActions, false),
+    preview: ({ finding }) => preview(finding),
+    remove: ({ finding }) => removeFinding(api, state, finding, listActions, false),
+    reviveAll: () => clearSlainStatuses(api, state, listActions, false),
+  });
+  const menuEntry = api.ui.addPopupMenuEntry('Pokoniuchy', () => void view?.open());
+  const refreshViewOnMove = () => {
+    if (viewMoveRefreshTimer !== null) clearTimeout(viewMoveRefreshTimer);
+    viewMoveRefreshTimer = setTimeout(() => {
+      viewMoveRefreshTimer = null;
+      view?.refresh();
+    }, VIEW_MOVE_REFRESH_DEBOUNCE_MS);
+  };
+  api.events.on('mapMove', refreshViewOnMove);
 
   const clearPendingLocalUpdate = () => {
     pendingLocalUpdate = null;
@@ -493,6 +547,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
     try {
       storage.set(POK_STORAGE_KEY, next);
       state.findings.splice(0, state.findings.length, ...next);
+      view?.refresh();
       printList(api, state, listActions);
       api.output.print(`[poko] Wpis zostal nadpisany: ${previousShort} -> ${normalizedDescription}.`);
       return true;
@@ -526,6 +581,37 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
 
   registerTokenGate(
     api,
+    ['umarl', 'umarla', 'umarlo'],
+    DEATH_PATTERN,
+    (line, matches) => {
+      try {
+        const roomId = api.map.getRoom()?.id;
+        const short = matches[1];
+        if (roomId === undefined || !short) return line;
+
+        const index = state.findings.findIndex((finding) => (
+          finding.roomId === roomId
+          && finding.short.toLowerCase() === short.toLowerCase()
+        ));
+        if (index === -1 || state.findings[index].slain) return line;
+
+        const next = state.findings.map((finding, findingIndex) => (
+          findingIndex === index ? { ...finding, slain: true } : finding
+        ));
+        storage.set(POK_STORAGE_KEY, next);
+        state.findings.splice(0, state.findings.length, ...next);
+        view?.refresh();
+        api.output.print(`[poko] Oznaczono jako zabitego: ${short} (${roomId}).`);
+      } catch {
+        api.output.print('[poko] Nie udalo sie zapisac statusu zabitego stwora.');
+      }
+      return line;
+    },
+    triggerTag,
+  );
+
+  registerTokenGate(
+    api,
     'odrodzil',
     /Swiat odrodzil sie\s*:/,
     (line) => {
@@ -551,6 +637,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
       // Trigger callbacks must never leak errors into the client's output batch.
       try {
         const text = originalLine ?? line.text;
+        if (DEATH_PATTERN.test(text.trimEnd())) return line;
         SHORT_SCAN_PATTERN.lastIndex = 0;
         const foundShorts: string[] = [];
         let match: RegExpExecArray | null;
@@ -563,7 +650,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
           applyPendingLocalUpdate(foundShorts[0]);
         }
         if (state.active) {
-          for (const canonical of foundShorts) saveFinding(api, state, canonical);
+          for (const canonical of foundShorts) saveFinding(api, state, canonical, () => view?.refresh());
         }
       } catch {
         // Searching should never interrupt processing the remaining game output.
@@ -590,6 +677,11 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
     return true;
   });
 
+  api.aliases.register(/^pokow$/i, () => {
+    void view?.open();
+    return true;
+  });
+
   api.aliases.register(/^poko_dodaj(?:\s+(.+))?$/i, (matches) => {
     const short = matches?.[1]?.trim();
     if (!short) {
@@ -597,7 +689,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
       return true;
     }
 
-    saveFinding(api, state, short);
+    saveFinding(api, state, short, () => view?.refresh());
     return true;
   });
 
@@ -634,6 +726,7 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
   api.aliases.register(/^poko_reset$/i, () => {
     storage.remove(POK_STORAGE_KEY);
     state.findings.splice(0, state.findings.length);
+    view?.refresh();
     api.output.print('[poko] Lista zostala wyzerowana.');
     return true;
   });
@@ -652,7 +745,12 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
     mapPreview.dispose();
     if (leadAndWalkTimer !== null) clearTimeout(leadAndWalkTimer);
     if (worldRebirthCheckTimer !== null) clearTimeout(worldRebirthCheckTimer);
+    if (viewMoveRefreshTimer !== null) clearTimeout(viewMoveRefreshTimer);
     clearPendingLocalUpdate();
     api.events.off('parsedObjects', onParsedObjects);
+    api.events.off('mapMove', refreshViewOnMove);
+    menuEntry.remove();
+    view?.stop();
+    view = null;
   };
 }

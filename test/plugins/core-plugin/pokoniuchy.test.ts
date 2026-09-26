@@ -11,6 +11,41 @@ import {
 } from '../../../src/plugins/core-plugin/pokoniuchy';
 import { createMockApi, MockAnsiAwareBuffer, runLine } from '../../helpers/mockApi';
 
+class FakeElement {
+  children: FakeElement[] = [];
+  className = '';
+  textContent = '';
+  title = '';
+  type = '';
+  disabled = false;
+  onclick: (() => void) | null = null;
+
+  constructor(public tag: string) {}
+
+  append(...children: FakeElement[]): void {
+    this.children.push(...children);
+  }
+
+  find(predicate: (element: FakeElement) => boolean): FakeElement | null {
+    for (const child of this.children) {
+      if (predicate(child)) return child;
+      const nested = child.find(predicate);
+      if (nested) return nested;
+    }
+    return null;
+  }
+
+  button(label: string): FakeElement {
+    const button = this.find((element) => element.tag === 'button' && element.textContent === label);
+    expect(button, `missing button: ${label}`).not.toBeNull();
+    return button!;
+  }
+
+  get text(): string {
+    return [this.textContent, ...this.children.map((child) => child.text)].join(' ');
+  }
+}
+
 function makeLocalStorageMock() {
   const data: Record<string, string> = {};
   return {
@@ -117,6 +152,7 @@ describe('pokoniuchy', () => {
       .join('\n');
     expect(output).toContain('POKONIUCHY');
     expect(output).toContain('poko+');
+    expect(output).toContain('pokow');
     expect(output).toContain('poko_dodaj <opis>');
     expect(output).toContain('poko_reset');
     expect(output).toContain('poko_zglos');
@@ -360,6 +396,52 @@ describe('pokoniuchy', () => {
     });
   });
 
+  it.each([
+    ['Pospolita wezowata wiwerna', 'umarla'],
+    ['Stary potezny smok', 'umarl'],
+    ['Pokoniunkcyjny glazowy stwor', 'umarlo'],
+  ])('marks a saved creature dead after the death line: %s %s', (short, deathVerb) => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 12349,
+      short,
+      areaId: 8,
+      areaName: 'Testowy obszar',
+    }]);
+    const mock = createMockApi({ room: { id: 12349, area: 8 } });
+    setupPok(mock.api);
+
+    runLine(mock, `${short} ${deathVerb}.`);
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].slain).toBe(true);
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      `[poko] Oznaczono jako zabitego: ${short} (12349).`,
+    );
+  });
+
+  it('does not create a new finding from a creature death line', () => {
+    const mock = createMockApi({ room: { id: 12349, area: 8 } });
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Pospolita wezowata wiwerna umarla.');
+
+    expect(storage.get(POK_STORAGE_KEY)).toBeNull();
+    expect(mock.api.output.print).not.toHaveBeenCalledWith(expect.stringContaining('Oznaczono jako zabitego'));
+  });
+
+  it('marks only a matching finding in the current room', () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [
+      { roomId: 12349, short: 'Stary potezny smok', areaId: 8, areaName: 'Tutaj' },
+      { roomId: 12350, short: 'Stary potezny smok', areaId: 8, areaName: 'Gdzie indziej' },
+    ]);
+    const mock = createMockApi({ room: { id: 12349, area: 8 } });
+    setupPok(mock.api);
+
+    runLine(mock, 'Stary potezny smok umarl.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.map(({ slain }) => slain)).toEqual([true, undefined]);
+  });
+
   it('loads persisted findings in a fresh state', () => {
     const findings: PokFinding[] = [{
       roomId: 21171,
@@ -469,6 +551,130 @@ describe('pokoniuchy', () => {
       '/dalej 2',
       '/walkerw',
     ]);
+  });
+
+  it('opens a graphical window with all actions from the output table', async () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [
+      {
+        roomId: 10276,
+        short: 'Galezowaty pokoniunkcyjny klabart',
+        areaId: 7,
+        areaName: 'Poludniowe Kaedwen',
+        slain: true,
+      },
+      {
+        roomId: 10272,
+        short: 'Pokoniunkcyjny glazowy stwor',
+        areaId: 7,
+        areaName: 'Poludniowe Kaedwen',
+      },
+    ]);
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => new FakeElement(tag),
+    });
+    const mock = createMockApi({ room: { id: 10000, area: 7 } });
+    mock.api.map.findPath = vi.fn((_from, to) => (
+      to === 10276 ? [10000, 10001, 10276] : [10000, 10272]
+    ));
+    const cleanup = setupPok(mock.api);
+
+    expect(mock.api.ui.addPopupMenuEntry).toHaveBeenCalledWith('Pokoniuchy', expect.any(Function));
+    runAlias(mock.aliases, 'pokow');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    const popupCalls = vi.mocked(mock.api.ui.registerPersistentPopup).mock.calls;
+    const popupOptions = popupCalls[popupCalls.length - 1][0] as any;
+    const window = popupOptions.createContent() as unknown as FakeElement;
+    const windowText = window.text.replace(/\s+/g, ' ');
+
+    expect(windowText).toContain('ID Dist. Stwor Obszar Stan Akcje');
+    expect(windowText).toContain('10272 1 Pokoniunkcyjny glazowy stwor Poludniowe Kaedwen');
+    expect(windowText).toContain('10276 2 Galezowaty pokoniunkcyjny klabart Poludniowe Kaedwen 💀');
+
+    window.button('10276').onclick!();
+    expect(mock.api.command.send).toHaveBeenCalledWith('/prowadz 10276');
+
+    window.button('2').onclick!();
+    expect(mock.api.command.send).toHaveBeenCalledWith('/prowadz 10276');
+
+    window.button('💀').onclick!();
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].slain).toBe(false);
+
+    window.button('👁').onclick!();
+    expect(mock.api.command.send).toHaveBeenCalledWith('/ustaw 10272');
+
+    window.button('🗑').onclick!();
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.map(({ roomId }) => roomId)).toEqual([10276]);
+
+    cleanup();
+    const menuHandle = vi.mocked(mock.api.ui.addPopupMenuEntry).mock.results[0].value;
+    expect(menuHandle.remove).toHaveBeenCalledOnce();
+  });
+
+  it('refreshes an open graphical window when a creature dies', async () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 10276,
+      short: 'Pospolita wezowata wiwerna',
+      areaId: 7,
+      areaName: 'Poludniowe Kaedwen',
+    }]);
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => new FakeElement(tag),
+    });
+    const mock = createMockApi({ room: { id: 10276, area: 7 } });
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'pokow');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    const popupHandle = await vi.mocked(mock.api.ui.registerPersistentPopup).mock.results[0].value as any;
+    popupHandle.isOpen = true;
+
+    runLine(mock, 'Pospolita wezowata wiwerna umarla.');
+
+    expect(popupHandle.setBody).toHaveBeenCalledOnce();
+    const refreshedWindow = vi.mocked(popupHandle.setBody).mock.calls[0][0] as FakeElement;
+    expect(refreshedWindow.text).toContain('💀');
+  });
+
+  it('debounces graphical distance refreshes until movement settles', async () => {
+    storage.set<PokFinding[]>(POK_STORAGE_KEY, [{
+      roomId: 10276,
+      short: 'Galezowaty pokoniunkcyjny klabart',
+      areaId: 7,
+      areaName: 'Poludniowe Kaedwen',
+    }]);
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => new FakeElement(tag),
+    });
+    let currentRoomId = 10000;
+    const mock = createMockApi();
+    mock.api.map.getRoom = vi.fn(() => ({ id: currentRoomId, area: 7 })) as any;
+    mock.api.map.findPath = vi.fn((from, to) => (from === to ? [from] : [from, to]));
+    const cleanup = setupPok(mock.api);
+    runAlias(mock.aliases, 'pokow');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    const popupHandle = await vi.mocked(mock.api.ui.registerPersistentPopup).mock.results[0].value as any;
+    popupHandle.isOpen = true;
+    vi.useFakeTimers();
+
+    currentRoomId = 10001;
+    mock.api.events.emit('mapMove');
+    await vi.advanceTimersByTimeAsync(399);
+    expect(popupHandle.setBody).not.toHaveBeenCalled();
+
+    currentRoomId = 10276;
+    mock.api.events.emit('mapMove');
+    await vi.advanceTimersByTimeAsync(399);
+    expect(popupHandle.setBody).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(popupHandle.setBody).toHaveBeenCalledOnce();
+    const refreshedWindow = vi.mocked(popupHandle.setBody).mock.calls[0][0] as FakeElement;
+    expect(refreshedWindow.text.replace(/\s+/g, ' ')).toContain('10276 0 Galezowaty pokoniunkcyjny klabart');
+
+    cleanup();
+    mock.api.events.emit('mapMove');
+    await vi.advanceTimersByTimeAsync(400);
+    expect(popupHandle.setBody).toHaveBeenCalledOnce();
+    expect(mock.api.events.off).toHaveBeenCalledWith('mapMove', expect.any(Function));
   });
 
   it('persists and toggles the slain skull marker', () => {

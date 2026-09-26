@@ -258,6 +258,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { section: 'POKONIUCHY' },
       { cmd: 'poko+ / poko-', desc: 'enable / disable automatic creature tracking' },
       { cmd: 'poko / poko_lista', desc: 'show saved creatures and distances' },
+      { cmd: 'pokow', desc: 'open the graphical creature locations window' },
       { cmd: 'poko_dodaj <opis>', desc: 'save any description at the current location' },
       { cmd: 'poko_tu', desc: 'refresh the creature description at this location' },
       { cmd: 'poko_reset', desc: 'remove all saved creatures' },
