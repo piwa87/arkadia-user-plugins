@@ -145,13 +145,13 @@ describe('pokoniuchy', () => {
 
     expect(open).toHaveBeenNthCalledWith(
       1,
-      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_bug.yml&version=1.1.0',
+      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_bug.yml&version=1.1.1',
       '_blank',
       'noopener,noreferrer',
     );
     expect(open).toHaveBeenNthCalledWith(
       2,
-      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_feature.yml&version=1.1.0',
+      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_feature.yml&version=1.1.1',
       '_blank',
       'noopener,noreferrer',
     );
@@ -209,6 +209,8 @@ describe('pokoniuchy', () => {
   it.each([
     ['wipper', 'Ponury szybki wipper', 12346],
     ['endriaga', 'Mala jadowita endriaga', 12350],
+    ['harpia', 'Ludzkoglowa niebezpieczna harpia', 12353],
+    ['harpia', 'Gladkolica niebezpieczna harpia', 12354],
     ['oszluzg', 'Stary powolny oszluzg', 12351],
     ['widlogon', 'Wielki wsciekly widlogon', 12352],
   ])('recognizes any two-adjective %s description', (_creature, short, roomId) => {
@@ -225,6 +227,31 @@ describe('pokoniuchy', () => {
       areaId: 8,
       areaName: 'Testowy obszar',
     });
+  });
+
+  it('recognizes multiple two-adjective harpies on one creature-list line', () => {
+    const mock = createMockApi({ room: { id: 12355, area: 8 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Duze ubite gniazdo i spore zwarte gniazdo. Nieduzy wapienny kamien.');
+    runLine(mock, 'Ludzkoglowa niebezpieczna harpia i gladkolica niebezpieczna harpia.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toEqual([
+      {
+        roomId: 12355,
+        short: 'Ludzkoglowa niebezpieczna harpia',
+        areaId: 8,
+        areaName: 'Testowy obszar',
+      },
+      {
+        roomId: 12355,
+        short: 'Gladkolica niebezpieczna harpia',
+        areaId: 8,
+        areaName: 'Testowy obszar',
+      },
+    ]);
   });
 
   it('recognizes any two-adjective wiwerna description', () => {

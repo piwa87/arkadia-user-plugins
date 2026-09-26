@@ -8,7 +8,7 @@ import { storage } from '../../../lib/storage';
 import { runVid } from '../movement/movement_aliases';
 
 export const POK_TAG = 'pokoniuchy';
-export const POK_PLUGIN_VERSION = '1.1.0';
+export const POK_PLUGIN_VERSION = '1.1.1';
 export const POK_STORAGE_KEY = 'pokoniuchy:findings';
 export const POK_WORLD_REBIRTH_STORAGE_KEY = 'pokoniuchy:lastWorldRebirth';
 export const WORLD_REBIRTH_STORAGE_KEY = 'last_world_rebirth';
@@ -27,13 +27,15 @@ export const POK_SHORTS = [
   'Wezowaty grozny stwor',
 ] as const;
 
-const VARIABLE_CREATURE_NOUNS = ['endriaga', 'oszluzg', 'smok', 'widlogon', 'wipper', 'wiwerna'] as const;
+const VARIABLE_CREATURE_NOUNS = ['endriaga', 'harpia', 'oszluzg', 'smok', 'widlogon', 'wipper', 'wiwerna'] as const;
 const IGNORED_VARIABLE_SHORTS = new Set(['kolczasta mloda wiwerna']);
 const VARIABLE_SHORT_SOURCE = `[A-Za-z]+ [A-Za-z]+ (?:${VARIABLE_CREATURE_NOUNS.join('|')})`;
-const SHORT_SOURCE = `(?:${POK_SHORTS.map(escapeRegex).join('|')}|^${VARIABLE_SHORT_SOURCE})`;
-const GATE_WORDS = ['bestia', 'endriaga', 'kergulena', 'klabart', 'mantikora', 'oszluzg', 'smok', 'stwor', 'widlogon', 'wipper', 'wiwerna'];
+const EXACT_SHORT_SOURCE = POK_SHORTS.map(escapeRegex).join('|');
+const SHORT_SOURCE = `(?:${EXACT_SHORT_SOURCE}|^${VARIABLE_SHORT_SOURCE})`;
+const SHORT_SCAN_SOURCE = `(?:${EXACT_SHORT_SOURCE}|${VARIABLE_SHORT_SOURCE})`;
+const GATE_WORDS = ['bestia', 'endriaga', 'harpia', 'kergulena', 'klabart', 'mantikora', 'oszluzg', 'smok', 'stwor', 'widlogon', 'wipper', 'wiwerna'];
 const SHORT_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'i');
-const SHORT_SCAN_PATTERN = new RegExp(`\\b${SHORT_SOURCE}\\b`, 'gi');
+const SHORT_SCAN_PATTERN = new RegExp(`\\b${SHORT_SCAN_SOURCE}\\b`, 'gi');
 
 export interface PokFinding {
   roomId: number;

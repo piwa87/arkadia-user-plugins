@@ -33,11 +33,33 @@ describe('token-gated small trigger modules', () => {
     expect(line!.text).toBe('-->  zloty pierscien  |  sakwy');
   });
 
-  it('col_movements prepends OK to mountain movement lines', () => {
+  it('col_movements marks completed, pending, and failed mountain movement', () => {
     const mock = createMockApi();
     setupColMovements(mock.api);
-    const line = runLine(mock, 'Docierasz na gore.');
-    expect(line!.text.startsWith('   OK   ')).toBe(true);
+
+    const completed = runLine(mock, 'Docierasz na gore.');
+    expect(completed!.text.startsWith('   OK   ')).toBe(true);
+    expect(completed!.color).toHaveBeenCalledWith(
+      [0, 'Docierasz na gore.'.length],
+      expect.objectContaining({ value: '#a6a6a6' }),
+    );
+
+    const pending = runLine(mock, 'Zaczynasz wspinac sie na gore.');
+    expect(pending!.text.startsWith('   ...   ')).toBe(true);
+    expect(pending!.color).toHaveBeenCalledWith(
+      [0, 'Zaczynasz wspinac sie na gore.'.length],
+      expect.objectContaining({ value: '#a6a6a6' }),
+    );
+
+    const failed = runLine(
+      mock,
+      'Odpadasz od sciany i lecisz w dol, jednak dzieki niewielkiej wysokosci udaje ci sie zgrabnie wyladowac na ziemi.',
+    );
+    expect(failed!.text.startsWith('   ZLE   ')).toBe(true);
+    expect(failed!.color).toHaveBeenCalledWith(
+      [0, 'Odpadasz od sciany i lecisz w dol, jednak dzieki niewielkiej wysokosci udaje ci sie zgrabnie wyladowac na ziemi.'.length],
+      expect.objectContaining({ value: '#a6a6a6' }),
+    );
   });
 
   it('misc dobywa line is spaced out', () => {
