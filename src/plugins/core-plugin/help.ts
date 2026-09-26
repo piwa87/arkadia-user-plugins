@@ -256,6 +256,12 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'wk+ <key> [label]', desc: 'save or update a character and client shortcut' },
 
       { section: 'POKONIUCHY' },
+      { cmd: 'poko+ / poko-', desc: 'enable / disable automatic creature tracking' },
+      { cmd: 'poko / poko_lista', desc: 'show saved creatures and distances' },
+      { cmd: 'poko_dodaj <opis>', desc: 'save any description at the current location' },
+      { cmd: 'poko_tu', desc: 'refresh the creature description at this location' },
+      { cmd: 'poko_reset', desc: 'remove all saved creatures' },
+      { cmd: 'poko_zglos', desc: 'report a Pokoniuchy bug or idea on GitHub' },
       { cmd: 'poko_help', desc: 'show Pokoniuchy commands and list controls' },
 
       { section: 'TROLLE / MOB LOCATIONS' },

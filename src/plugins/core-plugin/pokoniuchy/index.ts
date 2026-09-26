@@ -8,7 +8,7 @@ import { storage } from '../../../lib/storage';
 import { runVid } from '../movement/movement_aliases';
 
 export const POK_TAG = 'pokoniuchy';
-export const POK_PLUGIN_VERSION = '1.1.1';
+export const POK_PLUGIN_VERSION = '1.1.2';
 export const POK_STORAGE_KEY = 'pokoniuchy:findings';
 export const POK_WORLD_REBIRTH_STORAGE_KEY = 'pokoniuchy:lastWorldRebirth';
 export const WORLD_REBIRTH_STORAGE_KEY = 'last_world_rebirth';
@@ -19,6 +19,7 @@ const FEATURE_REQUEST_URL = `${ISSUES_URL}/new?template=pokoniuchy_feature.yml&v
 
 // Shorty widoczne w dostarczonej tabeli. Kolejne odmiany mozna dopisywac tutaj.
 export const POK_SHORTS = [
+  'Dluga grozna bestia',
   'Galezowaty pokoniunkcyjny klabart',
   'Omszala jadowita kergulena',
   'Pokoniunkcyjny glazowy stwor',
@@ -331,6 +332,7 @@ function printHelp(api: PluginApi): void {
     ['poko+', 'wlacz wyszukiwanie i zapisywanie stworow'],
     ['poko-', 'wylacz wyszukiwanie'],
     ['poko / poko_lista', 'pokaz zapisane stwory i odleglosci'],
+    ['poko_dodaj <opis>', 'dodaj dowolny wpis w biezacej lokacji'],
     ['poko_tu', 'odswiez opis stwora w biezacej lokacji'],
     ['poko_reset', 'usun wszystkie zapisane stwory'],
     ['poko_zglos', 'zglos blad lub pomysl na GitHubie'],
@@ -585,6 +587,17 @@ export function setupPok(api: PluginApi, triggerTag = POK_TAG): () => void {
 
   api.aliases.register(/^(?:poko_lista|poko)$/i, () => {
     printList(api, state, listActions);
+    return true;
+  });
+
+  api.aliases.register(/^poko_dodaj(?:\s+(.+))?$/i, (matches) => {
+    const short = matches?.[1]?.trim();
+    if (!short) {
+      api.output.print('[poko] Uzycie: poko_dodaj <opis>');
+      return true;
+    }
+
+    saveFinding(api, state, short);
     return true;
   });
 

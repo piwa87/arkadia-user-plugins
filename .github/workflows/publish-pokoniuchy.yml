@@ -34,11 +34,21 @@ jobs:
           REGISTRY: https://arkadia-package-repository.vercel.app
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          CHANGELOG=$(awk -v version="$VERSION" '
+            index($0, "## [" version "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+            END { if (!found) exit 1 }
+          ' src/plugins/core-plugin/pokoniuchy/CHANGELOG.md)
+          if [ -z "$(printf '%s' "$CHANGELOG" | tr -d '[:space:]')" ]; then
+            echo "Brak changeloga dla wersji $VERSION" >&2
+            exit 1
+          fi
           TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=arkadia-plugins" | jq -r '.value')
           curl -sS --fail-with-body -X POST "$REGISTRY/api/v1/publish" \
             -H "Authorization: Bearer $TOKEN" \
             -F "slug=pokoniuchy-plugin" \
             -F "version=$VERSION" \
-            -F "changelog=Wydanie $VERSION" \
+            --form-string "changelog=$CHANGELOG" \
             -F "file=@dist/pokoniuchy-plugin.js"

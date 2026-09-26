@@ -117,6 +117,7 @@ describe('pokoniuchy', () => {
       .join('\n');
     expect(output).toContain('POKONIUCHY');
     expect(output).toContain('poko+');
+    expect(output).toContain('poko_dodaj <opis>');
     expect(output).toContain('poko_reset');
     expect(output).toContain('poko_zglos');
     expect(output).toContain('ID lokacji');
@@ -145,13 +146,13 @@ describe('pokoniuchy', () => {
 
     expect(open).toHaveBeenNthCalledWith(
       1,
-      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_bug.yml&version=1.1.1',
+      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_bug.yml&version=1.1.2',
       '_blank',
       'noopener,noreferrer',
     );
     expect(open).toHaveBeenNthCalledWith(
       2,
-      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_feature.yml&version=1.1.1',
+      'https://github.com/piwa87/arkadia-user-plugins/issues/new?template=pokoniuchy_feature.yml&version=1.1.2',
       '_blank',
       'noopener,noreferrer',
     );
@@ -227,6 +228,23 @@ describe('pokoniuchy', () => {
       areaId: 8,
       areaName: 'Testowy obszar',
     });
+  });
+
+  it('recognizes only the configured Dluga grozna bestia description', () => {
+    const mock = createMockApi({ room: { id: 12356, area: 8 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 8, areaName: 'Testowy obszar', rooms: [] }]) as any;
+    setupPok(mock.api);
+    runAlias(mock.aliases, 'poko+');
+
+    runLine(mock, 'Dluga grozna bestia.');
+    runLine(mock, 'Krotka lagodna bestia.');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toEqual([{
+      roomId: 12356,
+      short: 'Dluga grozna bestia',
+      areaId: 8,
+      areaName: 'Testowy obszar',
+    }]);
   });
 
   it('recognizes multiple two-adjective harpies on one creature-list line', () => {
@@ -601,6 +619,35 @@ describe('pokoniuchy', () => {
     runAlias(mock.aliases, 'poko');
 
     expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Brak zapisanych stworow.');
+  });
+
+  it('adds any manual description in the current room with poko_dodaj', () => {
+    const mock = createMockApi({ room: { id: 23456, area: 11 } });
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 11, areaName: 'Testowa kraina', rooms: [] }]) as any;
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_dodaj   Cokolwiek z dowolnym opisem  ');
+    runAlias(mock.aliases, 'poko_dodaj Cokolwiek z dowolnym opisem');
+
+    expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)).toEqual([{
+      roomId: 23456,
+      short: 'Cokolwiek z dowolnym opisem',
+      areaId: 11,
+      areaName: 'Testowa kraina',
+    }]);
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      '[poko] #1: Cokolwiek z dowolnym opisem (23456, Testowa kraina)',
+    );
+  });
+
+  it('prints poko_dodaj usage when the description is missing', () => {
+    const mock = createMockApi({ room: { id: 23456, area: 11 } });
+    setupPok(mock.api);
+
+    runAlias(mock.aliases, 'poko_dodaj');
+
+    expect(storage.get(POK_STORAGE_KEY)).toBeNull();
+    expect(mock.api.output.print).toHaveBeenCalledWith('[poko] Uzycie: poko_dodaj <opis>');
   });
 
   it('supports poko_lista but no longer handles old pok aliases', () => {
