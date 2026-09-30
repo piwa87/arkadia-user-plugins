@@ -179,6 +179,10 @@ const DODGE_PATTERNS = [
   /^(.*) krotkim skinieniem dloni przyzywa .*, kryjac sie .* przed ciosami /, // blaviken_wycofka
 ];
 
+const SHIELD_BEFORE_ME_PREFIX = '      PRZED TOBA              ';
+const SHIELD_BEFORE_ME_BREAK =
+  '      NIE LAM' + ' '.repeat(SHIELD_BEFORE_ME_PREFIX.length - '      NIE LAM'.length);
+
 /**
  * The player-centric zaslona lines (migrated from core-plugin/triggers).
  * NOTE: these reset segments use getMyColor(0), not getAnsiFormatState(0) like
@@ -212,12 +216,12 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
     (line, matches) => {
       setShieldedAgainstMe(true);
       rewrite(line, [
-        ['      PRZED TOBA              ', c41],
+        [SHIELD_BEFORE_ME_PREFIX, c41],
         [`     ${matches[1]}     `, c0],
         [' z a s l a n i a ', c35],
         [`     ${matches[2]}`, c0],
       ]);
-      api.output.print(new api.AnsiAwareBuffer().append('   nie lamac   ', c41));
+      api.output.print(new api.AnsiAwareBuffer().append(SHIELD_BEFORE_ME_BREAK, c41));
       api.command.send('play_morse');
       return line;
     },

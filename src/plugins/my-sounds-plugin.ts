@@ -47,7 +47,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 
   const renderFooter = (enabled: boolean) =>
     enabled
-      ? `<span class="chip__ico" aria-hidden="true" style="color: #00b300">${FOOTER_ICONS.sound}</span>`
+      ? `<span class="chip"><span class="chip__ico" aria-hidden="true" style="color: #00b300">${FOOTER_ICONS.sound}</span></span>`
       : '';
 
   // Register footer component for sounds state

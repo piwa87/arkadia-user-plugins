@@ -11,7 +11,8 @@ export function setupFooter(
     if (!targets[0]) return '';
     return renderFooterChip({
       icon: FOOTER_ICONS.target,
-      label: 'CEL',
+      valueColor: '#ffffff',
+      valueFontSize: '50%',
       value: targets[0],
     });
   };

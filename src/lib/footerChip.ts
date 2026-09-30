@@ -2,9 +2,11 @@ export type FooterChipTone = 'neutral' | 'ok' | 'warn' | 'danger';
 
 interface FooterChipOptions {
   icon: string;
-  label: string;
+  label?: string;
   value: string;
   tone?: FooterChipTone;
+  valueColor?: string;
+  valueFontSize?: string;
 }
 
 const escapeHtml = (value: string): string =>
@@ -26,15 +28,22 @@ export function renderFooterChip({
   label,
   value,
   tone = 'neutral',
+  valueColor,
+  valueFontSize,
 }: FooterChipOptions): string {
   const toneClass = tone === 'neutral' ? '' : ` chip--${tone}`;
+  const valueStyles = [
+    valueColor ? `color: ${escapeHtml(valueColor)}` : '',
+    valueFontSize ? `font-size: ${escapeHtml(valueFontSize)}` : '',
+  ].filter(Boolean);
+  const valueStyle = valueStyles.length > 0 ? ` style="${valueStyles.join('; ')}"` : '';
 
   return (
     `<span class="chip${toneClass}">` +
     `<span class="chip__ico" aria-hidden="true">${icon}</span>` +
     '<span class="chip__text">' +
-    `<span class="chip__lab">${escapeHtml(label)}</span>` +
-    `<span class="chip__val">${escapeHtml(value)}</span>` +
+    (label ? `<span class="chip__lab">${escapeHtml(label)}</span>` : '') +
+    `<span class="chip__val"${valueStyle}>${escapeHtml(value)}</span>` +
     '</span>' +
     '</span>'
   );
