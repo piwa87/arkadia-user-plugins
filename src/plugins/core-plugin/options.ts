@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { getCharName } from '../../lib/getCharName';
 import { registerTextAlias } from '../../lib/registerTextAlias';
 
 const panicLevels: Record<string, string> = {
@@ -8,6 +9,17 @@ const panicLevels: Record<string, string> = {
   '3': 'w zlej kondycji',
   '4': 'ranny',
   '5': 'lekko ranny',
+  '6': 'w dobrym stanie',
+  '7': 'w swietnej kondycji',
+};
+
+const gertrudaPanicLevels: Record<string, string> = {
+  '0': 'nigdy',
+  '1': 'ledwo zywa',
+  '2': 'ciezko ranna',
+  '3': 'w zlej kondycji',
+  '4': 'ranna',
+  '5': 'lekko ranna',
   '6': 'w dobrym stanie',
   '7': 'w swietnej kondycji',
 };
@@ -22,7 +34,8 @@ export function setupOptionsAliases(api: PluginApi): void {
   // opa[0-7] - panic levels
   api.aliases.register(/^opa(\d)$/, (match) => {
     if (!match?.[1]) return false;
-    const option = panicLevels[match[1]];
+    const levels = getCharName(api) === 'gertruda' ? gertrudaPanicLevels : panicLevels;
+    const option = levels[match[1]];
     if (option) {
       api.command.send(`opcje panika ${option}`);
       return true;

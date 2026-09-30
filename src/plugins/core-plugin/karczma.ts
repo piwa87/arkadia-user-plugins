@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { getCharName } from '../../lib/getCharName';
 import { withDelay } from '../../lib/withDelay';
 
 const TAG_SIAD = 'siad_oneshot';
@@ -57,7 +58,7 @@ export function setupKarczmaAliases(api: PluginApi): void {
     api.command.send('rozejrzyj sie z namyslem');
     withDelay(367, 867, () => {
       triggerSiadPrompt(api);
-      api.command.send('smmenu');
+      api.command.send(getCharName(api) === 'jens' ? 'smmenu' : 'on menu');
       api.command.send('otm');
     });
     return true;

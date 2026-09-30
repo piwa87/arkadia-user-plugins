@@ -31,7 +31,6 @@ import {
  */
 function registerPrzedDruzyna(api: PluginApi, tag: string): void {
   const hi = getAnsiFormatState(38, api); // %ansi(38) — "z a s l a n i a"
-  const c41 = getAnsiFormatState(41, api); // %ansi(41) — banner prefix (matches PRZED TOBA)
   const def = getAnsiFormatState(0, api); // %ansi(0) — reset
 
   registerTokenGate(
@@ -43,7 +42,7 @@ function registerPrzedDruzyna(api: PluginApi, tag: string): void {
       if (!teamGenitiveForms().has(attacker)) return line; // not our team — pass through
 
       rewrite(line, [
-        ['      PRZED DRUZYNA           ', c41],
+        ['      PRZED DRUZYNA           ', hi],
         ['     ', def],
         [matches[1], def],
         ['     ', def],
@@ -218,6 +217,7 @@ function registerPlayerZaslony(api: PluginApi, tag: string): void {
         [' z a s l a n i a ', c35],
         [`     ${matches[2]}`, c0],
       ]);
+      api.output.print(new api.AnsiAwareBuffer().append('   nie lamac   ', c41));
       api.command.send('play_morse');
       return line;
     },

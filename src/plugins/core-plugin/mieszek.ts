@@ -14,15 +14,14 @@ export function setupMieszekAliases(api: PluginApi): void {
     api.command.send('wez miedziane monety z przytroczonej sakiewki');
     api.command.send('odloz miedziane monety');
     api.command.send('wloz monety do przytroczonej sakiewki');
-    api.command.send('zamknij przytroczona sakiewke');
     return true;
   });
 
   // ztm2 - put copper and silver coins into worn bag
   api.aliases.register(/^ztm2$/, () => {
     api.command.send('otm');
-    api.command.send('wloz miedziane monety do zalozonej torby');
-    api.command.send('wloz srebrne monety do zalozonej torby');
+    api.command.send('wlz miedziane monety');
+    api.command.send('wlz srebrne monety');
     api.command.send('ztm');
     return true;
   });
