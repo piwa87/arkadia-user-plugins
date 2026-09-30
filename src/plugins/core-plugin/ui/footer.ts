@@ -11,8 +11,8 @@ export function setupFooter(
     if (!targets[0]) return '';
     return renderFooterChip({
       icon: FOOTER_ICONS.target,
-      valueColor: '#ffffff',
-      valueFontSize: '50%',
+      valueColor: '#a6a6a6',
+      valueFontSize: '75%',
       value: targets[0],
     });
   };
