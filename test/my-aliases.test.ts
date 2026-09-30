@@ -28,13 +28,15 @@ describe('core-plugin aliases', () => {
     vi.restoreAllMocks();
   });
 
-  it('registers a footer component showing all 4 default targets on init', async () => {
+  it('registers a footer component showing the default target without a label', async () => {
     const { api, footerComponents } = createMockApi();
     await init(api);
 
     const targets = footerComponents.find((c) => c.id === 'targets');
     expect(targets).toBeDefined();
-    expect(targets!.initialContent).toContain('CEL');
+    expect(targets!.initialContent).not.toContain('CEL');
+    expect(targets!.initialContent).toContain('class="chip__ico"');
+    expect(targets!.initialContent).toContain('color: #a6a6a6; font-size: 75%');
     expect(targets!.initialContent).toContain('INIT');
   });
 
