@@ -27,6 +27,11 @@ const ARLEKIN_BREAK = '[--- PRZELAMUJE DRUZYNE]';
 
 /** Turn automatic attacking on (`pyk+`); returns the pyk teardown. */
 function enablePyk(mock: MockApi): () => void {
+  (mock.api as any).objects = { getObjectsOnLocation: () => [
+    { num: 1, __category: 'player', attack_num: false },
+    { num: 42, __category: 'rest', attack_target: true },
+  ] };
+  vi.mocked(mock.api.team.getLeaderId).mockReturnValue(2);
   const cleanup = setupAtakPyk(mock.api);
   runAlias(mock, 'pyk+');
   return cleanup;
@@ -172,8 +177,8 @@ describe('mod_team — lamanie zaslony', () => {
       expect(sentCommands(mock)).toContain('play_morse');
       expect(mock.api.bind.set).toHaveBeenCalledWith('c zielonego trolla', undefined, undefined);
 
-      vi.advanceTimersByTime(700);
-      expect(sentCommands(mock)).toContain('c');
+      vi.advanceTimersByTime(3400);
+      expect(sentCommands(mock)).toContain('/z');
       expect(isShieldedAgainstMe()).toBe(false);
 
       cleanupPyk();
@@ -188,10 +193,10 @@ describe('mod_team — lamanie zaslony', () => {
       const cleanupPyk = enablePyk(mock);
 
       runLine(mock, 'Vindael rzuca sie na zielonego trolla przebijajac sie przez jego ochrone.');
-      vi.advanceTimersByTime(700);
+      vi.advanceTimersByTime(3400);
 
       expect(sentCommands(mock)).toContain('play_morse');
-      expect(sentCommands(mock)).not.toContain('c');
+      expect(sentCommands(mock)).not.toContain('/z');
 
       vi.advanceTimersByTime(4300);
       expect(printedText(mock)).not.toContain(
@@ -210,17 +215,17 @@ describe('mod_team — lamanie zaslony', () => {
 
       setShieldedAgainstMe(true);
       runLine(mock, 'Vindael rzuca sie na zielonego trolla przebijajac sie przez jego ochrone.');
-      vi.advanceTimersByTime(700);
+      vi.advanceTimersByTime(3400);
 
       expect(sentCommands(mock)).toContain('play_morse'); // banner side still runs
-      expect(sentCommands(mock)).not.toContain('c');
+      expect(sentCommands(mock)).not.toContain('/z');
       // The flag is left alone so the attack can still happen once pyk is on.
       expect(isShieldedAgainstMe()).toBe(true);
 
       destroyTeam(mock.api);
     });
 
-    it('holds the auto-attack on cooldown for 3 s', () => {
+    it('uses the shared PYK cooldown after a teammate break', () => {
       vi.useFakeTimers();
       const mock = createMockApi();
       teamOf(mock, ['Vindael']);
@@ -231,21 +236,21 @@ describe('mod_team — lamanie zaslony', () => {
 
       setShieldedAgainstMe(true);
       runLine(mock, brzek);
-      vi.advanceTimersByTime(700);
-      expect(sentCommands(mock).filter((c) => c === 'c')).toHaveLength(1);
+      vi.advanceTimersByTime(3400);
+      expect(sentCommands(mock).filter((c) => c === '/z')).toHaveLength(1);
 
-      // Still inside the 3 s window — a second break must not re-fire.
+      // Still inside the global cooldown — a second break must not re-fire.
       setShieldedAgainstMe(true);
       runLine(mock, brzek);
-      vi.advanceTimersByTime(700);
-      expect(sentCommands(mock).filter((c) => c === 'c')).toHaveLength(1);
+      vi.advanceTimersByTime(3400);
+      expect(sentCommands(mock).filter((c) => c === '/z')).toHaveLength(1);
 
       // Past the window it fires again.
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(13000);
       setShieldedAgainstMe(true);
       runLine(mock, brzek);
-      vi.advanceTimersByTime(700);
-      expect(sentCommands(mock).filter((c) => c === 'c')).toHaveLength(2);
+      vi.advanceTimersByTime(3400);
+      expect(sentCommands(mock).filter((c) => c === '/z')).toHaveLength(2);
 
       cleanupPyk();
       destroyTeam(mock.api);
@@ -282,8 +287,8 @@ describe('mod_team — lamanie zaslony', () => {
       expect(printedText(mock).filter((text) => text === output)).toHaveLength(1);
       expect(sentCommands(mock)).toContain('play_morse');
 
-      vi.advanceTimersByTime(250);
-      expect(sentCommands(mock)).toContain('c cel ataku');
+      vi.advanceTimersByTime(3400);
+      expect(sentCommands(mock)).toContain('/z');
 
       vi.advanceTimersByTime(4750);
       expect(printedText(mock)).toContain(
@@ -302,9 +307,9 @@ describe('mod_team — lamanie zaslony', () => {
       const cleanupPyk = enablePyk(mock);
 
       runLine(mock, 'Rzucasz sie na glupiego trolla przebijajac sie przez jego ochrone.');
-      vi.advanceTimersByTime(250);
+      vi.advanceTimersByTime(3400);
 
-      expect(sentCommands(mock)).not.toContain('c cel ataku');
+      expect(sentCommands(mock)).not.toContain('/z');
 
       cleanupPyk();
       destroyTeam(mock.api);
@@ -317,10 +322,10 @@ describe('mod_team — lamanie zaslony', () => {
       setupTeam(mock.api);
 
       runLine(mock, 'Rzucasz sie na glupiego trolla przebijajac sie przez jego ochrone.');
-      vi.advanceTimersByTime(250);
+      vi.advanceTimersByTime(3400);
 
       expect(sentCommands(mock)).toContain('play_morse');
-      expect(sentCommands(mock)).not.toContain('c cel ataku');
+      expect(sentCommands(mock)).not.toContain('/z');
 
       destroyTeam(mock.api);
     });
@@ -469,6 +474,7 @@ describe('mod_team — lamanie zaslony', () => {
 
   describe('lamanietest!', () => {
     it('replays every sample line through the real handlers without touching the game', () => {
+      vi.useFakeTimers();
       const mock = createMockApi();
       teamOf(mock, ['Vindael']);
       setupTeam(mock.api);
@@ -495,6 +501,7 @@ describe('mod_team — lamanie zaslony', () => {
       // ...and side effects are only described, never executed.
       expect(out).toContain('[test] play_basso');
       expect(out).toContain('[test] f+ rz');
+      vi.advanceTimersByTime(15000);
       expect(sentCommands(mock)).toEqual([]);
       expect(mock.api.bind.set).not.toHaveBeenCalled();
 

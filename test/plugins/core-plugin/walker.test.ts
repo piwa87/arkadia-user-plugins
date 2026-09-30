@@ -66,7 +66,7 @@ describe('client walker shortcuts', () => {
     currentRoomId = 22759;
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
     expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.anything());
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(700);
     expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 22759 });
     expect(mock.api.command.send).toHaveBeenLastCalledWith('/walk 0');
     cleanup();
@@ -98,7 +98,7 @@ describe('client walker shortcuts', () => {
     update(true);
     currentRoomId = 95;
     update(false);
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(700);
     expect(mock.api.command.send).toHaveBeenCalledWith('/idz 99 0.5');
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
       '/walk 1', '/prowadz 99', '/idz 99 0.5', '/walkerw', '/idz 99 0.5',
@@ -108,7 +108,7 @@ describe('client walker shortcuts', () => {
     update(true);
     currentRoomId = 99;
     update(false);
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(700);
     expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 99 });
     expect(mock.api.command.send).toHaveBeenLastCalledWith('/walk 0');
     cleanup();
@@ -135,7 +135,7 @@ describe('client walker shortcuts', () => {
     currentRoomId = 99;
     (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 99, delay: 0.5 });
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(700);
 
     expect(mock.api.map.setLocation).toHaveBeenCalledWith(95);
     expect(mock.api.command.send).toHaveBeenCalledWith('/idz 99 0.5');
@@ -152,7 +152,7 @@ describe('client walker shortcuts', () => {
     (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 99, delay: 0.5 });
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
     expect(mock.commandHooks[0].callback('/stop')).toBeUndefined();
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(700);
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
       '/walk 1', '/prowadz 99', '/idz 99 0.5', '/walkerw', '/walk 0',
     ]);
@@ -170,7 +170,7 @@ describe('client walker shortcuts', () => {
     for (let attempt = 0; attempt < 4; attempt += 1) {
       (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 99, delay: 0.5 });
       (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
-      await vi.advanceTimersByTimeAsync(1500);
+      await vi.advanceTimersByTimeAsync(700);
     }
 
     expect(vi.mocked(mock.api.command.send).mock.calls.filter(([command]) => command === '/idz 99 0.5')).toHaveLength(4);
@@ -204,7 +204,7 @@ describe('client walker shortcuts', () => {
     (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 22759, delay: 0.5 });
     currentRoomId = 22759;
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(700);
 
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
       '/walk 1',

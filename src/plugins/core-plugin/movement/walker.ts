@@ -143,7 +143,7 @@ function setupStandardWalker(api: PluginApi): () => void {
 
 export const WALKER_ROUTE_START_EVENT = 'walkerRoute.start';
 export const WALKER_ROUTE_ARRIVED_EVENT = 'walkerRoute.arrived';
-const WALKER_SETTLE_MS = 1_500;
+const WALKER_SETTLE_MS = 700;
 const WALKER_MAX_RETRIES = 3;
 
 interface LocationShortcut {

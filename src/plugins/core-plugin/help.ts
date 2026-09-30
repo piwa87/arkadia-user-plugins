@@ -24,7 +24,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'set <target>', desc: 'set targets 1–4 with ordinal prefixes' },
       { cmd: 'set1–4 <what>', desc: 'set individual target verbatim' },
       { cmd: 'xxx', desc: 'stop fighting' },
-      { cmd: 'pyk+ / pyk-', desc: "auto-attack leader's target on/off" },
+      { cmd: 'pyk+ / pyk-', desc: 'auto-attack marked team target for 15 min / off (shared cooldown)' },
       { cmd: 'next!', desc: 'print N E X T visual banner' },
 
       { section: 'BATTLE PRESETS' },
@@ -317,7 +317,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'napwsz', desc: 'sharpen all weapons and repair all armor' },
       { cmd: 'ti!', desc: 'stopwatch toggle (start/stop)' },
       { cmd: 'ti!+', desc: 'stopwatch force reset' },
-      { cmd: 'prr', desc: 'stop current action and herb route' },
+      { cmd: 'prr', desc: 'stop current action, herb route and PYK' },
       { cmd: 'zakrec!', desc: 'spin the wheel (random result)' },
       { cmd: 'gale!', desc: 'navigate through galeon with random delays' },
       { cmd: 'hide+ / hide-', desc: 'toggle association listing + signet ring' },

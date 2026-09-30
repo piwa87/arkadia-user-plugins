@@ -1,10 +1,9 @@
 import type { AnsiAwareBuffer, FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
-import { withDelay } from '../../../lib/withDelay';
 import { getAntyfloodLevel } from '../antyflood';
 import { setBind } from '../f';
-import { isPykEnabled } from '../pyk';
+import { isPykEnabled, requestPykAttack } from '../pyk';
 import { runKolManewrAlias } from './manewr';
 import {
   getCurrentTeam,
@@ -30,7 +29,7 @@ import {
  *   - `play_basso` on every break against us, `play_morse` on every break we win
  *   - the F-bind is armed on the broken teammate's slot key (so pressing it
  *     re-shields them), or on `rz` when the player themselves was broken
- *   - two conditional auto-attacks, both gated on `pyk+` (see AUTO_* below)
+ *   - two conditional auto-attacks, both gated on `pyk+` (through the shared PYK scheduler)
  *
  * PRESENTATION follows CMUD's output operations: `#SUB` replaces the incoming
  * line, `#SAY` prints an additional line, and `#GAG` suppresses the incoming
@@ -55,15 +54,8 @@ interface LamanieTrigger {
 
 // ---- Module state ------------------------------------------------------------
 
-/** False once destroyLamanie ran — guards the fire-and-forget delayed sends. */
-let active = false;
-
 /** True while `lamanietest!` replays sample lines — no real commands are sent. */
 let simulating = false;
-
-/** CMUD `@czy_pyk` — cooldown on the "teammate broke my blocker" auto-attack. */
-let onCooldown = false;
-let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** CMUD `@wrog_zlamany` / `@team_zlamany` — last enemy / teammate broken. */
 let wrogZlamany = '';
@@ -92,17 +84,11 @@ function resetLamanieState(): void {
   wrogZlamany = '';
   teamZlamany = '';
   setShieldedAgainstMe(false);
-  onCooldown = false;
-  if (cooldownTimer) {
-    clearTimeout(cooldownTimer);
-    cooldownTimer = null;
-  }
 }
 
 // ---- Setup -------------------------------------------------------------------
 
 export function setupLamanie(api: PluginApi, tag: string): void {
-  active = true;
 
   // Colors are built once here — never inside a trigger callback.
   const c0 = getAnsiFormatState(0, api); // %ansi(0) / %ansi(reset)
@@ -279,21 +265,12 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         send('play_morse');
         bind(`c ${target}`); // one key press to swing at the now-open enemy
 
-        // AUTO-ATTACK A: the broken enemy was the one shielding against us, so
-        // it is hittable again — CMUD `#IF (@czy_pyk=1 AND @zaslona_przed_ja=1)`.
-        // `czy_pyk` is now the real `pyk+` switch, so nothing swings on its own
-        // unless automatic attacking is turned on.
-        if (isPykEnabled() && isShieldedAgainstMe() && !onCooldown) {
-          onCooldown = true;
+        // Retry only through PYK's shared reaction/cooldown, always against
+        // the current marked target. Simulation must never schedule a real send.
+        if (!simulating && isPykEnabled() && isShieldedAgainstMe()) {
           setShieldedAgainstMe(false);
           wrogZlamany = '';
-          withDelay(249, 699, () => {
-            if (active) send('c');
-          });
-          cooldownTimer = setTimeout(() => {
-            onCooldown = false;
-            cooldownTimer = null;
-          }, 3000); // CMUD `#ALARM pyk +3`
+          requestPykAttack();
         }
         return line;
       },
@@ -331,15 +308,8 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         if (!simulating) runKolManewrAlias();
         send('play_morse');
 
-        // AUTO-ATTACK B: back on the team's target now that the shield is gone.
-        // CMUD guarded this with `@po_przelamaniu`, a var it set to 0 on first
-        // use and never restored — treated here as leftover state, so the guard
-        // is "pyk is on and we are in a team".
-        if (isPykEnabled() && getCurrentTeam().length > 0) {
-          withDelay(50, 211, () => {
-            if (active) send('c cel ataku');
-          });
-        }
+        // A successful break is just another signal for the same PYK scheduler.
+        if (!simulating && getCurrentTeam().length > 0) requestPykAttack();
         return line;
       },
     },
@@ -516,7 +486,6 @@ function simulate(api: PluginApi, say: (text: string) => void): void {
 }
 
 export function destroyLamanie(api: PluginApi): void {
-  active = false;
   resetLamanieState();
   for (const id of aliasIds) api.aliases.remove(id);
   aliasIds = [];
