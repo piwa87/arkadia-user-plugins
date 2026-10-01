@@ -6,9 +6,13 @@ import { withDelay } from '../../lib/withDelay';
 import { findMatchRange } from '../../lib/findMatchRange';
 import { getMyColor } from '../../lib/colors/my-colors';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
+import { setupIdlAlias } from './misc/idl';
 import { setupPrrAlias } from './misc/prr';
+import { setupZleceniaAliases } from './misc/zlecenia';
 
-export function setupMiscAliases(api: PluginApi): void {
+export function setupMiscAliases(api: PluginApi): () => void {
+  const cleanupIdl = setupIdlAlias(api);
+  setupZleceniaAliases(api);
   setupPrrAlias(api);
 
   // ps - introduce yourself
@@ -332,4 +336,6 @@ export function setupMiscAliases(api: PluginApi): void {
     api.output.print('[xdam] armed');
     return true;
   });
+
+  return cleanupIdl;
 }

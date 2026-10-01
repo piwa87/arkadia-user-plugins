@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import { destroy as destroyCore, init as initCore } from '../src/plugins/core-plugin/index';
-import { destroy as destroyDev, init as initDev } from '../src/plugins/development-plugin/index';
 import { destroy as destroyRkg, init as initRkg } from '../src/plugins/rkg-plugin/index';
 import { createMockApi } from './helpers/mockApi';
 
@@ -10,30 +9,23 @@ import { createMockApi } from './helpers/mockApi';
  * ~nothing on non-matching lines. This budget keeps the per-line walk small —
  * if it fails after adding a trigger, prefer registerTokenGate/registerToken.
  *
- * Before the token-gate conversion the two plugins registered ~120 always-on
- * regex triggers; the remaining regular ones are anchored full-line parsers
+ * Before the token-gate conversion the plugins registered ~120 always-on regex
+ * triggers; the remaining regular ones are anchored full-line parsers
  * (kondycje, zmeczenie) and literal-prefix room descriptions (bramy, walker).
  */
 describe('per-line trigger budget', () => {
   it('keeps the always-on regex/string trigger count minimal', async () => {
     const core = createMockApi();
     await initCore(core.api);
-    const dev = createMockApi();
-    await initDev(dev.api);
 
     expect(core.triggers.length).toBeLessThanOrEqual(11);
-    expect(dev.triggers.length).toBe(0);
     expect(core.oneTimeTriggers).toHaveLength(0);
-    expect(dev.oneTimeTriggers).toHaveLength(0);
 
     // Sanity: the converted triggers actually registered as token gates. The
-    // bulk (including mod_team, which moved out of development-plugin) is
-    // core's; development-plugin is down to zlecenia alone.
+    // shared game helpers, including zlecenia, are registered by core.
     expect(core.tokenTriggers.length).toBeGreaterThan(150);
-    expect(dev.tokenTriggers.length).toBeGreaterThan(0);
 
     await destroyCore();
-    destroyDev();
   });
 
   it('keeps rkg-plugin off the per-line walk entirely', async () => {

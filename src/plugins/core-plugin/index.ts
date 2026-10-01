@@ -113,6 +113,7 @@ const TRIGGER_TAGS = [
   'pakujZiolaWoreczekGag',
   'stun',
   'tmpk',
+  'zlecenia',
   'atakTriggers',
   'zmeczenie',
   // Armed-on-demand one-shot triggers that may be waiting for a match:
@@ -145,6 +146,7 @@ let cleanupPlecak: (() => void) | null = null;
 let cleanupLocationTriggers: (() => void) | null = null;
 let cleanupLocationCommands: (() => void) | null = null;
 let cleanupDoo: (() => void) | null = null;
+let cleanupMiscAliases: (() => void) | null = null;
 let cleanupAtakiTriggers: (() => void) | null = null;
 let cleanupTriggerTags: (() => void) | null = null;
 let cleanupTeam: (() => void) | null = null;
@@ -210,7 +212,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupMapAliases(api);
   setupMgfnAlias(api);
   setupMieszekAliases(api);
-  setupMiscAliases(api);
+  cleanupMiscAliases = setupMiscAliases(api);
   setupMiscTriggers(api);
   setupMovementAliases(api);
   setupOptionsAliases(api);
@@ -303,6 +305,8 @@ export async function destroy(): Promise<void> {
   cleanupNearestKnowledgeAlias = null;
   cleanupDoo?.();
   cleanupDoo = null;
+  cleanupMiscAliases?.();
+  cleanupMiscAliases = null;
   cleanupAtakiTriggers?.();
   cleanupAtakiTriggers = null;
   cleanupTeam?.(); // detaches teamChange, clears the wylap capture and the bind

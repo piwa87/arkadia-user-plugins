@@ -4,7 +4,7 @@ import { setupCiosyKolory } from '../../../src/plugins/core-plugin/colors/col_ci
 import { setupColEkwipunek } from '../../../src/plugins/core-plugin/colors/col_ekwipunek';
 import { setupColMovements } from '../../../src/plugins/core-plugin/colors/col_movements';
 import { setupMiscTriggers } from '../../../src/plugins/core-plugin/triggers/misc';
-import { setupZlecenia } from '../../../src/plugins/development-plugin/zlecenia';
+import { setupZleceniaAliases } from '../../../src/plugins/core-plugin/misc/zlecenia';
 import { createMockApi, runLine } from '../../helpers/mockApi';
 
 describe('token-gated small trigger modules', () => {
@@ -81,8 +81,9 @@ describe('token-gated small trigger modules', () => {
 
   it('zlecenia auto-requests /zlecenia on seller line', () => {
     const mock = createMockApi();
-    setupZlecenia(mock.api);
+    setupZleceniaAliases(mock.api);
     runLine(mock, 'Kowal mowi do ciebie: Na realizacje zamowienia mam okolo godziny.');
     expect(mock.api.command.send).toHaveBeenCalledWith('/zlecenia');
+    mock.api.triggers.removeByTag('zlecenia');
   });
 });
