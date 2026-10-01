@@ -269,7 +269,6 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         // the current marked target. Simulation must never schedule a real send.
         if (!simulating && isPykEnabled() && isShieldedAgainstMe()) {
           setShieldedAgainstMe(false);
-          wrogZlamany = '';
           requestPykAttack();
         }
         return line;
@@ -461,6 +460,7 @@ function simulate(api: PluginApi, say: (text: string) => void): void {
     say('    druzyna pusta — linie druzynowe przeleca bez reakcji');
   }
 
+  const savedState = { wrogZlamany, teamZlamany, shielded: isShieldedAgainstMe() };
   simulating = true;
   try {
     for (const text of sampleLines()) {
@@ -480,6 +480,9 @@ function simulate(api: PluginApi, say: (text: string) => void): void {
       else api.output.print(line);
     }
   } finally {
+    wrogZlamany = savedState.wrogZlamany;
+    teamZlamany = savedState.teamZlamany;
+    setShieldedAgainstMe(savedState.shielded);
     simulating = false;
   }
   say('--- koniec ---');

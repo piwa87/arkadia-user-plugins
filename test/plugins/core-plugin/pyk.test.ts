@@ -158,10 +158,6 @@ describe('PYK shared attack scheduler', () => {
 
   it.each(['pyk-', 'prr'])('%s fully resets PYK and silences subsequent signals', command => {
     setupPrrAlias(mock.api);
-    // Model command dispatch for prr's nested pyk- alias.
-    vi.mocked(mock.api.command.send).mockImplementation(async text => {
-      if (text === 'pyk-') alias(text);
-    });
     alias('pyk+');
     signal();
     alias(command);
@@ -255,6 +251,73 @@ describe('PYK shared attack scheduler', () => {
     const knockOff = () => mock.api.events.emit('weaponKnockedOff');
     const ready = () => mock.api.events.emit('canWieldAfterKnockOff');
     const draws = () => vi.mocked(mock.api.command.send).mock.calls.filter(c => c[0] === 'dob');
+    const warnings = () => vi.mocked(mock.api.output.print).mock.calls.filter(
+      ([line]) => String(typeof line === 'string' ? line : line.text).includes('brak potwierdzenia'),
+    );
+
+    it.each(['dob', 'db', 'chdobadz wszystkich broni', 'gzdobadz toporow', 'dobadz miecza'])(
+      'lets external %s take over before the automatic timer fires', command => {
+        alias('pyk+');
+        knockOff();
+        ready();
+        vi.advanceTimersByTime(399);
+        for (const hook of mock.commandHooks) expect(hook.callback(command)).toBeUndefined();
+        ready();
+        vi.advanceTimersByTime(3400);
+        expect(draws()).toHaveLength(0);
+        signal();
+        vi.advanceTimersByTime(400);
+        expect(attacks()).toHaveLength(0);
+        mock.api.events.emit('weapon_state', true);
+        vi.advanceTimersByTime(10000);
+        expect(warnings()).toHaveLength(0);
+        signal();
+        vi.advanceTimersByTime(400);
+        expect(attacks()).toHaveLength(1);
+      },
+    );
+
+    it('warns once after a missing confirmation, without retrying or unblocking attacks', () => {
+      // Route the automatic dob through the same hooks as in the client.
+      vi.mocked(mock.api.command.send).mockImplementation(async command => {
+        for (const hook of mock.commandHooks) hook.callback(command);
+      });
+      alias('pyk+');
+      knockOff();
+      ready();
+      vi.advanceTimersByTime(400);
+      expect(draws()).toHaveLength(1);
+      vi.advanceTimersByTime(9999);
+      expect(warnings()).toHaveLength(0);
+      vi.advanceTimersByTime(1);
+      expect(warnings()).toHaveLength(1);
+      ready();
+      alias('pyk+');
+      for (const hook of mock.commandHooks) hook.callback('dob');
+      signal();
+      vi.advanceTimersByTime(30000);
+      expect(warnings()).toHaveLength(1);
+      expect(draws()).toHaveLength(1);
+      expect(attacks()).toHaveLength(0);
+    });
+
+    it.each(['confirmed', 'off', 'prr', 'expiry', 'destroy', 'new knock-off'])(
+      'cancels the pending warning on %s', reason => {
+        setupPrrAlias(mock.api);
+        alias('pyk+');
+        if (reason === 'expiry') vi.advanceTimersByTime(899000);
+        knockOff();
+        ready();
+        vi.advanceTimersByTime(400);
+        if (reason === 'confirmed') mock.api.events.emit('weapon_state', true);
+        if (reason === 'off') alias('pyk-');
+        if (reason === 'prr') alias('prr');
+        if (reason === 'destroy') cleanup();
+        if (reason === 'new knock-off') knockOff();
+        vi.advanceTimersByTime(10000);
+        expect(warnings()).toHaveLength(0);
+      },
+    );
 
     it.each([[0, 400], [0.999999, 3400]])('draws once after readiness (random %s, delay %s)', (random, delay) => {
       vi.mocked(Math.random).mockReturnValue(random);
@@ -324,9 +387,6 @@ describe('PYK shared attack scheduler', () => {
 
     it.each(['manual draw', 'pyk-', 'prr', 'disconnect', 'expiry', 'destroy'])('cancels recovery on %s', reason => {
       setupPrrAlias(mock.api);
-      vi.mocked(mock.api.command.send).mockImplementation(async text => {
-        if (text === 'pyk-') alias(text);
-      });
       alias('pyk+');
       if (reason === 'expiry') vi.advanceTimersByTime(899800);
       knockOff();

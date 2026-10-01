@@ -5,9 +5,23 @@ import { registerTokenGate } from '../../lib/registerTokenGate';
 const TAG = 'atakPyk';
 
 const SESSION_MS = 15 * 60 * 1000;
+const REACTION_MIN_MS = 400;
+const REACTION_MAX_MS = 3400;
+const COOLDOWN_MIN_SECONDS = 7;
+const COOLDOWN_MAX_SECONDS = 11;
+const WEAPON_CONFIRMATION_MS = 10000;
+const DRAW_COMMAND = /^(?:dob|db|db_m|db_t|db_mac|db_mt|db_mmac|chdobadz|gzdobadz|dobadz)(?:\s|$)/i;
+
+type WeaponRecovery = 'idle' | 'waitingForReady' | 'scheduled' | 'waitingForConfirmation';
+
+function randomInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+const reactionDelay = () => randomInt(REACTION_MIN_MS, REACTION_MAX_MS);
 
 // All automatic attack sources share this session, pending reaction and cooldown.
-let controller: { isEnabled: () => boolean; request: () => void } | null = null;
+let controller: { isEnabled: () => boolean; request: () => void; stop: () => void } | null = null;
 
 export function isPykEnabled(): boolean {
   return controller?.isEnabled() ?? false;
@@ -17,14 +31,19 @@ export function requestPykAttack(): void {
   controller?.request();
 }
 
+/** Shared explicit stop for pyk- and prr; no command dispatch needed. */
+export function stopPyk(): void {
+  controller?.stop();
+}
+
 export function setupAtakPyk(api: PluginApi): () => void {
   let enabledUntil = 0;
   let nextAttackAt = 0;
   let reactionTimer: ReturnType<typeof setTimeout> | null = null;
   let expiryTimer: ReturnType<typeof setTimeout> | null = null;
   let wieldTimer: ReturnType<typeof setTimeout> | null = null;
-  let recoveringWeapon = false;
-  let wieldAttempted = false;
+  let weaponRecovery: WeaponRecovery = 'idle';
+  let confirmationTimer: ReturnType<typeof setTimeout> | null = null;
 
   const colorInfo = api.colors.fromHex('#888888');
 
@@ -36,8 +55,9 @@ export function setupAtakPyk(api: PluginApi): () => void {
   const resetWeaponRecovery = () => {
     if (wieldTimer !== null) clearTimeout(wieldTimer);
     wieldTimer = null;
-    recoveringWeapon = false;
-    wieldAttempted = false;
+    if (confirmationTimer !== null) clearTimeout(confirmationTimer);
+    confirmationTimer = null;
+    weaponRecovery = 'idle';
   };
 
   const disable = () => {
@@ -61,11 +81,11 @@ export function setupAtakPyk(api: PluginApi): () => void {
     return true;
   };
 
-  const sendAttack = () => {
-    if (!isEnabled() || recoveringWeapon || reactionTimer !== null || Date.now() < nextAttackAt) return;
+  const requestAttack = () => {
+    if (!isEnabled() || weaponRecovery !== 'idle' || reactionTimer !== null || Date.now() < nextAttackAt) return;
     reactionTimer = setTimeout(() => {
       reactionTimer = null;
-      if (!isEnabled() || recoveringWeapon || Date.now() < nextAttackAt) return;
+      if (!isEnabled() || weaponRecovery !== 'idle' || Date.now() < nextAttackAt) return;
 
       // The marked target is authoritative, even when the leader fights someone
       // else. Resolve it at execution time, after text and GMCP have caught up.
@@ -78,38 +98,65 @@ export function setupAtakPyk(api: PluginApi): () => void {
           me.attack_num === target.num) return;
 
       // Reserve before sending, including synchronous events caused by send().
-      nextAttackAt = Date.now() + (7 + Math.floor(Math.random() * 5)) * 1000;
+      nextAttackAt = Date.now() + randomInt(COOLDOWN_MIN_SECONDS, COOLDOWN_MAX_SECONDS) * 1000;
       api.command.send('/z', false);
-    }, 400 + Math.floor(Math.random() * 3001));
+    }, reactionDelay());
   };
 
-  const session = { isEnabled, request: sendAttack };
+  const stop = () => {
+    disable();
+    say('--> juz nie pyk');
+  };
+
+  const session = { isEnabled, request: requestAttack, stop };
   controller = session;
 
   const onWeaponKnockedOff = () => {
     if (!isEnabled()) return;
     cancelReaction();
     resetWeaponRecovery();
-    recoveringWeapon = true;
+    weaponRecovery = 'waitingForReady';
+  };
+
+  const waitForWeaponConfirmation = () => {
+    if (wieldTimer !== null) clearTimeout(wieldTimer);
+    wieldTimer = null;
+    weaponRecovery = 'waitingForConfirmation';
+    confirmationTimer = setTimeout(() => {
+      confirmationTimer = null;
+      if (!isEnabled() || weaponRecovery !== 'waitingForConfirmation') return;
+      say('--> pyk: brak potwierdzenia dobycia broni; autoatak wstrzymany');
+    }, WEAPON_CONFIRMATION_MS);
   };
 
   const onCanWield = () => {
-    if (!isEnabled() || !recoveringWeapon || wieldAttempted || wieldTimer !== null) return;
+    if (!isEnabled() || weaponRecovery !== 'waitingForReady') return;
+    weaponRecovery = 'scheduled';
     wieldTimer = setTimeout(() => {
       wieldTimer = null;
-      if (!isEnabled() || !recoveringWeapon || wieldAttempted) return;
-      // One attempt per knock-off, independent of attack cooldown. Keep attacks
-      // suspended until the client confirms a weapon is in hand (no retries).
-      wieldAttempted = true;
+      if (!isEnabled() || weaponRecovery !== 'scheduled') return;
+      // Change state before sending: our own dob and its expanded commands must
+      // not be treated as a new manual attempt by the command hook below.
+      waitForWeaponConfirmation();
       api.command.send('dob');
-    }, 400 + Math.floor(Math.random() * 3001));
+    }, reactionDelay());
   };
+
+  const drawHookId = api.commandHooks.register((command: string) => {
+    if ((weaponRecovery === 'waitingForReady' || weaponRecovery === 'scheduled') &&
+        DRAW_COMMAND.test(command.trim()) && isEnabled()) {
+      // A user alias, functional bind or another module takes over drawing.
+      // Keep attacks blocked until confirmation; do not retry or repeat warnings.
+      waitForWeaponConfirmation();
+    }
+    return undefined;
+  });
 
   const onWeaponState = (drawn: boolean) => {
     if (drawn) resetWeaponRecovery();
   };
 
-  api.events.on('teamLeaderTargetNoAvatar', sendAttack);
+  api.events.on('teamLeaderTargetNoAvatar', requestAttack);
   api.events.on('weaponKnockedOff', onWeaponKnockedOff);
   api.events.on('canWieldAfterKnockOff', onCanWield);
   api.events.on('weapon_state', onWeaponState);
@@ -139,13 +186,12 @@ export function setupAtakPyk(api: PluginApi): () => void {
   });
 
   const idMinus = api.aliases.register(/^pyk-$/i, () => {
-    disable();
-    say('--> juz nie pyk');
+    stop();
     return true;
   });
 
   const handleCelAtaku = (line: InstanceType<typeof api.AnsiAwareBuffer>) => {
-    sendAttack();
+    requestAttack();
     return line;
   };
 
@@ -164,7 +210,8 @@ export function setupAtakPyk(api: PluginApi): () => void {
     api.aliases.remove(idPlus);
     api.aliases.remove(idMinus);
     footer.remove();
-    api.events.off('teamLeaderTargetNoAvatar', sendAttack);
+    api.commandHooks.unregister(drawHookId);
+    api.events.off('teamLeaderTargetNoAvatar', requestAttack);
     api.events.off('weaponKnockedOff', onWeaponKnockedOff);
     api.events.off('canWieldAfterKnockOff', onCanWield);
     api.events.off('weapon_state', onWeaponState);

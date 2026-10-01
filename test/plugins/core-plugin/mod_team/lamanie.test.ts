@@ -7,6 +7,8 @@ import {
 } from '../../../../src/plugins/core-plugin/mod_team/team_state';
 import { setupAtakPyk } from '../../../../src/plugins/core-plugin/pyk';
 import { setupAntyflood } from '../../../../src/plugins/core-plugin/antyflood';
+import { getWrogZlamany, getTeamZlamany } from '../../../../src/plugins/core-plugin/mod_team/team_lamanie';
+import { setupPrzelamAliases } from '../../../../src/plugins/core-plugin/walka/v';
 
 function sentCommands(mock: MockApi): string[] {
   return (mock.api.command.send as any).mock.calls.map(([cmd]: [string]) => cmd);
@@ -156,6 +158,30 @@ describe('mod_team — lamanie zaslony', () => {
   });
 
   describe('teammate breaks an enemy shield', () => {
+    it('preserves the manual target when PYK rejects an attack during cooldown', () => {
+      vi.useFakeTimers();
+      const mock = createMockApi();
+      teamOf(mock, ['Vindael']);
+      setupTeam(mock.api);
+      setupPrzelamAliases(mock.api);
+      const cleanupPyk = enablePyk(mock);
+      try {
+        mock.api.events.emit('teamLeaderTargetNoAvatar', 42);
+        vi.advanceTimersByTime(3400);
+        setShieldedAgainstMe(true);
+        runLine(mock, 'Vindael rzuca sie na ogra przebijajac sie przez jego ochrone.');
+        vi.advanceTimersByTime(3400);
+        expect(sentCommands(mock).filter(c => c === '/z')).toHaveLength(1);
+        expect(getWrogZlamany()).toBe('ogra');
+        runAlias(mock, 'cv');
+        expect(sentCommands(mock)).toContain('zabij ogra');
+        runAlias(mock, 'v');
+        expect(getWrogZlamany()).toBe('');
+      } finally {
+        cleanupPyk();
+        destroyTeam(mock.api);
+      }
+    });
     it('banners + morse, and attacks when that enemy was shielded from us', () => {
       vi.useFakeTimers();
       const mock = createMockApi();
@@ -473,6 +499,29 @@ describe('mod_team — lamanie zaslony', () => {
   });
 
   describe('lamanietest!', () => {
+    it('restores the real combat state, including when simulation throws', () => {
+      const mock = createMockApi();
+      teamOf(mock, ['Vindael', 'Soroko']);
+      setupTeam(mock.api);
+      try {
+        runLine(mock, 'Vindael rzuca sie na ogra przebijajac sie przez jego ochrone.');
+        runLine(mock, 'Troll rzuca sie na Soroko przebijajac sie przez jego ochrone.');
+        setShieldedAgainstMe(true);
+        runAlias(mock, 'lamanietest!');
+        expect(getWrogZlamany()).toBe('ogra');
+        expect(getTeamZlamany()).toBe('soroko');
+        expect(isShieldedAgainstMe()).toBe(true);
+        vi.mocked(mock.api.output.print).mockImplementation(line => {
+          if (typeof line !== 'string' && line.text.includes('czysty')) throw new Error('render failed');
+        });
+        expect(() => runAlias(mock, 'lamanietest!')).toThrow('render failed');
+        expect(getWrogZlamany()).toBe('ogra');
+        expect(getTeamZlamany()).toBe('soroko');
+        expect(isShieldedAgainstMe()).toBe(true);
+      } finally {
+        destroyTeam(mock.api);
+      }
+    });
     it('replays every sample line through the real handlers without touching the game', () => {
       vi.useFakeTimers();
       const mock = createMockApi();

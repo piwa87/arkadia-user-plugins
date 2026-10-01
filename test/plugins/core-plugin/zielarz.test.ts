@@ -41,6 +41,6 @@ describe('zielarz', () => {
     const prr = mock.aliases.find(({ pattern }) => pattern.test('prr'));
     expect(prr?.callback('prr'.match(prr.pattern) ?? undefined)).toBe(true);
     expect(mock.api.command.send).toHaveBeenCalledWith('/stop');
-    expect(mock.api.command.send).toHaveBeenCalledWith('pyk-');
+    expect(mock.api.command.send).toHaveBeenCalledTimes(1);
   });
 });
