@@ -25,7 +25,7 @@ describe('desert landmark directions', () => {
     const mock = createMockApi();
     setupPustyniaKierunki(mock.api);
     const line = runLine(mock, `Szeroka rozpadlina zagradza droge na ${direction}, a mury wielkiego miasta - poludniowy-wschod.`);
-    expect(line?.text).toBe(`[ROZPADLINA]${abbreviation}   +   [MURY]SE`);
+    expect(line?.text).toBe(`[ROZPADLINA]: ${abbreviation}   +   [MURY]: SE`);
     expect(mock.api.output.print).not.toHaveBeenCalled();
   });
 
@@ -33,14 +33,14 @@ describe('desert landmark directions', () => {
     const mock = createMockApi();
     setupPustyniaKierunki(mock.api);
     const line = runLine(mock, 'Mury wielkiego miasta zagradzaja droge na poludnie, poludniowy-wschod oraz wschod, a szeroka rozpadlina - polnocny-zachod i na polnoc.');
-    expect(line?.text).toBe('[ROZPADLINA]NW, N   +   [MURY]S, SE, E');
+    expect(line?.text).toBe('[ROZPADLINA]: NW, N   +   [MURY]: S, SE, E');
   });
 
   it('handles the observed description with two directions for each landmark', () => {
     const mock = createMockApi();
     setupPustyniaKierunki(mock.api);
     const line = runLine(mock, 'Szeroka rozpadlina zagradza droge na poludniowy-wschod i poludnie, a mury wielkiego miasta - polnocny-wschod i polnocny-zachod.');
-    expect(line?.text).toBe('[ROZPADLINA]SE, S   +   [MURY]NE, NW');
+    expect(line?.text).toBe('[ROZPADLINA]: SE, S   +   [MURY]: NE, NW');
   });
 
   it.each([
