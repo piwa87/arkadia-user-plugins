@@ -56,6 +56,7 @@ import {
   setCenterCommand,
   setupOptionsAliases,
   setupPostAliases,
+  setupPustyniaKierunki,
   setupGlassSounds,
   setupPingSounds,
   setupStatsAliases,
@@ -106,6 +107,7 @@ const TRIGGER_TAGS = [
   'ghoule',
   'kondycje',
   'kompas',
+  'pustyniaKierunki',
   'miscTriggers',
   'morze',
   'pokoniuchy',
@@ -186,6 +188,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   // onCharName below; the kill alias only needs the shared drawn/drawCurrent state.
   setupKillAlias(api, targets, dobywanieState);
   setupKompas(api);
+  setupPustyniaKierunki(api);
   setupPrzelamAliases(api);
   cleanupDoo = setupDooAliases(api);
   setupEquipmentAliases(api);

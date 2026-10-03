@@ -54,6 +54,7 @@ export { setupMovementAliases } from './movement/movement_aliases';
 export { setupKeyboardBindings, teardownKeyboardBindings, setCenterCommand } from './movement/movement_binds';
 export { setupOptionsAliases } from './options';
 export { setupPostAliases } from './poczta';
+export { setupPustyniaKierunki } from './pustynia/kierunki';
 export { setupGlassSounds } from './sounds/glass_sound';
 export { setupPingSounds } from './sounds/ping_sounds';
 export { setupStatsAliases } from './stats';

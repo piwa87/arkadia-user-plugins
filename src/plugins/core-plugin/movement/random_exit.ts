@@ -1,21 +1,7 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { DIRECTION_COMMANDS } from '../../../lib/directions';
 
 export function setupRandomExitAlias(api: PluginApi): void {
-  const dirToCmd: Record<string, string> = {
-    north: 'n',
-    south: 's',
-    east: 'e',
-    west: 'w',
-    northeast: 'ne',
-    northwest: 'nw',
-    southeast: 'se',
-    southwest: 'sw',
-    up: 'u',
-    down: 'd',
-    in: 'in',
-    out: 'out',
-  };
-
   api.aliases.register(/^mran$/, () => {
     const room = api.map.getRoom();
     if (!room) {
@@ -24,7 +10,7 @@ export function setupRandomExitAlias(api: PluginApi): void {
     }
 
     const exits = [
-      ...Object.keys(room.exits).map((dir) => dirToCmd[dir] ?? dir),
+      ...Object.keys(room.exits).map((dir) => DIRECTION_COMMANDS[dir] ?? dir),
       ...Object.keys(room.specialExits ?? {}),
     ];
 

@@ -6,10 +6,14 @@ import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 const TAG = 'kompas';
 
 /**
- * Compass usage triggers: shortens compass-reading lines, alerts when
+ * Compass usage triggers: marks compass-reading lines, alerts when
  * the compass breaks, and provides a quick-fix alias.
  */
 export function setupKompas(api: PluginApi): void {
+  const waitPrefixColor = getAnsiFormatState(37, api);
+  const okPrefixColor = getAnsiFormatState(34, api);
+  const lineColor = getMyColor(3, api);
+
   // --- Someone else uses a compass: gag the long text, print a short notice ---
 
   registerTokenGate(
@@ -60,41 +64,34 @@ export function setupKompas(api: PluginApi): void {
     TAG,
   );
 
-  // --- Self uses compass: substitute with a short notice ---
-  // In the original XML this trigger is disabled by default; enabling it
-  // shortens the "I'm using a compass" text in output.
+  // --- Self uses compass: prefix the original text with a pending status ---
 
   registerTokenGate(
     api,
     'kompasowi',
     /^Ukladasz urzadzenie na wyprostowanej dloni i na pare chwil wstrzymujesz oddech, by pozwolic kompasowi pokazac kierunek polnocny\.$/i,
-    () => {
-      const gray = getMyColor(0, api);
-      const text = '.....uzywasz kompasu...';
-      const buf = new api.AnsiAwareBuffer(text);
-      buf.color([0, text.length], gray);
-      api.output.print(buf);
-      return null; // suppress original line
+    (line) => {
+      line.color([0, line.text.length], lineColor);
+      const prefix = new api.AnsiAwareBuffer();
+      prefix.append('   ..   ', waitPrefixColor);
+      prefix.append(' ', lineColor);
+      return line.prependBuffer(prefix);
     },
     TAG,
   );
 
-  // --- Compass result: substitute with a compact direction notice ---
+  // --- Compass result: prefix the original text with a completed status ---
 
   registerTokenGate(
     api,
     'kompasu',
     /^Uwaznie przygladasz sie ulozeniu wskazowki .* kompasu i na jej podstawie ustalasz pozostale kierunki swiata\.$/i,
-    () => {
-      const ansiColor = getAnsiFormatState(111, api);
-      const col3 = getMyColor(3, api);
-
-      const text = '     " * " Dalej!';
-      const buf = new api.AnsiAwareBuffer(text);
-      buf.color([0, text.length], ansiColor);
-      buf.color([13, text.length], col3);
-      api.output.print(buf);
-      return null; // suppress original line
+    (line) => {
+      line.color([0, line.text.length], lineColor);
+      const prefix = new api.AnsiAwareBuffer();
+      prefix.append('   OK   ', okPrefixColor);
+      prefix.append(' ', lineColor);
+      return line.prependBuffer(prefix);
     },
     TAG,
   );

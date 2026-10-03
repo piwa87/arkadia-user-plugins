@@ -63,7 +63,7 @@ export function setupColMovements(api: PluginApi): void {
     api,
     ['zaczynasz', 'wchodzisz'],
     [waitPattern, ...WAIT_PATTERNS],
-    (line) => applyStatus(line, '...', waitPrefixColor),
+    (line) => applyStatus(line, '..', waitPrefixColor),
     TAG,
   );
 

@@ -45,7 +45,7 @@ describe('token-gated small trigger modules', () => {
     );
 
     const pending = runLine(mock, 'Zaczynasz wspinac sie na gore.');
-    expect(pending!.text.startsWith('   ...   ')).toBe(true);
+    expect(pending!.text.startsWith('   ..   ')).toBe(true);
     expect(pending!.color).toHaveBeenCalledWith(
       [0, 'Zaczynasz wspinac sie na gore.'.length],
       expect.objectContaining({ value: '#a6a6a6' }),

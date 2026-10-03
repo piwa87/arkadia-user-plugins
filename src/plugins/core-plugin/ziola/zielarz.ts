@@ -1,4 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
+import { DIRECTION_COMMANDS, EXIT_DIRECTIONS } from '../../../lib/directions';
 import { storage } from '../../../lib/storage';
 import { pakujZiola } from './pakuj';
 
@@ -12,35 +13,6 @@ const MOVE_TIMEOUT_MS = 10_000;
 const SEARCH_MEMORY_MS = 30 * 60 * 1000;
 const SEARCH_MEMORY_KEY = 'zielarz-searched-rooms';
 const MAX_SKIPPED_LOCATIONS = 10;
-
-const DIRECTION_COMMANDS: Record<string, string> = {
-  north: 'n',
-  south: 's',
-  east: 'e',
-  west: 'w',
-  northeast: 'ne',
-  northwest: 'nw',
-  southeast: 'se',
-  southwest: 'sw',
-  up: 'u',
-  down: 'd',
-  in: 'in',
-  out: 'out',
-};
-
-const EXIT_DIRECTIONS: Record<string, string> = {
-  n: 'north', north: 'north', polnoc: 'north',
-  s: 'south', south: 'south', poludnie: 'south',
-  e: 'east', east: 'east', wschod: 'east',
-  w: 'west', west: 'west', zachod: 'west',
-  ne: 'northeast', northeast: 'northeast', 'polnocny-wschod': 'northeast',
-  nw: 'northwest', northwest: 'northwest', 'polnocny-zachod': 'northwest',
-  se: 'southeast', southeast: 'southeast', 'poludniowy-wschod': 'southeast',
-  sw: 'southwest', southwest: 'southwest', 'poludniowy-zachod': 'southwest',
-  u: 'up', up: 'up', gora: 'up', gore: 'up',
-  d: 'down', down: 'down', dol: 'down',
-  in: 'in', out: 'out',
-};
 
 type Room = NonNullable<ReturnType<PluginApi['map']['getRoom']>>;
 type SearchMemory = Record<string, number>;
