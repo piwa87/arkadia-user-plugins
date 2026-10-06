@@ -63,11 +63,10 @@ export function setupWornContainerAliases(api: PluginApi, forms: WornContainerFo
     }),
   );
 
-  // zt - close the worn container and re-display worn equipment
+  // zt - close the worn container
   ids.push(
     api.aliases.register(/^zt$/, () => {
       api.command.send(`zamknij ${acc}`);
-      api.command.send('la+');
       return true;
     }),
   );

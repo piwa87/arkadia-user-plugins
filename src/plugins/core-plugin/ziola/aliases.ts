@@ -171,7 +171,7 @@ export async function sortHerbsByCategory(api: PluginApi): Promise<void> {
         if (amount <= 0) { tIdx++; continue; }
 
         const herbName = herbFormFor(forms, amount);
-        api.command.send(`wloz ${amount} ${herbName} do ${bagId}. woreczka`, true);
+        api.command.send(`wloz ${amount} ${herbName} do ${bagId}. swojego woreczka`, true);
         remaining -= amount;
         bagFill[bagId] += amount;
         sortedTotal += amount;
@@ -184,11 +184,29 @@ export async function sortHerbsByCategory(api: PluginApi): Promise<void> {
   const startBag = Math.min(3, bagIds.length);
   const endBag = Math.max(...bagIds);
   for (let i = startBag; i <= endBag; i++) {
-    api.command.send(`wloz ziola do ${i}. woreczka`, false);
+    api.command.send(`wloz ziola do ${i}. swojego woreczka`, false);
   }
 
   api.command.send('zamknij woreczki', false);
   api.output.print(`Posortowano ${sortedTotal} ziol.`);
+}
+
+/** Take herbs out of every pouch and put the pouches away. */
+async function unpackHerbs(api: PluginApi): Promise<void> {
+  await api.command.send('policz moje woreczki', false);
+  await api.command.send('odbezpiecz woreczki', false);
+  await api.command.send('otworz woreczki', false);
+
+  const bagIds = Object.keys(api.herbs.getBags())
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  for (const bagId of bagIds) {
+    await api.command.send(`wez ziola z ${bagId}. woreczka`, false);
+  }
+
+  await api.command.send('odloz woreczki', false);
 }
 
 export async function sellJunkHerbs(api: PluginApi): Promise<void> {
@@ -253,6 +271,13 @@ export function setupGatherAliases(api: PluginApi): string[] {
   );
 
   ids.push(
+    api.aliases.register(/^zi_pak$/i, () => {
+      void unpackHerbs(api);
+      return true;
+    }),
+  );
+
+  ids.push(
     api.aliases.register(/^\/zio_szukaj$/i, () => {
       api.command.send('szukaj ziol');
       withDelay(DELAY_MIN, DELAY_MAX, () => api.command.send('szukaj ziol'));
@@ -296,7 +321,7 @@ export function setupGatherAliases(api: PluginApi): string[] {
     api.aliases.register(/^zx(\d+)?$/i, (matches) => {
       api.output.print('--> pakuje zielsko');
       const n = matches?.[1] ? parseInt(matches[1], 10) : undefined;
-      pakujZiola(api, n, 3);
+      pakujZiola(api, n, 1);
       return true;
     }),
   );
