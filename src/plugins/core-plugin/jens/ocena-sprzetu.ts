@@ -21,6 +21,14 @@ export function setupJensOcenaSprzetu(api: PluginApi): void {
     return true;
   });
 
+  // tar! — quick evaluation of a shield from the room container.
+  api.aliases.register(/^tar!$/, () => {
+    api.command.send('we tarcze');
+    api.command.send('ocen ja');
+    api.command.send('odloz ja');
+    return true;
+  });
+
   // turn! — fetch tournament armor from the room container.
   api.aliases.register(/^turn!$/, () => {
     api.command.send('we turniejowa zbroje');

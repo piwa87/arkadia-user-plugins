@@ -5,7 +5,7 @@ import {
   setShieldedAgainstMe,
   isShieldedAgainstMe,
 } from '../../../../src/plugins/core-plugin/mod_team/team_state';
-import { setupAtakPyk } from '../../../../src/plugins/core-plugin/pyk';
+import { setupAtakPyk } from '../../../../src/plugins/core-plugin/pyk/pyk';
 import { setupAntyflood } from '../../../../src/plugins/core-plugin/antyflood';
 import { getWrogZlamany, getTeamZlamany } from '../../../../src/plugins/core-plugin/mod_team/team_lamanie';
 import { setupPrzelamAliases } from '../../../../src/plugins/core-plugin/walka/v';

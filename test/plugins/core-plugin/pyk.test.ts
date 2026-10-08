@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockApi, runLine } from '../../helpers/mockApi';
-import { isPykEnabled, requestPykAttack, setupAtakPyk } from '../../../src/plugins/core-plugin/pyk';
+import { isPykEnabled, requestPykAttack, setupAtakPyk } from '../../../src/plugins/core-plugin/pyk/pyk';
 import { setupPrrAlias } from '../../../src/plugins/core-plugin/misc/prr';
 import { setupTeam, destroyTeam } from '../../../src/plugins/core-plugin/mod_team/team';
 
@@ -255,7 +255,13 @@ describe('PYK shared attack scheduler', () => {
       ([line]) => String(typeof line === 'string' ? line : line.text).includes('brak potwierdzenia'),
     );
 
-    it.each(['dob', 'db', 'chdobadz wszystkich broni', 'gzdobadz toporow', 'dobadz miecza'])(
+    it.each([
+      'dob', 'db', 'dobm', 'dobmc', 'dobt', 'dobs', 'dobny',
+      'db_m', 'db_t', 'db_mac', 'db_mt', 'db_mmac',
+      'chdobadz wszystkich broni', 'gzdobadz toporow', 'dobadz miecza',
+      'scdobadz wszystkich broni dyskretnie', 'podobadz sztyletu z kunsztownej pochwy',
+      '  SCDOBADZ wszystkich broni dyskretnie  ',
+    ])(
       'lets external %s take over before the automatic timer fires', command => {
         alias('pyk+');
         knockOff();
@@ -274,6 +280,56 @@ describe('PYK shared attack scheduler', () => {
         signal();
         vi.advanceTimersByTime(400);
         expect(attacks()).toHaveLength(1);
+      },
+    );
+
+    it.each([0, 15000])('still draws after readiness when an early manual attempt was not confirmed (%s ms)', delay => {
+      alias('pyk+');
+      knockOff();
+      for (const hook of mock.commandHooks) hook.callback('dob');
+      vi.advanceTimersByTime(delay);
+      signal();
+      vi.advanceTimersByTime(400);
+      expect(attacks()).toHaveLength(0);
+      expect(draws()).toHaveLength(0);
+      ready();
+      ready();
+      vi.advanceTimersByTime(400);
+      expect(draws()).toHaveLength(1);
+      signal();
+      vi.advanceTimersByTime(400);
+      expect(attacks()).toHaveLength(0);
+      mock.api.events.emit('weapon_state', true);
+      vi.advanceTimersByTime(10000);
+      expect(warnings()).toHaveLength(0);
+      signal();
+      vi.advanceTimersByTime(400);
+      expect(attacks()).toHaveLength(1);
+    });
+
+    it.each(['before readiness', 'during reaction'])('cancels recovery if an early manual draw is confirmed %s', when => {
+      alias('pyk+');
+      knockOff();
+      for (const hook of mock.commandHooks) hook.callback('dob');
+      if (when === 'during reaction') ready();
+      mock.api.events.emit('weapon_state', true);
+      ready();
+      vi.advanceTimersByTime(15000);
+      expect(draws()).toHaveLength(0);
+      expect(warnings()).toHaveLength(0);
+      signal();
+      vi.advanceTimersByTime(400);
+      expect(attacks()).toHaveLength(1);
+    });
+
+    it.each(['dob1', 'dob2', 'dob3', 'dob4', 'dob5', 'powiedz dob', 'dobadzx'])(
+      'does not treat %s as a manual draw', command => {
+        alias('pyk+');
+        knockOff();
+        ready();
+        for (const hook of mock.commandHooks) hook.callback(command);
+        vi.advanceTimersByTime(400);
+        expect(draws()).toHaveLength(1);
       },
     );
 

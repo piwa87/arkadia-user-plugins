@@ -3,7 +3,7 @@ import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { getAntyfloodLevel } from '../antyflood';
 import { setBind } from '../f';
-import { isPykEnabled, requestPykAttack } from '../pyk';
+import { isPykEnabled, requestPykAttack } from '../pyk/pyk';
 import { runKolManewrAlias } from './manewr';
 import {
   getCurrentTeam,

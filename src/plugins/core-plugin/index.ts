@@ -27,6 +27,8 @@ import {
   setupGertrudaEmotes,
   setupGertrudaDobywanie,
   setupPlecakAliases,
+  setupKaraksonDobywanie,
+  setupSakwaAliases,
   onCharName,
   setupKarczmaAliases,
   setupKondycjeAliases,
@@ -65,6 +67,7 @@ import {
   destroyTeam,
   setupTmpk,
   setupTravelAliases,
+  setupDylizansy,
   setupTro,
   setupWsiadaczAliases,
   setupWycinanieAliases,
@@ -92,6 +95,7 @@ import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 // Completeness is enforced by test/plugins/core-plugin/destroy.test.ts.
 const TRIGGER_TAGS = [
   'antyflood',
+  'pykCover',
   'bramy',
   'brokilon',
   'ciosyKolory',
@@ -99,6 +103,7 @@ const TRIGGER_TAGS = [
   'colEkwipunek',
   'colEventy',
   'colMovements',
+  'dylizansy',
   'eventTriggers',
   'kol_druzyna',
   'mod_team',
@@ -227,6 +232,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupTeam(api); // mod_team: declensions, shield/attack banners, leadership, wylap
   setupTmpk(api);
   setupTravelAliases(api);
+  setupDylizansy(api);
   cleanupWalker = setupWalker(api);
   setupWsiadaczAliases(api);
   setupWycinanieAliases(api);
@@ -251,6 +257,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
       setupGertrudaEmotes(api);
       setupGertrudaDobywanie(api, dobywanieState);
       cleanupPlecak = setupPlecakAliases(api);
+    } else if (name === 'karakson') {
+      setupKaraksonDobywanie(api, dobywanieState);
+      cleanupPlecak = setupSakwaAliases(api);
     }
     api.output.print(`[Core Plugin] character: ${name}`);
   });

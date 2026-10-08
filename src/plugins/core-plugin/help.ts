@@ -24,7 +24,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'set <target>', desc: 'set targets 1–4 with ordinal prefixes' },
       { cmd: 'set1–4 <what>', desc: 'set individual target verbatim' },
       { cmd: 'xxx', desc: 'stop fighting' },
-      { cmd: 'pyk+ / pyk-', desc: 'auto-attack marked team target for 15 min / off (shared cooldown)' },
+      { cmd: 'pyk+ / pyk-', desc: 'auto-attack and team cover for 15 min / off (cover: own HP at least 4/7)' },
       { cmd: 'next!', desc: 'print N E X T visual banner' },
 
       { section: 'BATTLE PRESETS' },
@@ -67,6 +67,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'zb!', desc: 'toggle armor on/off' },
       { cmd: 'macka!', desc: 'evaluate one-handed mace then drop' },
       { cmd: 'miecz!', desc: 'evaluate one-handed sword then drop' },
+      { cmd: 'tar!', desc: 'evaluate shield then drop' },
       { cmd: 'wpr <what>', desc: 'swap gemstone in wielded weapon' },
 
       { section: 'EQUIPMENT / BAGS' },

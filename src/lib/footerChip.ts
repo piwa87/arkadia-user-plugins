@@ -1,7 +1,7 @@
 export type FooterChipTone = 'neutral' | 'ok' | 'warn' | 'danger';
 
 interface FooterChipOptions {
-  icon: string;
+  icon?: string;
   label?: string;
   value: string;
   tone?: FooterChipTone;
@@ -40,7 +40,7 @@ export function renderFooterChip({
 
   return (
     `<span class="chip${toneClass}">` +
-    `<span class="chip__ico" aria-hidden="true">${icon}</span>` +
+    (icon ? `<span class="chip__ico" aria-hidden="true">${icon}</span>` : '') +
     '<span class="chip__text">' +
     (label ? `<span class="chip__lab">${escapeHtml(label)}</span>` : '') +
     `<span class="chip__val"${valueStyle}>${escapeHtml(value)}</span>` +

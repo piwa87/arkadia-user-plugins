@@ -1,6 +1,8 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import { col13 } from '../../lib/colors/my-colors';
-import { registerTokenGate } from '../../lib/registerTokenGate';
+import { col13 } from '../../../lib/colors/my-colors';
+import { renderFooterChip } from '../../../lib/footerChip';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
+import { setupPykCover } from './cover';
 
 const TAG = 'atakPyk';
 
@@ -10,7 +12,7 @@ const REACTION_MAX_MS = 3400;
 const COOLDOWN_MIN_SECONDS = 7;
 const COOLDOWN_MAX_SECONDS = 11;
 const WEAPON_CONFIRMATION_MS = 10000;
-const DRAW_COMMAND = /^(?:dob|db|db_m|db_t|db_mac|db_mt|db_mmac|chdobadz|gzdobadz|dobadz)(?:\s|$)/i;
+const DRAW_COMMAND = /^(?:dob|dobm|dobmc|dobt|dobs|dobny|db|db_m|db_t|db_mac|db_mt|db_mmac|chdobadz|gzdobadz|scdobadz|podobadz|dobadz)(?:\s|$)/i;
 
 type WeaponRecovery = 'idle' | 'waitingForReady' | 'scheduled' | 'waitingForConfirmation';
 
@@ -64,6 +66,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
     enabledUntil = 0;
     cancelReaction();
     resetWeaponRecovery();
+    cover.reset();
     if (expiryTimer !== null) clearTimeout(expiryTimer);
     expiryTimer = null;
     footer.setVisible(false);
@@ -80,6 +83,8 @@ export function setupAtakPyk(api: PluginApi): () => void {
     }
     return true;
   };
+
+  const cover = setupPykCover(api, isEnabled, reactionDelay);
 
   const requestAttack = () => {
     if (!isEnabled() || weaponRecovery !== 'idle' || reactionTimer !== null || Date.now() < nextAttackAt) return;
@@ -143,8 +148,9 @@ export function setupAtakPyk(api: PluginApi): () => void {
   };
 
   const drawHookId = api.commandHooks.register((command: string) => {
-    if ((weaponRecovery === 'waitingForReady' || weaponRecovery === 'scheduled') &&
-        DRAW_COMMAND.test(command.trim()) && isEnabled()) {
+    // An attempt before readiness may be rejected by the game. Keep waiting
+    // for readiness; a successful weapon_state confirmation still cancels recovery.
+    if (weaponRecovery === 'scheduled' && DRAW_COMMAND.test(command.trim()) && isEnabled()) {
       // A user alias, functional bind or another module takes over drawing.
       // Keep attacks blocked until confirmation; do not retry or repeat warnings.
       waitForWeaponConfirmation();
@@ -171,7 +177,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
 
   const footer = api.ui.registerFooterComponent(
     'pyk',
-    `<span style="color: ${col13}; font-weight: bold; margin-left: 8px;">PYK+ </span>`,
+    renderFooterChip({ value: 'PYK', valueColor: col13 }),
     'start',
   );
   footer.setVisible(false);
@@ -182,6 +188,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
     expiryTimer = setTimeout(() => { isEnabled(); }, SESSION_MS);
     footer.setVisible(true);
     say('--> pyk');
+    cover.request();
     return true;
   });
 
@@ -205,6 +212,7 @@ export function setupAtakPyk(api: PluginApi): () => void {
 
   return () => {
     disable();
+    cover.destroy();
     if (controller === session) controller = null;
     api.triggers.removeByTag(TAG);
     api.aliases.remove(idPlus);
