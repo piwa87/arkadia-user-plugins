@@ -11,11 +11,14 @@ describe('dylizansy', () => {
     const mock = createMockApi();
     setupDylizansy(mock.api);
 
-    const announcement = 'Z zewnatrz slyszysz glos woznicy: <Fermata - incrocio alla Miragliano!>';
+    const announcement = 'Z zewnatrz slyszysz glos woznicy: Fermata - Ebino!';
     expect(runLine(mock, announcement)?.text).toBe(announcement);
-    expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Przystanek: Fermata - incrocio alla Miragliano!');
+    expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Przystanek: Fermata - Ebino!');
+
+    runLine(mock, 'Z zewnatrz slyszysz glos woznicy: Przystanek - zielona morda');
+    expect(notification).toHaveBeenLastCalledWith('🚏 Przystanek: Przystanek - zielona morda');
 
     runLine(mock, 'Z zewnatrz slyszysz glos woznicy.');
-    expect(notification).toHaveBeenCalledTimes(1);
+    expect(notification).toHaveBeenCalledTimes(2);
   });
 });

@@ -124,6 +124,22 @@ describe('c / z attack aliases', () => {
     expect(api.command.send).toHaveBeenCalledWith('zabij kota');
   });
 
+  it('bare c delegates to /z for follower, while c <text> still attacks by name', async () => {
+    const { api, aliases } = createMockApi();
+    vi.spyOn(api.team, 'getMembers').mockReturnValue(['lider', 'jens']);
+    vi.spyOn(api.team, 'getLeaderId').mockReturnValue(1);
+    vi.spyOn(api.team, 'getPlayerNum').mockReturnValue(2);
+    await init(api);
+    vi.mocked(api.command.send).mockClear();
+
+    fire(aliases, 'c');
+    expect(vi.mocked(api.command.send).mock.calls).toEqual([['/z']]);
+
+    vi.mocked(api.command.send).mockClear();
+    fire(aliases, 'c Kota');
+    expect(vi.mocked(api.command.send).mock.calls).toEqual([['zabij kota']]);
+  });
+
   it('cc does zabij + wskaz + team order for leader', async () => {
     const { api, aliases } = createMockApi();
     // Leader: team with >1 member means we are the leader.

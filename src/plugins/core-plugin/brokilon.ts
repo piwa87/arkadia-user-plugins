@@ -8,7 +8,7 @@ import { setBind } from './f';
 
 const TAG = 'brokilon';
 const HASLO1_KEY = 'brokilon:haslo1';
-const DEFAULT_HASLO1 = 'Kiranhim';
+const DEFAULT_HASLO1 = 'Kirkaran';
 
 function registerSequenceAlias(api: PluginApi, pattern: RegExp, commands: string[]): void {
   api.aliases.register(pattern, () => {
@@ -27,6 +27,7 @@ export function setupBrokilon(api: PluginApi): () => void {
   const haslo2 = '';
   let tickWarningTimer: ReturnType<typeof setTimeout> | null = null;
   let brokilonEnabled = false;
+  let waitingForStrapCut = false;
 
   // ── Module toggle: brok+ / brok- ──────────────────────────────────────────
   api.aliases.register(/^brok\+$/i, () => {
@@ -37,6 +38,7 @@ export function setupBrokilon(api: PluginApi): () => void {
 
   api.aliases.register(/^brok-$/i, () => {
     brokilonEnabled = false;
+    waitingForStrapCut = false;
     api.output.print('[Brokilon] module disabled');
     return true;
   });
@@ -215,6 +217,14 @@ export function setupBrokilon(api: PluginApi): () => void {
     return true;
   });
 
+  api.aliases.register(/^take$/i, () => {
+    if (!brokilonEnabled) return true;
+    api.command.send('otworz trumne zdobionym kluczykiem');
+    api.command.send('otworz trumne');
+    api.command.send('wez wszystko z trumny');
+    return true;
+  });
+
   api.aliases.register(/^sjj$/i, () => {
     if (!brokilonEnabled) return true;
     for (const cmd of [
@@ -266,11 +276,26 @@ export function setupBrokilon(api: PluginApi): () => void {
 
   api.aliases.register(/^cut$/i, () => {
     if (!brokilonEnabled) return true;
-    for (const cmd of ['dobs', 'przetnij rzemien', 'opus']) {
+    waitingForStrapCut = true;
+    for (const cmd of ['dobs', 'przetnij rzemien']) {
       api.command.send(cmd);
     }
     return true;
   });
+
+  registerTokenGate(
+    api,
+    'Przecinasz',
+    /^Przecinasz rzemien\.$/,
+    (line) => {
+      if (waitingForStrapCut) {
+        waitingForStrapCut = false;
+        api.command.send('opus');
+      }
+      return line;
+    },
+    TAG,
+  );
 
   const searchAliases: Record<string, string> = {
     p1: 'przeszukaj dlon',
@@ -323,5 +348,6 @@ export function setupBrokilon(api: PluginApi): () => void {
   return () => {
     if (tickWarningTimer) clearTimeout(tickWarningTimer);
     tickWarningTimer = null;
+    waitingForStrapCut = false;
   };
 }

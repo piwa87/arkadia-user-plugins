@@ -150,6 +150,11 @@ describe('Brokilon triggers', () => {
 describe('Brokilon aliases', () => {
   it.each([
     ['ql', ['ob grobowiec']],
+    ['take', [
+      'otworz trumne zdobionym kluczykiem',
+      'otworz trumne',
+      'wez wszystko z trumny',
+    ]],
     [
       'sjj',
       [
@@ -174,7 +179,6 @@ describe('Brokilon aliases', () => {
       ],
     ],
     ['szu', ['otworz grobowiec', 'przeszukaj grobowiec']],
-    ['cut', ['dobs', 'przetnij rzemien', 'opus']],
     ['p1', ['przeszukaj dlon']],
     ['p2', ['przeszukaj ksiege']],
     ['p3', ['przeszukaj kafelek']],
@@ -187,11 +191,26 @@ describe('Brokilon aliases', () => {
     expect(sentCommands(mock)).toEqual(expected);
   });
 
+  it('sheathes the dagger when the strap cut finishes', () => {
+    const mock = setup();
+    runAlias(mock, 'cut');
+    expect(sentCommands(mock)).toEqual(['dobs', 'przetnij rzemien']);
+
+    runLine(mock, 'Zaczynasz przecinac rzemien.');
+    expect(sentCommands(mock)).toEqual(['dobs', 'przetnij rzemien']);
+
+    runLine(mock, 'Przecinasz rzemien.');
+    expect(sentCommands(mock)).toEqual(['dobs', 'przetnij rzemien', 'opus']);
+
+    runLine(mock, 'Przecinasz rzemien.');
+    expect(sentCommands(mock)).toEqual(['dobs', 'przetnij rzemien', 'opus']);
+  });
+
   it('uses the default passwords', () => {
     const mock = setup();
     runAlias(mock, 'ha1');
     runAlias(mock, 'ha2');
-    expect(sentCommands(mock)).toEqual(['powiedz Kiranhim', 'powiedz ']);
+    expect(sentCommands(mock)).toEqual(['powiedz Kirkaran', 'powiedz ']);
   });
 
   it('runs the complete al! inspection sequence', () => {

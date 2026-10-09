@@ -295,11 +295,12 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'brok+ / brok-', desc: 'enable / disable Brokilon trigger set' },
       { cmd: 'ha1 / ha2', desc: 'say the learned Brokilon password' },
       { cmd: 'ql', desc: 'examine the golden tomb' },
+      { cmd: 'take', desc: 'unlock, open, and loot the coffin' },
       { cmd: 'sjj', desc: 'open tombs and take golden keys' },
       { cmd: 'klr / kll', desc: 'read inscription and use key in right / left lock' },
       { cmd: 'xb', desc: 'loot the golden tomb' },
       { cmd: 'szu', desc: 'open and search the golden tomb' },
-      { cmd: 'cut', desc: 'draw dagger, cut strap, sheathe dagger' },
+      { cmd: 'cut', desc: 'draw dagger, cut strap, sheathe when cut finishes' },
       { cmd: 'al!', desc: 'inspect Brokilon puzzle objects' },
       { cmd: 'p1–p6', desc: 'search successive Brokilon puzzle objects' },
 
