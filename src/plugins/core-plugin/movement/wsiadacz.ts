@@ -1,8 +1,23 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import { notify } from '../../../lib/notifications';
+import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { withDelay } from '../../../lib/withDelay';
 
+const ARRIVAL_TAG = 'wsiadacz_transport_arrival';
+
 export function setupWsiadaczAliases(api: PluginApi): void {
+  registerTokenGate(
+    api,
+    ['doplywa', 'przybija'],
+    /(?:doplywa|przybija) do brzegu/,
+    (line) => {
+      notify('🚢 Transport dotarl do brzegu.');
+      return line;
+    },
+    ARRIVAL_TAG,
+  );
+
   const feedbackColor = getAnsiFormatState(3, api);
   const tagStatek = 'wsiadacz_statek';
   const tagWoz = 'wsiadacz_woz';

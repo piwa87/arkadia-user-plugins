@@ -293,6 +293,11 @@ export function setupHelpAliases(api: PluginApi): void {
 
       { section: 'BROKILON' },
       { cmd: 'brok+ / brok-', desc: 'enable / disable Brokilon trigger set' },
+      { cmd: 'broktime_test', desc: 'test the 100-second countdown (requires brok+)' },
+      { cmd: 'brokstop', desc: 'stop and hide the Brokilon countdown' },
+      { cmd: 'brokszuk', desc: 'show search progress for all six places' },
+      { cmd: 'brokszuk_reset', desc: 'reset Brokilon search progress' },
+      { cmd: 'brokszuk_test', desc: 'replay four searches via /fake, then show status' },
       { cmd: 'ha1 / ha2', desc: 'say the learned Brokilon password' },
       { cmd: 'ql', desc: 'examine the golden tomb' },
       { cmd: 'take', desc: 'unlock, open, and loot the coffin' },

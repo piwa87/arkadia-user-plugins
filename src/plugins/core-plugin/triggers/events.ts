@@ -1,5 +1,6 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getMyColor } from '../../../lib/colors/my-colors';
+import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 
 export function setupEventTriggers(api: PluginApi): void {
@@ -10,6 +11,8 @@ export function setupEventTriggers(api: PluginApi): void {
   const undeadColor = api.colors.fromHex('#a78bfa');
   const alertColor = api.colors.fromHex('#fbbf24');
   const jedzOkColor = getMyColor(4, api);
+  const poisonTextColor = getMyColor(5, api);
+  const badPrefixColor = getAnsiFormatState(38, api);
 
   const colorLine = (line: any, color: any) => line.color([0, line.text.length], color);
 
@@ -86,7 +89,11 @@ export function setupEventTriggers(api: PluginApi): void {
     /Czujesz, ze do twego ciala d.* truciz.*/,
     (line) => {
       printAlert('[ trucizna ]', dangerColor);
-      return colorLine(line, dangerColor);
+      colorLine(line, poisonTextColor);
+      const prefix = new api.AnsiAwareBuffer();
+      prefix.append('   bad   ', badPrefixColor);
+      line.prepend(' ');
+      return line.prependBuffer(prefix);
     },
     tag,
   );

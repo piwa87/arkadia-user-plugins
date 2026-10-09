@@ -11,7 +11,7 @@ describe('core-plugin destroy', () => {
 
     // Arm a one-shot temp trigger through the szuk! alias so destroy() has a
     // pending one-time trigger to clean up as well.
-    const szuk = mock.aliases.find((a) => a.pattern.source.includes('szuk'));
+    const szuk = mock.aliases.find((a) => a.pattern.test('szuk! skrzynia'));
     expect(szuk).toBeDefined();
     szuk!.callback('szuk! skrzynia'.match(szuk!.pattern) as RegExpMatchArray);
     expect(mock.oneTimeTriggers.length).toBeGreaterThan(0);

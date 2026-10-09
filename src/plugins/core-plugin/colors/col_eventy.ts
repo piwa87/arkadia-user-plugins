@@ -327,7 +327,7 @@ export function setupColEventy(api: PluginApi): void {
       /^Wydobywasz swoje cialo z blotnistej mazi\.$/,
       /^Czujesz sie znacznie lepiej\.$/,
     ],
-    (line) => prependLabelWithColoredGap(line, '[dobrze]', c34, c11),
+    (line) => prependLabelWithColoredGap(line, '   good   ', c34, c11),
     TAG,
   );
 
@@ -340,7 +340,7 @@ export function setupColEventy(api: PluginApi): void {
       /^Skup sie lepiej na walce\./,
       /^Nie mozesz tego zrobic, gdyz masz obolala (?:prawa|lewa) dlon\.$/,
     ],
-    (line) => prependLabelWithColoredGap(line, '[ zle ]', c38, c3),
+    (line) => prependLabelWithColoredGap(line, '   bad   ', c38, c3),
     TAG,
   );
 
@@ -358,7 +358,7 @@ export function setupColEventy(api: PluginApi): void {
     api,
     'ogluszony',
     /Jestes ogluszony i nie mozesz nic zrobic\./,
-    (line) => prependLabel(line, '[ zle ]', c38),
+    (line) => prependLabel(line, '   bad   ', c38),
     TAG,
   );
 
@@ -367,7 +367,7 @@ export function setupColEventy(api: PluginApi): void {
     api,
     'zupelnie',
     /^.* jest zupelnie pust.\./,
-    (line) => prependLabel(line, '[ zle ]', c38, c35),
+    (line) => prependLabel(line, '   bad   ', c38, c35),
     TAG,
   );
 

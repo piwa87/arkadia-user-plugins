@@ -68,7 +68,7 @@ export function setupGlassSounds(api: PluginApi): void {
     api.command.send(fPlusCmd);
     line.color([0, line.text.length], c3);
     const buf = new api.AnsiAwareBuffer();
-    buf.append('[ zle ]', c38);
+    buf.append('   bad   ', c38);
     line.prepend(' ');
     return line.prependBuffer(buf);
   };

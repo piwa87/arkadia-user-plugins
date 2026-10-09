@@ -38,7 +38,7 @@ describe('glass_sound triggers', () => {
     const line = runLine(mock, 'Zwykla pochodnia wypala sie i gasnie.');
     expect(sentCommands(mock)).toContain('play_glass');
     expect(sentCommands(mock)).toContain('f+ odloz wypalone pochodnie|zapal pochodnie|zapal swiece|naplam');
-    expect(line!.text.startsWith('[ zle ] ')).toBe(true);
+    expect(line!.text.startsWith('   bad    ')).toBe(true);
   });
 
   it('handles candle burning out with candle-specific bind', () => {

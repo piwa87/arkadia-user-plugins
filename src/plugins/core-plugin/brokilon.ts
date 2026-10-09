@@ -1,14 +1,19 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import { getAnsiFormatState } from '../../lib/colors/my-ansi-colors';
 import { getMyColor } from '../../lib/colors/my-colors';
+import { renderFooterChip } from '../../lib/footerChip';
 import { registerTextAlias } from '../../lib/registerTextAlias';
 import { registerTokenGate } from '../../lib/registerTokenGate';
 import { storage } from '../../lib/storage';
 import { setBind } from './f';
+import { BROKILON_SEARCH_PLACES, setupBrokilonSearch } from './brokilon-search';
 
 const TAG = 'brokilon';
 const HASLO1_KEY = 'brokilon:haslo1';
 const DEFAULT_HASLO1 = 'Kirkaran';
+const COUNTDOWN_SECONDS = 100;
+const TRAP_PREFIX = /^\[ PULAPKA \]\s*/;
+const ARROW_PREFIX = /^\[ STRZALY \]\s*/;
 
 function registerSequenceAlias(api: PluginApi, pattern: RegExp, commands: string[]): void {
   api.aliases.register(pattern, () => {
@@ -22,15 +27,22 @@ export function setupBrokilon(api: PluginApi): () => void {
   const ansi37 = getAnsiFormatState(37, api);
   const color5 = getMyColor(5, api);
   const color62 = getAnsiFormatState(62, api);
+  const countdownStartColor = getMyColor(11, api);
+  const warningColor = getMyColor(13, api);
+  const dangerColor = getMyColor(6, api);
 
   let haslo1 = storage.get<string>(HASLO1_KEY) ?? DEFAULT_HASLO1;
   const haslo2 = '';
-  let tickWarningTimer: ReturnType<typeof setTimeout> | null = null;
+  let countdownTimer: ReturnType<typeof setInterval> | null = null;
+  let countdownDeadline: number | null = null;
+  let countdownFooter: ReturnType<PluginApi['ui']['registerFooterComponent']> | null = null;
   let brokilonEnabled = false;
   let waitingForStrapCut = false;
+  const searchTracking = setupBrokilonSearch(api, () => brokilonEnabled);
 
   // ── Module toggle: brok+ / brok- ──────────────────────────────────────────
   api.aliases.register(/^brok\+$/i, () => {
+    if (!brokilonEnabled) searchTracking.reset();
     brokilonEnabled = true;
     api.output.print('[Brokilon] module enabled');
     return true;
@@ -38,6 +50,8 @@ export function setupBrokilon(api: PluginApi): () => void {
 
   api.aliases.register(/^brok-$/i, () => {
     brokilonEnabled = false;
+    stopCountdown();
+    searchTracking.hide();
     waitingForStrapCut = false;
     api.output.print('[Brokilon] module disabled');
     return true;
@@ -54,6 +68,87 @@ export function setupBrokilon(api: PluginApi): () => void {
     printColored(text, color);
     api.output.print('');
   };
+
+  const printFrame = (lines: string[]): void => {
+    const width = Math.max(...lines.map((text) => text.length));
+    const border = '─'.repeat(width + 2);
+    api.output.print('');
+    printColored(`┌${border}┐`, countdownStartColor);
+    for (const text of lines) printColored(`│ ${text.padEnd(width)} │`, countdownStartColor);
+    printColored(`└${border}┘`, countdownStartColor);
+    api.output.print('');
+  };
+
+  const remainingSeconds = (): number | null => countdownDeadline === null
+    ? null : Math.max(0, Math.ceil((countdownDeadline - Date.now()) / 1000));
+
+  const clearCountdownTimer = (): void => {
+    if (countdownTimer !== null) clearInterval(countdownTimer);
+    countdownTimer = null;
+  };
+
+  const stopCountdown = (): void => {
+    clearCountdownTimer();
+    countdownDeadline = null;
+    countdownFooter?.setVisible(false);
+  };
+
+  const renderCountdown = (seconds: number): void => {
+    const content = renderFooterChip({
+      label: 'Brokilon:',
+      value: seconds > 0 ? `${seconds} s` : 'CZAS MINAL... zyjecie? 😆',
+      tone: seconds <= 30 ? 'danger' : seconds <= 45 ? 'warn' : 'ok',
+    });
+    if (!countdownFooter) {
+      countdownFooter = api.ui.registerFooterComponent('brokilon-timer', content, 'start');
+    } else {
+      countdownFooter.setContent(content);
+    }
+    countdownFooter.setVisible(true);
+  };
+
+  const startCountdown = (): void => {
+    clearCountdownTimer();
+    const deadline = Date.now() + COUNTDOWN_SECONDS * 1000;
+    countdownDeadline = deadline;
+    let previousSeconds = COUNTDOWN_SECONDS;
+    renderCountdown(COUNTDOWN_SECONDS);
+    printFrame(['[Brokilon] Odliczam 100 SEKUND... Good luck!']);
+
+    countdownTimer = setInterval(() => {
+      // Recompute from the deadline so delayed browser ticks do not extend the limit.
+      const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      if (seconds === previousSeconds) return;
+      renderCountdown(seconds);
+      if (seconds === 0) {
+        clearCountdownTimer();
+        printBanner('[Brokilon] 100 SEKUND minelo... zyjecie? 😆', dangerColor);
+      } else if (
+        seconds <= 5 ||
+        (previousSeconds > 10 && seconds <= 10) ||
+        (previousSeconds > 30 && seconds <= 30) ||
+        (previousSeconds > 45 && seconds <= 45)
+      ) {
+        printColored(
+          `[Brokilon] Zostalo ${seconds} s!${seconds === 10 ? ' Moze czas wyjsc na gore?' : ''}`,
+          seconds <= 10 ? color5 : warningColor,
+        );
+      }
+      previousSeconds = seconds;
+    }, 1000);
+  };
+
+  api.aliases.register(/^broktime_test$/i, () => {
+    if (!brokilonEnabled) return true;
+    startCountdown();
+    return true;
+  });
+
+  api.aliases.register(/^brokstop$/i, () => {
+    stopCountdown();
+    api.output.print('[Brokilon] Odliczanie zatrzymane.');
+    return true;
+  });
 
   // This source trigger had enabled="false". Keep its implementation here,
   // but preserve that disabled state when loading the plugin.
@@ -87,10 +182,21 @@ export function setupBrokilon(api: PluginApi): () => void {
   registerTokenGate(
     api,
     ['przedmiot', 'kluczyk'],
-    /^(?:.*znajduje jakis niewielki przedmiot|Znajdujesz w niej metalowy kluczyk)/,
-    (line) => {
+    [
+      /^Znajdujesz(?: w (?:niej|nim))? (?:metalowy )?kluczyk\b/,
+      /^(.+?) znajduje (?:jakis niewielki przedmiot|(?:w (?:niej|nim) )?(?:metalowy )?kluczyk)\b/,
+    ],
+    (line, matches) => {
       if (!brokilonEnabled) return line;
-      printBanner('   K L U C Z Y K  !!!', ansi5);
+      const finder = matches[1];
+      searchTracking.foundKey(finder);
+      const seconds = remainingSeconds();
+      printFrame([
+        finder ? `[Brokilon] KLUCZYK! Znalazca: ${finder}` : '[Brokilon] ZNALAZLES KLUCZYK!',
+        seconds === null ? 'Brak aktywnego odliczania.'
+          : `Brawo, masz jeszcze ${seconds} sekund do konca imprezy!`,
+      ]);
+      setBind(api, 'take');
       return line;
     },
     TAG,
@@ -113,6 +219,25 @@ export function setupBrokilon(api: PluginApi): () => void {
 
   registerTokenGate(
     api,
+    'oplata',
+    /Nagle czujesz, ze cos oplata twa noge\.\.\./,
+    (line, _matches, _type, originalLine) => {
+      if (!brokilonEnabled) return line;
+      for (let i = 0; i < 3; i++) {
+        printColored('          pulapka lapie mnie          ', ansi37);
+      }
+      api.command.send('play_basso');
+      // The client's regular trigger already set the bind and corrected the map.
+      // Replace only its visual formatting, using the original MUD text.
+      const text = (originalLine ?? line.text).replace(TRAP_PREFIX, '');
+      const restoredLine = new api.AnsiAwareBuffer(text);
+      return restoredLine.color([0, text.length], ansi37);
+    },
+    TAG,
+  );
+
+  registerTokenGate(
+    api,
     ['Isserath', 'Galiaar', 'Rzemienna'],
     /(?:Isserath|Galiaar|Rzemienna petla)/,
     (line) => {
@@ -129,17 +254,8 @@ export function setupBrokilon(api: PluginApi): () => void {
     /^Po wlozeniu drugiego klucza wrota otwieraja sie z ciezkim zgrzytem!/,
     (line) => {
       if (!brokilonEnabled) return line;
-      api.command.send('napelnij lampe olejem');
-      api.command.send('sus2');
-      printBanner('     1 0 0       S E K U N D     !!!', ansi5);
-
-      if (tickWarningTimer) clearTimeout(tickWarningTimer);
-      tickWarningTimer = setTimeout(() => {
-        tickWarningTimer = null;
-        api.output.print('TICK IN 5 SECONDS.');
-      }, 95_000);
-
-      api.output.print('--> Odliczam 100 sekund!');
+      searchTracking.reset();
+      startCountdown();
       return line;
     },
     TAG,
@@ -297,57 +413,39 @@ export function setupBrokilon(api: PluginApi): () => void {
     TAG,
   );
 
-  const searchAliases: Record<string, string> = {
-    p1: 'przeszukaj dlon',
-    p2: 'przeszukaj ksiege',
-    p3: 'przeszukaj kafelek',
-    p4: 'przeszukaj polke',
-    p5: 'przeszukaj dziure',
-    p6: 'przeszukaj piedestaly',
-  };
-  for (const [alias, command] of Object.entries(searchAliases)) {
+  for (const { alias, target } of BROKILON_SEARCH_PLACES) {
     api.aliases.register(new RegExp(`^${alias}$`, 'i'), () => {
       if (!brokilonEnabled) return true;
-      api.command.send(command);
+      api.command.send(`przeszukaj ${target}`);
       return true;
     });
   }
 
-  // brok_arrow1: arrow hits the ground
+  // Arrows hitting the ground or a person share the same local alert.
   registerTokenGate(
     api,
     'strzala',
-    /^W ziemie wbila sie z niesamowita predkoscia.*strzala\./i,
-    (line) => {
+    [
+      /^W ziemie wbila sie z niesamowita predkoscia.*strzala\./i,
+      /^(?:Nagle jakas|Nadlatujaca ze swistem).*strzala .*\./i,
+    ],
+    (line, _matches, _type, originalLine) => {
       if (!brokilonEnabled) return line;
       const prefix = '  ***  STRZALA  ***  ';
-      line.replace([0, line.text.length], prefix + line.text);
-      line.color([0, prefix.length], ansi37);
+      const text = (originalLine ?? line.text).replace(ARROW_PREFIX, '');
+      const restoredLine = new api.AnsiAwareBuffer(text);
+      restoredLine.prepend(prefix, ansi37);
       api.command.send('play_tink');
-      return line;
-    },
-    TAG,
-  );
-
-  // brok_arrow2: arrow approaches
-  registerTokenGate(
-    api,
-    'strzala',
-    /^(?:Nagle jakas|Nadlatujaca ze swistem).*strzala .*\./i,
-    (line) => {
-      if (!brokilonEnabled) return line;
-      const prefix = '  ***  STRZALA  ***  ';
-      line.replace([0, line.text.length], prefix + line.text);
-      line.color([0, prefix.length], ansi37);
-      api.command.send('play_tink');
-      return line;
+      return restoredLine;
     },
     TAG,
   );
 
   return () => {
-    if (tickWarningTimer) clearTimeout(tickWarningTimer);
-    tickWarningTimer = null;
+    searchTracking.destroy();
+    stopCountdown();
+    countdownFooter?.remove();
+    countdownFooter = null;
     waitingForStrapCut = false;
   };
 }

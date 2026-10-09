@@ -49,13 +49,16 @@ describe('core-plugin event triggers', () => {
     expect(line!.color).toHaveBeenCalledWith([0, text.length], expect.any(Object));
   });
 
-  it('highlights poison line and prints trucizna warning', async () => {
+  it.each([
+    'Czujesz, ze do twego ciala dostaje sie trucizna.',
+    'Czujesz, ze do twego ciala dostala sie jakas trucizna!',
+  ])('prefixes poison line and colors text with color 5: %s', (text) => {
     const mock = setup();
-    const text = 'Czujesz, ze do twego ciala dostaje sie trucizna.';
     const line = runLine(mock, text);
 
     expect(printedBuffers(mock).some((b) => b.text.includes('trucizna'))).toBe(true);
-    expect(line!.color).toHaveBeenCalledWith([0, text.length], expect.any(Object));
+    expect(line!.text).toBe(`   bad    ${text}`);
+    expect(line!.color).toHaveBeenCalledWith([0, text.length], { type: 'hex', value: '#bd7304' });
   });
 
   it('substitutes eating warning with a green OK response', async () => {

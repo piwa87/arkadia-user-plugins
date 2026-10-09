@@ -70,10 +70,10 @@ describe('col_eventy', () => {
     expect(sentCommands(mock)).toContain('play_glass');
   });
 
-  it('prepends [ zle ] label when stunned', () => {
+  it('prepends bad label when stunned', () => {
     const mock = setup();
     const line = runLine(mock, 'Jestes ogluszony i nie mozesz nic zrobic.');
-    expect(line!.text).toBe('[ zle ] Jestes ogluszony i nie mozesz nic zrobic.');
+    expect(line!.text).toBe('   bad    Jestes ogluszony i nie mozesz nic zrobic.');
   });
 
   it.each([
@@ -118,13 +118,13 @@ describe('col_eventy', () => {
   });
 
   it.each([
-    'Wydobywasz swoje cialo z blotnistej mazi.',
-    'Czujesz sie znacznie lepiej.',
-  ])('labels positive information as good: %s', (text) => {
+    ['Wydobywasz swoje cialo z blotnistej mazi.', '   good   '],
+    ['Czujesz sie znacznie lepiej.', '   good   '],
+  ])('labels positive information as good: %s', (text, prefix) => {
     const mock = setup();
     const line = runLine(mock, text);
 
-    expect(line!.text).toBe(`[dobrze]     ${text}`);
+    expect(line!.text).toBe(`${prefix}     ${text}`);
     expect(line!.color).toHaveBeenCalled();
   });
 
@@ -138,7 +138,7 @@ describe('col_eventy', () => {
     const mock = setup();
     const line = runLine(mock, text);
 
-    expect(line!.text).toBe(`[ zle ]     ${text}`);
+    expect(line!.text).toBe(`   bad        ${text}`);
     expect(line!.color).toHaveBeenCalled();
   });
 
@@ -154,10 +154,10 @@ describe('col_eventy', () => {
     expect(line!.color).toHaveBeenCalled();
   });
 
-  it('prepends [ zle ] and tints line for empty container', () => {
+  it('prepends bad and tints line for empty container', () => {
     const mock = setup();
     const line = runLine(mock, 'Skorzana sakwa jest zupelnie pusta.');
-    expect(line!.text).toBe('[ zle ] Skorzana sakwa jest zupelnie pusta.');
+    expect(line!.text).toBe('   bad    Skorzana sakwa jest zupelnie pusta.');
     expect(line!.color).toHaveBeenCalled();
   });
 
