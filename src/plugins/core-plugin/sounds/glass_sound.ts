@@ -42,6 +42,7 @@ export function setupGlassSounds(api: PluginApi): void {
         ].join('|'),
       ),
       /^Z zewnatrz slyszysz glos woznicy: (?:Fermata|Przystanek)\s*-\s*\S.*$/i,
+      /^Z zewnatrz dochodzi stlumiony glos woznicy: Postoj,\s*\S.*$/i,
     ],
     (line) => {
       line.color([0, line.text.length], c3);

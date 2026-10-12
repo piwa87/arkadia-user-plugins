@@ -1,10 +1,27 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setupDylizansy } from '../../../src/plugins/core-plugin/movement/dylizansy';
+import { setupGlassSounds } from '../../../src/plugins/core-plugin/sounds/glass_sound';
 import { createMockApi, runLine } from '../../helpers/mockApi';
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('dylizansy', () => {
+  it.each([
+    ['centrum wioski Montlac.', 'Centrum wioski Montlac.'],
+    ['w wiosce Merceaux-Descloux.', 'W wiosce Merceaux-Descloux.'],
+  ])('notifies with the description after Postoj and adds the transport prefix: %s', (stop, expected) => {
+    const notification = vi.fn();
+    vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
+    const mock = createMockApi();
+    setupGlassSounds(mock.api);
+    setupDylizansy(mock.api);
+
+    const announcement = `Z zewnatrz dochodzi stlumiony glos woznicy: Postoj, ${stop}`;
+    expect(runLine(mock, announcement)?.text).toBe(`[transport] ${announcement}`);
+    expect(notification).toHaveBeenCalledExactlyOnceWith(`🚏 ${expected}`);
+    expect(mock.api.output.print).not.toHaveBeenCalled();
+  });
+
   it('notifies with the announced stop and leaves the game line visible', () => {
     const notification = vi.fn();
     vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
