@@ -45,6 +45,17 @@ type Handler = (line: LineBuffer, matches: RegExpMatchArray) => LineBuffer | nul
 
 type Segment = [text: string, state: FormatStateSnapshot];
 
+// Equal grey background widths; the following text gets one uncoloured space.
+const STATUS_PREFIX_WIDTH = 31;
+const FAILED_BREAK_PREFIX = '     NIE PRZELAMALES'.padEnd(STATUS_PREFIX_WIDTH);
+const SHIELDED_TARGET_PREFIX = '     CEL ZASLONIETY'.padEnd(STATUS_PREFIX_WIDTH);
+const TEAM_BREAK_PREFIX = '     PRZELAMUJA DRUZYNE'.padEnd(STATUS_PREFIX_WIDTH);
+const ARLEKIN_BREAK_PREFIX = '     PRZELAMUJE DRUZYNE'.padEnd(STATUS_PREFIX_WIDTH);
+const ME_BROKEN_PREFIX = '     PRZELAMALI CIE'.padEnd(STATUS_PREFIX_WIDTH);
+const TEAM_WON_PREFIX = '     DRUZYNA PRZELAMALA'.padEnd(STATUS_PREFIX_WIDTH);
+const I_WON_PREFIX = '     PRZELAMALES'.padEnd(STATUS_PREFIX_WIDTH);
+const CLEAR_TARGET_PREFIX = '     CZYSTY'.padEnd(STATUS_PREFIX_WIDTH);
+
 interface LamanieTrigger {
   /** Gate word(s) — see registerTokenGate / TRIGGERS_REFERENCE RULE #1. */
   tokens: string | string[];
@@ -142,7 +153,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
   };
 
   /**
-   * Shared teammate-break reaction. The exact CMUD strings differ for Arlekin;
+   * Shared teammate-break reaction. The heading differs for Arlekin;
    * all variants have two #SAY lines. Surprise variants retain the game line.
    */
   const teamBroken = (
@@ -156,8 +167,8 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     teamZlamany = victim.toLowerCase();
     const bindLabel = teamBindLabel(idx);
     const heading = arlekin
-      ? '[--- PRZELAMUJE DRUZYNE]'
-      : '      PRZELAMUJA DRUZYNE      ';
+      ? ARLEKIN_BREAK_PREFIX
+      : TEAM_BREAK_PREFIX;
     const warning = arlekin
       ? 'UWAGA!!!   ARLEKIN SOBIE TANCZY I OMIJA'
       : 'UWAGA!!!   PRZELAMUJE DRUZYNE';
@@ -165,7 +176,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     printOutput([[heading, c38Blink]]);
     printOutput([
       [heading, c38Blink],
-      ['      ', c0],
+      [' ', c0],
       [attacker.trim(), c0],
       ['     ', c0],
       [warning, c6],
@@ -180,12 +191,12 @@ export function setupLamanie(api: PluginApi, tag: string): void {
 
   /** Shared "an enemy broke through MY shield" reaction — the worst of the set. */
   const meBroken = (line: LineBuffer, attacker: string, substitute: boolean) => {
-    const heading = '   ---   przelamali  cie      ';
+    const heading = ME_BROKEN_PREFIX;
     if (substitute) substituteOutput(line, [[heading, c79]]);
     else printOutput([[heading, c79]]);
     printOutput([
       [heading, c79],
-      ['      ', c0],
+      [' ', c0],
       [attacker.trim(), c0],
     ]);
     send('play_basso');
@@ -214,7 +225,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line) => {
         setShieldedAgainstMe(true);
         line.prepend(' ', c0);
-        line.prepend('        cel zasloniety        ', c38);
+        line.prepend(SHIELDED_TARGET_PREFIX, c38);
         return line;
       },
     },
@@ -254,8 +265,8 @@ export function setupLamanie(api: PluginApi, tag: string): void {
         wrogZlamany = target.toLowerCase();
 
         const output: Segment[] = [
-          ['   +++   druzyna przelamala   ', c34],
-          ['      ', c0],
+          [TEAM_WON_PREFIX, c34],
+          [' ', c0],
           [(m[1] ?? '').trim(), c0],
           ['     ', c0],
           [target, c0],
@@ -284,8 +295,8 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         line.clear();
         line.prepend((m[1] ?? '').trim(), c0);
-        line.prepend('          ', c0);
-        line.prepend('     n i e   p r z e l a m a l e s     ', c38);
+        line.prepend(' ', c0);
+        line.prepend(FAILED_BREAK_PREFIX, c38);
         if (!simulating) runKolManewrAlias();
         return line;
       },
@@ -298,8 +309,8 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       handler: (line, m) => {
         const target = (m[1] ?? '').trim();
         const output: Segment[] = [
-          ['   +++   przelamales          ', c34],
-          ['          ', c0],
+          [I_WON_PREFIX, c34],
+          [' ', c0],
           [target, c0],
         ];
         substituteOutput(line, output);
@@ -386,7 +397,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
       pattern: /^Nikt nie zaslania (.*)\./,
       handler: (line) => {
         setShieldedAgainstMe(false);
-        return substituteOutput(line, [['            czysty            ', c35]]);
+        return substituteOutput(line, [[CLEAR_TARGET_PREFIX, c35]]);
       },
     },
   ];

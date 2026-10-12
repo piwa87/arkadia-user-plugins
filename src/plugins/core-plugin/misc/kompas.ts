@@ -12,7 +12,7 @@ const TAG = 'kompas';
 export function setupKompas(api: PluginApi): void {
   const waitPrefixColor = getAnsiFormatState(37, api);
   const okPrefixColor = getAnsiFormatState(34, api);
-  const lineColor = getMyColor(3, api);
+  const lineColor = getAnsiFormatState(3, api); // white text, panel background (bg0)
 
   // --- Someone else uses a compass: gag the long text, print a short notice ---
 

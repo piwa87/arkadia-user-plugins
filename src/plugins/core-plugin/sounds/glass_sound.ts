@@ -6,7 +6,7 @@ const TAG = 'glassSounds';
 
 export function setupGlassSounds(api: PluginApi): void {
   const c3 = getAnsiFormatState(3, api);
-  const c4 = getAnsiFormatState(4, api);
+  const transportPrefixColor = getAnsiFormatState(34, api);
   const c38 = getAnsiFormatState(38, api);
   const c41 = getAnsiFormatState(41, api);
 
@@ -28,21 +28,27 @@ export function setupGlassSounds(api: PluginApi): void {
 
   registerTokenGate(
     api,
-    ['zatrzymuje', 'doplywa', 'przybija', 'drzenie', 'predkosc', 'kolysanie'],
-    new RegExp(
-      [
-        'powoli zatrzymuje sie\\.',
-        'cicho skrzypiac zatrzymuje sie\\.',
-        '(?:z wolna doplywa|przybija) do brzegu\\.',
-        'przebiega drzenie',
-        'Drzenie przebiega poklad',
-        'Powoli pojazd zaczyna tracic predkosc',
-        'Monotonne kolysanie ustaje',
-      ].join('|'),
-    ),
+    ['zatrzymuje', 'doplywa', 'przybija', 'drzenie', 'predkosc', 'kolysanie', 'zewnatrz'],
+    [
+      new RegExp(
+        [
+          'powoli zatrzymuje sie\\.',
+          'cicho skrzypiac zatrzymuje sie\\.',
+          '(?:z wolna doplywa|przybija) do brzegu\\.',
+          'przebiega drzenie',
+          'Drzenie przebiega poklad',
+          'Powoli pojazd zaczyna tracic predkosc',
+          'Monotonne kolysanie ustaje',
+        ].join('|'),
+      ),
+      /^Z zewnatrz slyszysz glos woznicy: (?:Fermata|Przystanek)\s*-\s*\S.*$/i,
+    ],
     (line) => {
-      banner('        transport        ', c4);
-      return line;
+      line.color([0, line.text.length], c3);
+      const prefix = new api.AnsiAwareBuffer();
+      prefix.append('[transport]', transportPrefixColor);
+      prefix.append(' ', c3);
+      return line.prependBuffer(prefix);
     },
     TAG,
   );

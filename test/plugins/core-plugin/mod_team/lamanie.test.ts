@@ -21,11 +21,11 @@ function printedText(mock: MockApi): string[] {
   );
 }
 
-const TEAM_BREAK = '      PRZELAMUJA DRUZYNE      ';
-const ME_BROKEN = '   ---   przelamali  cie      ';
-const TEAM_WON = '   +++   druzyna przelamala   ';
-const I_WON = '   +++   przelamales          ';
-const ARLEKIN_BREAK = '[--- PRZELAMUJE DRUZYNE]';
+const TEAM_BREAK = `     PRZELAMUJA DRUZYNE${' '.repeat(8)}`;
+const ME_BROKEN = `     PRZELAMALI CIE${' '.repeat(12)}`;
+const TEAM_WON = `     DRUZYNA PRZELAMALA${' '.repeat(8)}`;
+const I_WON = `     PRZELAMALES${' '.repeat(15)}`;
+const ARLEKIN_BREAK = `     PRZELAMUJE DRUZYNE${' '.repeat(8)}`;
 
 /** Turn automatic attacking on (`pyk+`); returns the pyk teardown. */
 function enablePyk(mock: MockApi): () => void {
@@ -83,7 +83,7 @@ describe('mod_team — lamanie zaslony', () => {
     expect(line).toBeNull();
     expect(printedText(mock)).toEqual([
       TEAM_BREAK,
-      `${TEAM_BREAK}      Glupi troll     UWAGA!!!   PRZELAMUJE DRUZYNE     [WW] Soroko`,
+      `${TEAM_BREAK} Glupi troll     UWAGA!!!   PRZELAMUJE DRUZYNE     [WW] Soroko`,
     ]);
     expect(sentCommands(mock)).toContain('play_basso');
     expect(mock.api.bind.set).toHaveBeenCalledWith('WW', undefined, undefined);
@@ -103,7 +103,7 @@ describe('mod_team — lamanie zaslony', () => {
     expect(line?.text).toBe(text);
     expect(printedText(mock)).toEqual([
       TEAM_BREAK,
-      `${TEAM_BREAK}      Glupi troll     UWAGA!!!   PRZELAMUJE DRUZYNE     [QQ] Vindaela`,
+      `${TEAM_BREAK} Glupi troll     UWAGA!!!   PRZELAMUJE DRUZYNE     [QQ] Vindaela`,
     ]);
     expect(sentCommands(mock)).toContain('play_basso');
 
@@ -135,7 +135,7 @@ describe('mod_team — lamanie zaslony', () => {
 
     // CMUD #SUB supplies the heading and #SAY supplies the detailed second line.
     expect(line?.text).toBe(ME_BROKEN);
-    expect(printedText(mock)).toEqual([`${ME_BROKEN}      Glupi troll`]);
+    expect(printedText(mock)).toEqual([`${ME_BROKEN} Glupi troll`]);
     expect(sentCommands(mock)).toContain('play_basso');
     expect(mock.api.bind.set).toHaveBeenCalledWith('rz', undefined, undefined);
 
@@ -151,7 +151,7 @@ describe('mod_team — lamanie zaslony', () => {
 
     // No #SUB/#GAG here: retain the original and print both #SAY lines.
     expect(line?.text).toBe(text);
-    expect(printedText(mock)).toEqual([ME_BROKEN, `${ME_BROKEN}      Glupi troll`]);
+    expect(printedText(mock)).toEqual([ME_BROKEN, `${ME_BROKEN} Glupi troll`]);
     expect(mock.api.bind.set).toHaveBeenCalledWith('rz', undefined, undefined);
 
     destroyTeam(mock.api);
@@ -197,7 +197,7 @@ describe('mod_team — lamanie zaslony', () => {
       const line = runLine(mock, text);
 
       // CMUD #SUB + #SAY intentionally produces the same warning twice.
-      const output = `${TEAM_WON}      Vindael     zielonego trolla`;
+      const output = `${TEAM_WON} Vindael     zielonego trolla`;
       expect(line?.text).toBe(output);
       expect(printedText(mock).filter((text) => text === output)).toHaveLength(1);
       expect(sentCommands(mock)).toContain('play_morse');
@@ -308,7 +308,7 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Rzucasz sie na glupiego trolla przebijajac sie przez jego ochrone.';
       const line = runLine(mock, text);
 
-      const output = `${I_WON}          glupiego trolla`;
+      const output = `${I_WON} glupiego trolla`;
       expect(line?.text).toBe(output);
       expect(printedText(mock).filter((text) => text === output)).toHaveLength(1);
       expect(sentCommands(mock)).toContain('play_morse');
@@ -366,7 +366,7 @@ describe('mod_team — lamanie zaslony', () => {
       const line = runLine(mock, text);
 
       expect(line?.text).toBe(
-        '     n i e   p r z e l a m a l e s               glupiego trolla',
+        `     NIE PRZELAMALES${' '.repeat(12)}glupiego trolla`,
       );
       expect(printedText(mock)).toHaveLength(0);
       expect(sentCommands(mock)).not.toContain('play_basso');
@@ -392,7 +392,7 @@ describe('mod_team — lamanie zaslony', () => {
       expect(line).toBeNull();
       expect(printedText(mock)).toEqual([
         ARLEKIN_BREAK,
-        `${ARLEKIN_BREAK}      Arlekin     UWAGA!!!   ARLEKIN SOBIE TANCZY I OMIJA     [QQ] Vindaela`,
+        `${ARLEKIN_BREAK} Arlekin     UWAGA!!!   ARLEKIN SOBIE TANCZY I OMIJA     [QQ] Vindaela`,
       ]);
       expect(sentCommands(mock)).toContain('play_basso');
 
@@ -412,7 +412,7 @@ describe('mod_team — lamanie zaslony', () => {
       expect(line).toBeNull();
       expect(printedText(mock)).toEqual([
         TEAM_BREAK,
-        `${TEAM_BREAK}      Blaviken     UWAGA!!!   PRZELAMUJE DRUZYNE     [QQ] Vindaela`,
+        `${TEAM_BREAK} Blaviken     UWAGA!!!   PRZELAMUJE DRUZYNE     [QQ] Vindaela`,
       ]);
       expect(sentCommands(mock)).toContain('play_basso');
 
@@ -428,7 +428,7 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Atakujesz glupiego trolla, lecz goblin zagradza ci droge.';
       const line = runLine(mock, text);
 
-      expect(line?.text).toBe(`        cel zasloniety         ${text}`);
+      expect(line?.text).toBe(`     CEL ZASLONIETY${' '.repeat(13)}${text}`);
       expect(isShieldedAgainstMe()).toBe(true);
 
       destroyTeam(mock.api);
@@ -442,7 +442,7 @@ describe('mod_team — lamanie zaslony', () => {
       const text = 'Nikt nie zaslania glupiego trolla.';
       const line = runLine(mock, text);
 
-      expect(line?.text).toBe('            czysty            ');
+      expect(line?.text).toBe(`     CZYSTY${' '.repeat(20)}`);
       expect(printedText(mock)).toHaveLength(0);
       expect(isShieldedAgainstMe()).toBe(false);
 
@@ -512,7 +512,7 @@ describe('mod_team — lamanie zaslony', () => {
         expect(getTeamZlamany()).toBe('soroko');
         expect(isShieldedAgainstMe()).toBe(true);
         vi.mocked(mock.api.output.print).mockImplementation(line => {
-          if (typeof line !== 'string' && line.text.includes('czysty')) throw new Error('render failed');
+          if (typeof line !== 'string' && line.text.includes('CZYSTY')) throw new Error('render failed');
         });
         expect(() => runAlias(mock, 'lamanietest!')).toThrow('render failed');
         expect(getWrogZlamany()).toBe('ogra');
@@ -533,14 +533,14 @@ describe('mod_team — lamanie zaslony', () => {
       runAlias(mock, 'lamanietest!');
       const out = printedText(mock).join('\n');
 
-      // Every exact CMUD label is exercised by the replay.
+      // Every presentation label is exercised by the replay.
       for (const label of [
-        '            czysty            ',
+        `     CZYSTY${' '.repeat(20)}`,
         TEAM_BREAK,
         ME_BROKEN,
         TEAM_WON,
         I_WON,
-        '     n i e   p r z e l a m a l e s     ',
+        `     NIE PRZELAMALES${' '.repeat(11)}`,
         ARLEKIN_BREAK,
       ]) {
         expect(out).toContain(label);

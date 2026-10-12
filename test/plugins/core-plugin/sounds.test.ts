@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getAnsiFormatState } from '../../../src/lib/colors/my-ansi-colors';
+import { setupDylizansy } from '../../../src/plugins/core-plugin/movement/dylizansy';
 import { setupGlassSounds } from '../../../src/plugins/core-plugin/sounds/glass_sound';
 import { setupPingSounds } from '../../../src/plugins/core-plugin/sounds/ping_sounds';
 import { createMockApi, MockAnsiAwareBuffer, runLine } from '../../helpers/mockApi';
@@ -20,10 +22,47 @@ describe('glass_sound triggers', () => {
     return mock;
   }
 
-  it('prints transport banner on arrival', () => {
+  it.each([
+    'Prom powoli zatrzymuje sie.',
+    'Woz cicho skrzypiac zatrzymuje sie.',
+    'Statek z wolna doplywa do brzegu.',
+    'Statek przybija do brzegu.',
+    'Przez poklad przebiega drzenie.',
+    'Drzenie przebiega poklad.',
+    'Powoli pojazd zaczyna tracic predkosc, by po chwili zatrzymac sie.',
+    'Monotonne kolysanie ustaje.',
+    'Z zewnatrz slyszysz glos woznicy: Fermata - incrocio alla Miragliano!',
+    'Z zewnatrz slyszysz glos woznicy: Przystanek - zielona morda',
+  ])('prefixes the transport line without printing a banner: %s', (announcement) => {
     const mock = setup();
-    runLine(mock, 'Prom powoli zatrzymuje sie.');
-    expect(printedTexts(mock).filter((t) => t.includes('transport'))).toHaveLength(1);
+    const line = runLine(mock, announcement)!;
+    expect(line.text).toBe(`[transport] ${announcement}`);
+    expect(line.color).toHaveBeenCalledWith([0, announcement.length], getAnsiFormatState(3, mock.api));
+    const prefix = line.prependBuffer.mock.calls[0][0];
+    expect(prefix.segments).toEqual([
+      { text: '[transport]', state: getAnsiFormatState(34, mock.api) },
+      { text: ' ', state: getAnsiFormatState(3, mock.api) },
+    ]);
+    expect(printedTexts(mock)).toEqual([]);
+    expect(sentCommands(mock)).toEqual([]);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('preserves stop notifications when the transport prefix is added', () => {
+    const notification = vi.fn();
+    vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
+    const mock = setup();
+    setupDylizansy(mock.api);
+
+    const announcement = 'Z zewnatrz slyszysz glos woznicy: Fermata - incrocio alla Viadaza!';
+    expect(runLine(mock, announcement)?.text).toBe(`[transport] ${announcement}`);
+    expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Incrocio alla Viadaza!');
+
+    const departure = 'Z zewnatrz slyszysz glos woznicy: Partire per Varieno in qualche minuti!';
+    expect(runLine(mock, departure)?.text).toBe(departure);
+    expect(notification).toHaveBeenCalledTimes(1);
+    expect(printedTexts(mock)).toEqual([]);
   });
 
   it('prints banner and plays glass when magik burns', () => {

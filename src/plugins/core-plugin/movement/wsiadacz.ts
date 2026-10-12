@@ -12,7 +12,7 @@ export function setupWsiadaczAliases(api: PluginApi): void {
     ['doplywa', 'przybija'],
     /(?:doplywa|przybija) do brzegu/,
     (line) => {
-      notify('🚢 Transport dotarl do brzegu.');
+      notify('🚢 przyplynal');
       return line;
     },
     ARRIVAL_TAG,

@@ -13,7 +13,7 @@ const TAG = 'colEventy';
 
 export function setupColEventy(api: PluginApi): void {
   const orange = getMyColor(5, api);
-  const c3 = getAnsiFormatState(3, api);
+  const labelTextColor = getAnsiFormatState(3, api); // white text, panel background (bg0)
   const c4 = getAnsiFormatState(4, api);
   const c6 = getAnsiFormatState(6, api);
   const c11 = getAnsiFormatState(11, api);
@@ -36,13 +36,12 @@ export function setupColEventy(api: PluginApi): void {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const prependLabel = (line: any, label: string, labelColor: any, lineColor?: any) => {
-    if (lineColor) line.color([0, line.text.length], lineColor);
+  const prependLabel = (line: any, label: string, labelColor: any) => {
+    line.color([0, line.text.length], labelTextColor);
     const buf = new api.AnsiAwareBuffer();
     buf.append(label, labelColor);
-    // Prepend the space onto the line (not into the colored buffer) so it
-    // renders with default terminal color rather than inheriting labelColor's background.
-    line.prepend(' ');
+    // Keep the gap in the text color, outside the label's background.
+    line.prepend(' ', labelTextColor);
     return line.prependBuffer(buf);
   };
 
@@ -51,11 +50,10 @@ export function setupColEventy(api: PluginApi): void {
     line: any,
     label: string,
     labelColor: any,
-    lineColor: any,
     gap = '     ',
   ) => {
-    line.color([0, line.text.length], lineColor);
-    line.prepend(gap, lineColor);
+    line.color([0, line.text.length], labelTextColor);
+    line.prepend(gap, labelTextColor);
     const buf = new api.AnsiAwareBuffer(label);
     buf.color([0, label.length], labelColor);
     return line.prependBuffer(buf);
@@ -327,7 +325,7 @@ export function setupColEventy(api: PluginApi): void {
       /^Wydobywasz swoje cialo z blotnistej mazi\.$/,
       /^Czujesz sie znacznie lepiej\.$/,
     ],
-    (line) => prependLabelWithColoredGap(line, '   good   ', c34, c11),
+    (line) => prependLabelWithColoredGap(line, '   good   ', c34),
     TAG,
   );
 
@@ -340,7 +338,7 @@ export function setupColEventy(api: PluginApi): void {
       /^Skup sie lepiej na walce\./,
       /^Nie mozesz tego zrobic, gdyz masz obolala (?:prawa|lewa) dlon\.$/,
     ],
-    (line) => prependLabelWithColoredGap(line, '   bad   ', c38, c3),
+    (line) => prependLabelWithColoredGap(line, '   bad   ', c38),
     TAG,
   );
 
@@ -349,7 +347,7 @@ export function setupColEventy(api: PluginApi): void {
     api,
     ['zatruty', 'zatruta', 'zatrute'],
     /^Zostal.* zatrut.*/,
-    (line) => prependLabelWithColoredGap(line, '[trucizna]', c38, c3, ' '),
+    (line) => prependLabelWithColoredGap(line, '[trucizna]', c38, ' '),
     TAG,
   );
 
@@ -367,7 +365,7 @@ export function setupColEventy(api: PluginApi): void {
     api,
     'zupelnie',
     /^.* jest zupelnie pust.\./,
-    (line) => prependLabel(line, '   bad   ', c38, c35),
+    (line) => prependLabel(line, '   bad   ', c38),
     TAG,
   );
 
@@ -460,12 +458,25 @@ export function setupColEventy(api: PluginApi): void {
       c34,
     ],
     ['uzdrawiajaca', /Czujesz jak uzdrawiajaca energia przepelnia twe cialo\./, '  plaszcz leczy  ', c34],
-    ['amuletu', /Od twojego amuletu emanuje przyjemne cieplo\./, '  amulet leczy  ', c34],
   ];
 
   for (const [tokens, pattern, label, c] of HEALS) {
     registerTokenGate(api, tokens, pattern, (line) => prependLabel(line, label, c), TAG);
   }
+
+  // Preserve the amulet message's existing colors, including the client's HP+ marker.
+  registerTokenGate(
+    api,
+    'amuletu',
+    /Od twojego amuletu emanuje przyjemne cieplo\./,
+    (line) => {
+      const buf = new api.AnsiAwareBuffer();
+      buf.append('  amulet leczy  ', c34);
+      line.prepend(' ');
+      return line.prependBuffer(buf);
+    },
+    TAG,
+  );
 
   // Kruczek sword heal (full-line color)
   registerTokenGate(

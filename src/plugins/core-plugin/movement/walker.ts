@@ -31,7 +31,7 @@ interface WalkerState {
   delay: number;
 }
 
-function setupStandardWalker(api: PluginApi): () => void {
+function setupStandardWalker(api: PluginApi, hasPendingRoute: () => boolean): () => void {
   requestPermission();
 
   // ── Arrival notification ────────────────────────────────────────────────
@@ -49,7 +49,7 @@ function setupStandardWalker(api: PluginApi): () => void {
     walkerWalking = state.active && !state.paused;
     walkerDelay = state.delay;
 
-    if (arrived) {
+    if (arrived && !hasPendingRoute()) {
       notify('Arrived 🏁');
     }
   };
@@ -143,7 +143,7 @@ function setupStandardWalker(api: PluginApi): () => void {
 
 export const WALKER_ROUTE_START_EVENT = 'walkerRoute.start';
 export const WALKER_ROUTE_ARRIVED_EVENT = 'walkerRoute.arrived';
-const WALKER_SETTLE_MS = 700;
+const WALKER_SETTLE_MS = 400;
 const WALKER_MAX_RETRIES = 3;
 
 interface LocationShortcut {
@@ -298,7 +298,7 @@ function saveCurrentLocationShortcut(api: PluginApi, key: string, customLabel?: 
   }
 }
 
-function setupZcAndShortcutWalker(api: PluginApi): () => void {
+function setupZcAndShortcutWalker(api: PluginApi): { cleanup: () => void; hasPendingRoute: () => boolean } {
   const mapPreview = createMapPreviewController(api, {
     durationMs: 2_000,
     missingRoomMessage: '[walker] mapa nie zna biezacej lokacji',
@@ -344,6 +344,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     const target = routeTargetId;
     routeTargetId = null;
     turnOffAltExitMode();
+    if (arrived) notify('Arrived 🏁');
     if (arrived && reportRouteArrival && target !== null) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId: target });
@@ -357,8 +358,10 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     if (typeof position?.x !== 'number' || typeof position.y !== 'number' || typeof position.name !== 'string') {
       return current?.id ?? null;
     }
-    const matches = (room: { x: number; y: number; name: string }) =>
-      room.x === position.x && room.y === position.y && room.name === position.name;
+    // Match the client's MapHelper.resolveGmcpRoom: drawing coordinates and
+    // room labels can differ from GMCP. The hash always uses a literal z of 0.
+    const hash = `${position.x}:${position.y}:0:${position.name}`;
+    const matches = (room: { hash: string }) => room.hash === hash;
     if (current && matches(current)) return current.id;
     const rooms = api.map.getAreas().flatMap((area) => area.rooms).filter(matches);
     if (rooms.length !== 1) return null;
@@ -622,7 +625,7 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     return undefined;
   }, 100);
 
-  return () => {
+  const cleanup = () => {
     turnOffAltExitMode();
     cleanupShortcutMigration();
     mapPreview.dispose();
@@ -636,13 +639,14 @@ function setupZcAndShortcutWalker(api: PluginApi): () => void {
     (api.events as any).off(WALKER_ROUTE_START_EVENT, onWalkerRouteStart);
     api.commandHooks.unregister(commandHookId);
   };
+  return { cleanup, hasPendingRoute: () => routeTargetId !== null };
 }
 
 export function setupWalker(api: PluginApi): () => void {
-  const cleanupStandardWalker = setupStandardWalker(api);
-  const cleanupZcAndShortcutWalker = setupZcAndShortcutWalker(api);
+  const shortcutWalker = setupZcAndShortcutWalker(api);
+  const cleanupStandardWalker = setupStandardWalker(api, shortcutWalker.hasPendingRoute);
   return () => {
-    cleanupZcAndShortcutWalker();
+    shortcutWalker.cleanup();
     cleanupStandardWalker();
   };
 }

@@ -5,6 +5,9 @@ import {
   setupWalker,
 } from '../../../src/plugins/core-plugin/movement/walker';
 import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
+import { notify } from '../../../src/lib/notifications';
+
+vi.mock('../../../src/lib/notifications', () => ({ notify: vi.fn(), requestPermission: vi.fn() }));
 
 function printedText(mock: ReturnType<typeof createMockApi>): string[] {
   return (vi.mocked(mock.api.output.print).mock.calls as unknown[][]).map(([line]) =>
@@ -25,6 +28,7 @@ function stubLocalStorage(initial: Record<string, string>) {
 
 describe('client walker shortcuts', () => {
   afterEach(() => {
+    vi.clearAllMocks();
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -66,7 +70,7 @@ describe('client walker shortcuts', () => {
     currentRoomId = 22759;
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
     expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.anything());
-    await vi.advanceTimersByTimeAsync(700);
+    await vi.advanceTimersByTimeAsync(400);
     expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 22759 });
     expect(mock.api.command.send).toHaveBeenLastCalledWith('/walk 0');
     cleanup();
@@ -98,7 +102,7 @@ describe('client walker shortcuts', () => {
     update(true);
     currentRoomId = 95;
     update(false);
-    await vi.advanceTimersByTimeAsync(700);
+    await vi.advanceTimersByTimeAsync(400);
     expect(mock.api.command.send).toHaveBeenCalledWith('/idz 99 0.5');
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
       '/walk 1', '/prowadz 99', '/idz 99 0.5', '/walkerw', '/idz 99 0.5',
@@ -108,7 +112,7 @@ describe('client walker shortcuts', () => {
     update(true);
     currentRoomId = 99;
     update(false);
-    await vi.advanceTimersByTimeAsync(700);
+    await vi.advanceTimersByTimeAsync(400);
     expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 99 });
     expect(mock.api.command.send).toHaveBeenLastCalledWith('/walk 0');
     cleanup();
@@ -119,9 +123,9 @@ describe('client walker shortcuts', () => {
     let currentRoomId = 1;
     const mock = createMockApi();
     const rooms = [
-      { id: 1, x: 1, y: 1, name: 'start', area: 12 },
-      { id: 95, x: 5, y: 5, name: 'middle', area: 12 },
-      { id: 99, x: 9, y: 9, name: 'target', area: 12 },
+      { id: 1, x: 1, y: 1, name: 'start', hash: '1:1:0:start', area: 12 },
+      { id: 95, x: 50, y: 50, name: 'middle', hash: '5:5:0:middle', area: 12 },
+      { id: 99, x: 9, y: 9, name: 'target', hash: '9:9:0:target', area: 12 },
     ];
     mock.api.map.getRoom = vi.fn(() => rooms.find(({ id }) => id === currentRoomId)) as any;
     mock.api.map.getAreas = vi.fn(() => [{ areaId: 12, areaName: 'Ziemie Czaszki', rooms }]) as any;
@@ -135,11 +139,70 @@ describe('client walker shortcuts', () => {
     currentRoomId = 99;
     (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 99, delay: 0.5 });
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
-    await vi.advanceTimersByTimeAsync(700);
+    await vi.advanceTimersByTimeAsync(400);
 
+    expect(notify).not.toHaveBeenCalled();
     expect(mock.api.map.setLocation).toHaveBeenCalledWith(95);
     expect(mock.api.command.send).toHaveBeenCalledWith('/idz 99 0.5');
     expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.anything());
+    cleanup();
+  });
+
+  it('confirms arrival using the GMCP hash even when map drawing coordinates differ', async () => {
+    vi.useFakeTimers();
+    let currentRoomId = 1;
+    const mock = createMockApi();
+    const rooms = [
+      { id: 1, x: 0, y: 0, name: 'start', hash: '0:0:0:start', area: 7 },
+      { id: 927, x: 100, y: 200, name: 'Przystan rzeczna.', hash: '5:6:0:Przystan rzeczna', area: 7 },
+    ];
+    mock.api.map.getRoom = vi.fn(() => rooms.find(({ id }) => id === currentRoomId)) as any;
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 7, areaName: 'Kaedwen', rooms }]) as any;
+    mock.api.gmcp.get = vi.fn(() => ({ room: { info: { map: { x: 5, y: 6, z: 3, name: 'Przystan rzeczna' } } } }));
+    const cleanup = setupWalker(mock.api);
+
+    (mock.api.events as any).emit(WALKER_ROUTE_START_EVENT, { roomId: 927 });
+    (mock.api.events as any).emit('walker.update', { active: true, paused: false, delay: 2 });
+    currentRoomId = 927;
+    (mock.api.events as any).emit('walker.update', { active: false, paused: false, delay: 2 });
+    expect(notify).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, { roomId: 927 });
+    expect(notify).toHaveBeenCalledExactlyOnceWith('Arrived 🏁');
+    expect(printedText(mock)).toEqual([]);
+    expect(mock.api.map.setLocation).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('does not confirm arrival from drawing coordinates when the GMCP hash is unknown', async () => {
+    vi.useFakeTimers();
+    let currentRoomId = 1;
+    const mock = createMockApi();
+    const room = { id: 927, x: 5, y: 6, name: 'target', hash: '100:200:0:target', area: 7 };
+    mock.api.map.getRoom = vi.fn(() => ({ ...room, id: currentRoomId })) as any;
+    mock.api.map.getAreas = vi.fn(() => [{ areaId: 7, areaName: 'Kaedwen', rooms: [room] }]) as any;
+    mock.api.gmcp.get = vi.fn(() => ({ room: { info: { map: { x: 5, y: 6, name: 'target' } } } }));
+    const cleanup = setupWalker(mock.api);
+
+    (mock.api.events as any).emit(WALKER_ROUTE_START_EVENT, { roomId: 927 });
+    (mock.api.events as any).emit('walker.update', { active: true, paused: false, delay: 2 });
+    currentRoomId = 927;
+    (mock.api.events as any).emit('walker.update', { active: false, paused: false, delay: 2 });
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(notify).not.toHaveBeenCalled();
+    expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.anything());
+    expect(printedText(mock)).toContain('[walker] nie dotarto do 927; obecna lokacja: nieznana');
+    cleanup();
+  });
+
+  it('keeps arrival notifications for walks started directly in the client', () => {
+    const mock = createMockApi();
+    const cleanup = setupWalker(mock.api);
+    (mock.api.events as any).emit('walker.update', { active: true, paused: false, delay: 2 });
+    (mock.api.events as any).emit('walker.update', { active: false, paused: false, delay: 2 });
+    expect(notify).toHaveBeenCalledExactlyOnceWith('Arrived 🏁');
     cleanup();
   });
 
@@ -152,7 +215,7 @@ describe('client walker shortcuts', () => {
     (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 99, delay: 0.5 });
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
     expect(mock.commandHooks[0].callback('/stop')).toBeUndefined();
-    await vi.advanceTimersByTimeAsync(700);
+    await vi.advanceTimersByTimeAsync(400);
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
       '/walk 1', '/prowadz 99', '/idz 99 0.5', '/walkerw', '/walk 0',
     ]);
@@ -170,7 +233,7 @@ describe('client walker shortcuts', () => {
     for (let attempt = 0; attempt < 4; attempt += 1) {
       (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 99, delay: 0.5 });
       (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
-      await vi.advanceTimersByTimeAsync(700);
+      await vi.advanceTimersByTimeAsync(400);
     }
 
     expect(vi.mocked(mock.api.command.send).mock.calls.filter(([command]) => command === '/idz 99 0.5')).toHaveLength(4);
@@ -204,7 +267,7 @@ describe('client walker shortcuts', () => {
     (mock.api.events as any).emit('walker.update', { active: true, paused: false, path: [], currentIndex: 0, target: 22759, delay: 0.5 });
     currentRoomId = 22759;
     (mock.api.events as any).emit('walker.update', { active: false, paused: false, path: [], currentIndex: 0, target: null, delay: 0.5 });
-    await vi.advanceTimersByTimeAsync(700);
+    await vi.advanceTimersByTimeAsync(400);
 
     expect(vi.mocked(mock.api.command.send).mock.calls.map(([command]) => command)).toEqual([
       '/walk 1',

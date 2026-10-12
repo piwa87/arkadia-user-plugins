@@ -36,7 +36,7 @@ export function setupColMovements(api: PluginApi): void {
   const okPrefixColor = getAnsiFormatState(34, api);
   const waitPrefixColor = getAnsiFormatState(37, api);
   const badPrefixColor = getAnsiFormatState(38, api);
-  const lineColor = getMyColor(3, api);
+  const lineColor = getAnsiFormatState(3, api); // white text, panel background (bg0)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyStatus = (

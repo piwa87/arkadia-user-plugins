@@ -13,12 +13,56 @@ describe('dylizansy', () => {
 
     const announcement = 'Z zewnatrz slyszysz glos woznicy: Fermata - Ebino!';
     expect(runLine(mock, announcement)?.text).toBe(announcement);
-    expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Przystanek: Fermata - Ebino!');
+    expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Ebino!');
 
     runLine(mock, 'Z zewnatrz slyszysz glos woznicy: Przystanek - zielona morda');
-    expect(notification).toHaveBeenLastCalledWith('🚏 Przystanek: Przystanek - zielona morda');
+    expect(notification).toHaveBeenLastCalledWith('🚏 Zielona morda');
 
     runLine(mock, 'Z zewnatrz slyszysz glos woznicy.');
     expect(notification).toHaveBeenCalledTimes(2);
   });
+
+  it('ignores departure announcements after notifying about a stop', () => {
+    const notification = vi.fn();
+    vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
+    const mock = createMockApi();
+    setupDylizansy(mock.api);
+
+    runLine(mock, 'Z zewnatrz slyszysz glos woznicy: Fermata - Campogrotta!');
+    expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Campogrotta!');
+
+    const departure = 'Z zewnatrz slyszysz glos woznicy: Partire per Varieno in qualche minuti!';
+    expect(runLine(mock, departure)?.text).toBe(departure);
+    expect(notification).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['fermata - Ebino!', 'Ebino!'],
+    ['przystanek - zielona morda', 'Zielona morda'],
+  ])(
+    'recognizes the stop announcement regardless of capitalization: %s',
+    (stop, expected) => {
+      const notification = vi.fn();
+      vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
+      const mock = createMockApi();
+      setupDylizansy(mock.api);
+
+      runLine(mock, `Z zewnatrz slyszysz glos woznicy: ${stop}`);
+      expect(notification).toHaveBeenCalledExactlyOnceWith(`🚏 ${expected}`);
+    },
+  );
+
+  it.each(['Miragliano', 'Viadaza', 'Urbimo'])(
+    'shows only the capitalized text after the dash for %s',
+    (destination) => {
+      const notification = vi.fn();
+      vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
+      const mock = createMockApi();
+      setupDylizansy(mock.api);
+
+      const announcement = `Z zewnatrz slyszysz glos woznicy: Fermata - incrocio alla ${destination}!`;
+      expect(runLine(mock, announcement)?.text).toBe(announcement);
+      expect(notification).toHaveBeenCalledExactlyOnceWith(`🚏 Incrocio alla ${destination}!`);
+    },
+  );
 });

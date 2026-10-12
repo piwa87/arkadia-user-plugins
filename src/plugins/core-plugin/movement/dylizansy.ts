@@ -8,9 +8,10 @@ export function setupDylizansy(api: PluginApi): void {
   registerTokenGate(
     api,
     'zewnatrz',
-    /^Z zewnatrz slyszysz glos woznicy: (.+)$/,
+    /^Z zewnatrz slyszysz glos woznicy: (?:Fermata|Przystanek)\s*-\s*(\S.*)$/i,
     (line, matches) => {
-      notify(`🚏 Przystanek: ${matches[1].trim()}`);
+      const stop = matches[1].trim();
+      notify(`🚏 ${stop.charAt(0).toUpperCase()}${stop.slice(1)}`);
       return line;
     },
     TAG,

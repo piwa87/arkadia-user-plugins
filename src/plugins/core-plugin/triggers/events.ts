@@ -11,7 +11,7 @@ export function setupEventTriggers(api: PluginApi): void {
   const undeadColor = api.colors.fromHex('#a78bfa');
   const alertColor = api.colors.fromHex('#fbbf24');
   const jedzOkColor = getMyColor(4, api);
-  const poisonTextColor = getMyColor(5, api);
+  const poisonTextColor = getAnsiFormatState(3, api); // white text, panel background (bg0)
   const badPrefixColor = getAnsiFormatState(38, api);
 
   const colorLine = (line: any, color: any) => line.color([0, line.text.length], color);
@@ -92,7 +92,7 @@ export function setupEventTriggers(api: PluginApi): void {
       colorLine(line, poisonTextColor);
       const prefix = new api.AnsiAwareBuffer();
       prefix.append('   bad   ', badPrefixColor);
-      line.prepend(' ');
+      line.prepend(' ', poisonTextColor);
       return line.prependBuffer(prefix);
     },
     tag,
