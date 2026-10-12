@@ -501,7 +501,7 @@ describe('pokoniuchy', () => {
     expect(findingRow.text).toMatch(/^\| 10276 \| 2 lok\. \|/);
     const idSegment = findingRow.segments.find((segment) => segment.text === '10276')!;
     expect(idSegment.state).toMatchObject({
-      value: '#2f855a',
+      foreground: { space: 'hex', color: '#2f855a' },
       underline: true,
       hyperlink: expect.any(Object),
     });
@@ -509,7 +509,7 @@ describe('pokoniuchy', () => {
     expect(afterId.filter((segment) => segment.state?.hyperlink).map((segment) => segment.text)).toEqual([
       '2 lok.', '  ', '👁', '🗑',
     ]);
-    expect(afterId[0].state).toMatchObject({ value: '#929292' });
+    expect(afterId[0].state).toMatchObject({ foreground: { space: 'hex', color: '#929292' } });
     expect(rows.some((row) => /\b(?:NR|LOC|DIS|SHORT)\b/.test(row.text))).toBe(false);
     findingRow.klik('10276');
     expect(mock.api.command.send).toHaveBeenCalledWith('/prowadz 10276');
@@ -703,8 +703,8 @@ describe('pokoniuchy', () => {
 
     const slainRow = latestRow();
     expect(slainRow.text).toContain('💀');
-    expect(slainRow.segments.some((segment) => segment.text === '💀' && segment.state?.value === '#8f4a4a')).toBe(true);
-    expect(slainRow.segments.some((segment) => segment.state?.value === '#484848')).toBe(true);
+    expect(slainRow.segments.some((segment) => segment.text === '💀' && segment.state?.foreground?.color === '#8f4a4a')).toBe(true);
+    expect(slainRow.segments.some((segment) => segment.state?.foreground?.color === '#484848')).toBe(true);
     slainRow.klik('💀');
     expect(storage.get<PokFinding[]>(POK_STORAGE_KEY)?.[0].slain).toBe(false);
   });
@@ -759,7 +759,7 @@ describe('pokoniuchy', () => {
         value instanceof MockAnsiAwareBuffer && value.text.includes('Galezowaty')
       ))!;
 
-    expect(row.segments[0].state).toMatchObject({ value: '#6f8f78' });
+    expect(row.segments[0].state).toMatchObject({ foreground: { space: 'hex', color: '#6f8f78' } });
     expect(row.text).toContain(' 0 lok. |');
   });
 

@@ -41,14 +41,20 @@ describe('token-gated small trigger modules', () => {
     expect(completed!.text.startsWith('   OK   ')).toBe(true);
     expect(completed!.color).toHaveBeenCalledWith(
       [0, 'Docierasz na gore.'.length],
-      expect.objectContaining({ value: '#a6a6a6' }),
+      {
+        foreground: { space: 'hex', color: '#a6a6a6' },
+        background: { space: 'hex', color: '##0e0e0e' },
+      },
     );
 
     const pending = runLine(mock, 'Zaczynasz wspinac sie na gore.');
     expect(pending!.text.startsWith('   ..   ')).toBe(true);
     expect(pending!.color).toHaveBeenCalledWith(
       [0, 'Zaczynasz wspinac sie na gore.'.length],
-      expect.objectContaining({ value: '#a6a6a6' }),
+      {
+        foreground: { space: 'hex', color: '#a6a6a6' },
+        background: { space: 'hex', color: '##0e0e0e' },
+      },
     );
 
     const failed = runLine(
@@ -58,7 +64,10 @@ describe('token-gated small trigger modules', () => {
     expect(failed!.text.startsWith('   ZLE   ')).toBe(true);
     expect(failed!.color).toHaveBeenCalledWith(
       [0, 'Odpadasz od sciany i lecisz w dol, jednak dzieki niewielkiej wysokosci udaje ci sie zgrabnie wyladowac na ziemi.'.length],
-      expect.objectContaining({ value: '#a6a6a6' }),
+      {
+        foreground: { space: 'hex', color: '#a6a6a6' },
+        background: { space: 'hex', color: '##0e0e0e' },
+      },
     );
   });
 

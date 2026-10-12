@@ -440,17 +440,17 @@ describe('client walker shortcuts', () => {
       '+------+-------+--------+--------------+-------------+---------+----+----+',
     ]);
     const homeRow = rows.find((row) => row.text.includes('| home |'))!;
-    expect(homeRow.segments.find((segment) => segment.text === 'home')?.state).toMatchObject({ value: '#2f855a' });
+    expect(homeRow.segments.find((segment) => segment.text === 'home')?.state).toMatchObject({ foreground: { space: 'hex', color: '#2f855a' } });
     expect(homeRow.segments.find((segment) => segment.text === '[ prowadz ]')?.state).toMatchObject({
-      value: '#4f8a65',
+      foreground: { space: 'hex', color: '#4f8a65' },
       underline: true,
     });
     expect(homeRow.segments.find((segment) => segment.text === '[ idz ]')?.state).toMatchObject({
-      value: '#b08b57',
+      foreground: { space: 'hex', color: '#b08b57' },
       underline: true,
     });
-    expect(homeRow.segments.find((segment) => segment.text === '👁')?.state).toMatchObject({ value: '#607d9b' });
-    expect(homeRow.segments.find((segment) => segment.text === '🗑')?.state).toMatchObject({ value: '#8f4a4a' });
+    expect(homeRow.segments.find((segment) => segment.text === '👁')?.state).toMatchObject({ foreground: { space: 'hex', color: '#607d9b' } });
+    expect(homeRow.segments.find((segment) => segment.text === '🗑')?.state).toMatchObject({ foreground: { space: 'hex', color: '#8f4a4a' } });
 
     homeRow.klik('[ prowadz ]');
     homeRow.klik('[ idz ]');

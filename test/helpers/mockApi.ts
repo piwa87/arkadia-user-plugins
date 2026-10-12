@@ -156,7 +156,7 @@ export function createMockApi(options?: { room?: any }) {
 
   const api = {
     colors: {
-      fromHex: vi.fn((value: string) => ({ type: 'hex', value })),
+      fromHex: vi.fn((value: string) => ({ foreground: { space: 'hex', color: value } })),
     },
     triggers: {
       register: vi.fn((pattern, callback, tag, options?: TriggerOptions) => {

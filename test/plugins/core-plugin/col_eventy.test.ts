@@ -88,7 +88,7 @@ describe('col_eventy', () => {
     const label = (line!.prependBuffer as any).mock.calls[0][0] as MockAnsiAwareBuffer;
     expect(label.segments).toContainEqual({
       text: '[UWAGA]',
-      state: { type: 'hex', value: '#bd7304' },
+      state: { foreground: { space: 'hex', color: '#bd7304' } },
     });
   });
 

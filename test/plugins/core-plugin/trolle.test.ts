@@ -140,8 +140,8 @@ describe('trolle mobLocations', () => {
     expect(rows[1].text).toContain('| 13771 | 2 lok. | pbt');
     expect(rows.some((row) => row.text.includes('kamienny'))).toBe(false);
     expect(rows[1].text).toContain('|    | 👁 | 🗑 |');
-    expect(rows[0].segments[0].state).toMatchObject({ value: '#484848' });
-    expect(rows[1].segments[0].state).toMatchObject({ value: '#929292' });
+    expect(rows[0].segments[0].state).toMatchObject({ foreground: { space: 'hex', color: '#484848' } });
+    expect(rows[1].segments[0].state).toMatchObject({ foreground: { space: 'hex', color: '#929292' } });
     const clickableSegments = rows.flatMap((row) => row.segments.filter((segment) => segment.state?.hyperlink));
     expect(clickableSegments.every((segment) => segment.state?.underline === false)).toBe(true);
   });
