@@ -1,23 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LocationObject } from '@arkadia/plugin-types';
 import { createMockApi, runLine } from '../../../helpers/mockApi';
-import { setupAtakPyk, isPykEnabled } from '../../../../src/plugins/core-plugin/pyk/pyk';
+import { setupAtakPyk } from '../../../../src/plugins/core-plugin/pyk/pyk';
+import { setupAutoCover } from '../../../../src/plugins/core-plugin/walka/auto_cover';
 import { rebuildTeamState, resetTeamState } from '../../../../src/plugins/core-plugin/mod_team/team_state';
 import { setupTeam, destroyTeam } from '../../../../src/plugins/core-plugin/mod_team/team';
 import { setupPrrAlias } from '../../../../src/plugins/core-plugin/misc/prr';
 
-describe('PYK team cover', () => {
+describe('automatic team cover', () => {
   let mock: ReturnType<typeof createMockApi>;
   let objects: LocationObject[];
   let hp: unknown;
   let cleanup: () => void;
+  let cleanupPyk: () => void;
   const alias = (command: string) => {
     const entry = [...mock.aliases].reverse().find(a => a.pattern.test(command))!;
     entry.callback(command.match(entry.pattern)!);
   };
   const update = () => mock.api.events.emit('gmcp.objects.data', new Map());
-  const covers = () => vi.mocked(mock.api.command.send).mock.calls
-    .filter(([command]) => command.startsWith('zaslon ')).map(([command]) => command);
+  const covers = () => vi.mocked(mock.api.output.print).mock.calls
+    .map(([message]) => String(message))
+    .filter(message => message.startsWith('Potencjalnie wyslana komenda: '))
+    .map(message => message.replace('Potencjalnie wyslana komenda: ', ''));
+  const previews = () => vi.mocked(mock.api.output.print).mock.calls
+    .map(([message]) => String(message))
+    .filter(message => message.startsWith('Potencjalnie wyslana komenda: ') || message.startsWith('Powod: '));
   const manual = (command: string) => {
     for (const hook of mock.commandHooks) expect(hook.callback(command)).toBeUndefined();
   };
@@ -47,12 +54,14 @@ describe('PYK team cover', () => {
     vi.mocked(mock.api.gmcp.get).mockImplementation(() => ({ char: { state: { hp } } }));
     vi.mocked(mock.api.team.getMembers).mockReturnValue(['Abr', 'Vindael']);
     rebuildTeamState(mock.api);
-    cleanup = setupAtakPyk(mock.api);
-    alias('pyk+');
+    cleanupPyk = setupAtakPyk(mock.api);
+    cleanup = setupAutoCover(mock.api);
+    alias('zas+');
   });
 
   afterEach(() => {
     cleanup();
+    cleanupPyk();
     resetTeamState();
     vi.clearAllTimers();
     vi.useRealTimers();
@@ -64,7 +73,7 @@ describe('PYK team cover', () => {
     objects[1].hp = teammateHp;
     enemies(4, 1);
     for (let i = 0; i < 30; i++) update();
-    vi.advanceTimersByTime(399);
+    vi.advanceTimersByTime(849);
     expect(covers()).toEqual([]);
     vi.advanceTimersByTime(1);
     expect(covers()).toEqual(['zaslon ob_2']);
@@ -73,6 +82,41 @@ describe('PYK team cover', () => {
     update();
     vi.advanceTimersByTime(15000);
     expect(covers()).toHaveLength(1);
+  });
+
+  it('prints the proposed command and the balancing rule without sending a command', () => {
+    enemies(4, 1);
+    update();
+    vi.advanceTimersByTime(850);
+    expect(previews()).toEqual([
+      'Potencjalnie wyslana komenda: zaslon ob_2',
+      'Powod: wyrownanie liczby atakujacych: cel 4, ty 1; podobny stan zdrowia',
+    ]);
+    expect(mock.api.command.send).not.toHaveBeenCalled();
+  });
+
+  it('reports a marked defense target as the reason', () => {
+    objects[1].defense_target = true;
+    enemies(1);
+    update();
+    vi.advanceTimersByTime(850);
+    expect(previews()).toEqual([
+      'Potencjalnie wyslana komenda: zaslon ob_2',
+      'Powod: wskazany cel obrony',
+    ]);
+    expect(mock.api.command.send).not.toHaveBeenCalled();
+  });
+
+  it('reports three failed covers as the reason', () => {
+    objects[1].hp = 0;
+    enemies(1);
+    fail(); fail(); fail();
+    vi.advanceTimersByTime(850);
+    expect(previews()).toEqual([
+      'Potencjalnie wyslana komenda: zaslon ob_2',
+      'Powod: 3 nieudane proby zasloniecia tego czlonka druzyny w 15 s',
+    ]);
+    expect(mock.api.command.send).not.toHaveBeenCalled();
   });
 
   it.each([1, 5, undefined])('does not balance dissimilar or unknown teammate HP (%s)', teammateHp => {
@@ -108,7 +152,7 @@ describe('PYK team cover', () => {
     objects[1].defense_target = true;
     enemies(1, 3);
     update();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_2']);
   });
 
@@ -140,7 +184,7 @@ describe('PYK team cover', () => {
     objects[2].defense_target = true;
     enemies(1, 0, 3);
     update();
-    vi.advanceTimersByTime(200);
+    vi.advanceTimersByTime(650);
     expect(covers()).toEqual(['zaslon ob_3']);
   });
 
@@ -152,7 +196,7 @@ describe('PYK team cover', () => {
     if (reason === 'member left') objects.splice(1, 1);
     if (reason === 'no longer attacked') enemies(0);
     if (reason === 'mark removed') objects[1].defense_target = false;
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual([]);
   });
 
@@ -175,7 +219,7 @@ describe('PYK team cover', () => {
     vi.advanceTimersByTime(7000);
     expect(covers()).toEqual([]);
     fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_2']);
     runLine(mock, 'Probujesz zaslonic Abra przed ciosami trolla, jednak nie jestes w stanie tego uczynic.');
     mock.api.events.emit('maneuverAttempted');
@@ -192,7 +236,7 @@ describe('PYK team cover', () => {
     rebuildTeamState(mock.api);
     enemies(1);
     fail(); fail('Abuan'); fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_2']);
   });
 
@@ -200,13 +244,13 @@ describe('PYK team cover', () => {
     enemies(1);
     fail(); fail('Vindael', 'Abuana'); fail('Troll');
     runLine(mock, 'Probujesz zaslonic Abra przed ciosami trolla, jednak nie jestes w stanie tego uczynic.');
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual([]);
     fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual([]);
     fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_2']);
   });
 
@@ -215,10 +259,10 @@ describe('PYK team cover', () => {
     fail();
     vi.advanceTimersByTime(14900);
     fail(); fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual([]);
     fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_2']);
   });
 
@@ -230,10 +274,10 @@ describe('PYK team cover', () => {
     enemies(1);
     fail(); fail(); fail();
     runLine(mock, line);
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual([]);
     fail(); fail();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual([]);
   });
 
@@ -243,7 +287,7 @@ describe('PYK team cover', () => {
     objects.push({ num: 200, __category: 'rest', attack_num: 3 });
     fail(); fail(); fail();
     update();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_3']);
   });
 
@@ -252,19 +296,18 @@ describe('PYK team cover', () => {
     objects.push({ num: 200, __category: 'rest', attack_num: 2 });
     fail(); fail(); fail();
     update();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toEqual(['zaslon ob_2']);
   });
 
-  it('reserves cooldown before send and extends it from the game reply on a failed attempt', () => {
+  it('reserves cooldown before printing and extends it from a cover timer event', () => {
     objects[1].defense_target = true;
     enemies(1);
-    vi.mocked(mock.api.command.send).mockImplementation(async command => {
-      manual(command);
-      update();
+    vi.mocked(mock.api.output.print).mockImplementation(message => {
+      if (String(message).startsWith('Potencjalnie wyslana komenda: ')) update();
     });
     update();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toHaveLength(1);
     vi.advanceTimersByTime(300);
     mock.api.events.emit('maneuverAttempted');
@@ -272,7 +315,7 @@ describe('PYK team cover', () => {
     expect(covers()).toHaveLength(1);
     vi.advanceTimersByTime(1);
     expect(covers()).toHaveLength(1);
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(covers()).toHaveLength(2);
   });
 
@@ -280,46 +323,72 @@ describe('PYK team cover', () => {
     'cancels the automatic reaction when a manual maneuver takes over: %s', command => {
       enemies(4);
       update();
-      vi.advanceTimersByTime(399);
+      vi.advanceTimersByTime(849);
       manual(command);
       vi.advanceTimersByTime(5000);
       expect(covers()).toEqual([]);
-      vi.advanceTimersByTime(400);
+      vi.advanceTimersByTime(850);
       expect(covers()).toEqual(['zaslon ob_2']);
     },
   );
 
   it('preserves a game cooldown across off/on and observes maneuvers while disabled', () => {
-    alias('pyk-');
+    alias('zas-');
     mock.api.events.emit('coverTimer', 5);
     expect(vi.getTimerCount()).toBe(0);
     vi.advanceTimersByTime(1000);
     enemies(4);
-    alias('pyk+');
+    alias('zas+');
     mock.api.events.emit('coverTimer', null); // must not erase the reservation
     vi.advanceTimersByTime(3999);
     expect(covers()).toEqual([]);
-    vi.advanceTimersByTime(401);
+    vi.advanceTimersByTime(851);
     expect(covers()).toEqual(['zaslon ob_2']);
   });
 
-  it.each(['pyk-', 'prr', 'disconnect', 'expiry', 'destroy', 'mapMove', 'teamChange'])(
+  it.each(['pyk-', 'prr', 'pyk expiry'])('keeps covering independently of %s', reason => {
+    setupPrrAlias(mock.api);
+    alias('pyk+');
+    if (reason === 'pyk expiry') vi.advanceTimersByTime(15 * 60 * 1000);
+    else alias(reason);
+    objects[1].defense_target = true;
+    enemies(1);
+    update();
+    vi.advanceTimersByTime(850);
+    expect(covers()).toEqual(['zaslon ob_2']);
+  });
+
+  it('does not enable covering with pyk+ and stops only on zas-', () => {
+    alias('zas-');
+    alias('pyk+');
+    objects[1].defense_target = true;
+    enemies(1);
+    update();
+    vi.advanceTimersByTime(850);
+    expect(covers()).toEqual([]);
+    alias('zas+');
+    vi.advanceTimersByTime(850);
+    expect(covers()).toEqual(['zaslon ob_2']);
+    alias('zas-');
+    vi.advanceTimersByTime(10000);
+    expect(covers()).toHaveLength(1);
+  });
+
+  it.each(['zas-', 'disconnect', 'destroy', 'mapMove', 'teamChange'])(
     'clears pending reaction and failure history on %s', reason => {
-      setupPrrAlias(mock.api);
       enemies(1);
-      if (reason === 'expiry') vi.advanceTimersByTime(899800);
       fail(); fail(); fail();
-      if (reason === 'pyk-' || reason === 'prr') alias(reason);
+      if (reason === 'zas-') alias(reason);
       if (reason === 'disconnect') mock.api.events.emit('client.disconnect');
       if (reason === 'destroy') cleanup();
       if (reason === 'mapMove') mock.api.events.emit('mapMove');
       if (reason === 'teamChange') mock.api.events.emit('teamChange');
-      vi.advanceTimersByTime(400);
+      vi.advanceTimersByTime(850);
       expect(covers()).toEqual([]);
       if (reason !== 'destroy') {
-        if (!isPykEnabled()) alias('pyk+');
+        if (reason === 'zas-' || reason === 'disconnect') alias('zas+');
         fail(); fail();
-        vi.advanceTimersByTime(400);
+        vi.advanceTimersByTime(850);
         expect(covers()).toEqual([]);
       }
     },
@@ -328,9 +397,10 @@ describe('PYK team cover', () => {
   it('removes timers, hooks, triggers and listeners on destroy', () => {
     enemies(4);
     update();
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(850);
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     cleanup();
+    cleanupPyk();
     expect(vi.getTimerCount()).toBe(0);
     expect([...mock.eventListeners.values()].flat()).toEqual([]);
     expect(mock.commandHooks).toEqual([]);
@@ -342,7 +412,7 @@ describe('PYK team cover', () => {
     try {
       enemies(1);
       fail(); fail(); fail();
-      vi.advanceTimersByTime(400);
+      vi.advanceTimersByTime(850);
       expect(covers()).toEqual(['zaslon ob_2']);
     } finally {
       destroyTeam(mock.api);

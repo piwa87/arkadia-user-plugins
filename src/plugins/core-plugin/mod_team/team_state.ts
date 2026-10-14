@@ -188,8 +188,20 @@ export function setShieldedAgainstMe(value: boolean): void {
 /** CMUD `lista_bindow` — bind label per team slot. Only the first 10 (q–p). */
 export const LISTA_BINDOW = ['QQ', 'WW', 'EE', 'RR', 'TT', 'YY', 'UU', 'II', 'OO', 'PP'] as const;
 
-/** Bind label for a 0-based team slot index, or '' when out of range. */
-export function teamBindLabel(index: number): string {
+/** Resolve a member's live client shortcut, independently of getMembers() order. */
+export function teamBindLabel(index: number, api: PluginApi): string {
+  const member = currentTeam[index];
+  if (!member) return '';
+  const object = api.objects.getObjectsOnLocation().find(
+    (o) => o.__category === 'team' && o.desc?.toLowerCase() === member.M.toLowerCase(),
+  );
+  if (object) {
+    const shortcut = object.shortcut?.toUpperCase();
+    return shortcut && /^[A-Z]$/.test(shortcut)
+      ? LISTA_BINDOW[shortcut.charCodeAt(0) - 65] ?? ''
+      : '';
+  }
+  // Before location objects arrive, retain the team-list fallback.
   return LISTA_BINDOW[index] ?? '';
 }
 

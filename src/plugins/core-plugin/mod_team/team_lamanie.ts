@@ -165,7 +165,7 @@ export function setupLamanie(api: PluginApi, tag: string): void {
     keepOriginal = false,
   ) => {
     teamZlamany = victim.toLowerCase();
-    const bindLabel = teamBindLabel(idx);
+    const bindLabel = teamBindLabel(idx, api);
     const heading = arlekin
       ? ARLEKIN_BREAK_PREFIX
       : TEAM_BREAK_PREFIX;

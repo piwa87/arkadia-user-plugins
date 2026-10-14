@@ -76,6 +76,7 @@ import {
   setupMiscTriggers,
   setupFooter,
   setupAtakPyk,
+  setupAutoCover,
   setupAntyflood,
   setupAtakiTriggers,
   setupCombatAliases,
@@ -95,7 +96,7 @@ import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 // Completeness is enforced by test/plugins/core-plugin/destroy.test.ts.
 const TRIGGER_TAGS = [
   'antyflood',
-  'pykCover',
+  'autoCover',
   'bramy',
   'brokilon',
   'brokilonSearch',
@@ -142,6 +143,7 @@ let cleanupCombat: (() => void) | null = null;
 let cleanupBrokilon: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
 let cleanupAtakPyk: (() => void) | null = null;
+let cleanupAutoCover: (() => void) | null = null;
 let cleanupAntyflood: (() => void) | null = null;
 let cleanupGhoule: (() => void) | null = null;
 let cleanupMorze: (() => void) | null = null;
@@ -176,6 +178,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const zmeczenieState = createZmeczenieState();
 
   cleanupAtakPyk = setupAtakPyk(api);
+  cleanupAutoCover = setupAutoCover(api);
   cleanupAntyflood = setupAntyflood(api);
   cleanupGhoule = setupGhoule(api);
   cleanupAtakiTriggers = setupAtakiTriggers(api, kondycjeState);
@@ -205,7 +208,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   setupHelpAliases(api);
   setupKarczmaAliases(api);
   setupKeyboardBindings(api);
-  setCenterCommand('c');
+  setCenterCommand('c1');
   setupKondycjeAliases(api, kondycjeState);
   setupKondycjeTriggers(api, kondycjeState);
   cleanupHpBar = setupHpBar(api);
@@ -288,6 +291,8 @@ export async function destroy(): Promise<void> {
   cleanupPalenie = null;
   cleanupAtakPyk?.();
   cleanupAtakPyk = null;
+  cleanupAutoCover?.();
+  cleanupAutoCover = null;
   cleanupAntyflood?.();
   cleanupAntyflood = null;
   cleanupGhoule?.();

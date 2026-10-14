@@ -190,7 +190,7 @@ export function setupAtaki(api: PluginApi, tag: string): void {
       rewrite(line, [
         ['  atak  ', c38],
         [' -> [', reset],
-        [teamBindLabel(idx), c4],
+        [teamBindLabel(idx, api), c4],
         [`] ${m[0]}`, reset],
       ]);
       send('play_ding');
@@ -210,7 +210,7 @@ export function setupAtaki(api: PluginApi, tag: string): void {
       rewrite(line, [
         ['  atak  ', c38],
         [' -> [', reset],
-        [teamBindLabel(idx), c4],
+        [teamBindLabel(idx, api), c4],
         [`] ${m[0]}`, reset],
       ]);
       send('play_ding');

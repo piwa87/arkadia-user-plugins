@@ -9,7 +9,7 @@ import {
   teamNominativeForms,
   teamIndexByBiernik,
   setShieldedAgainstMe,
-  LISTA_BINDOW,
+  teamBindLabel,
 } from './team_state';
 
 /**
@@ -150,7 +150,7 @@ function registerNieZaslania(api: PluginApi, tag: string): void {
       if (!teamNominativeForms().has(shielder.toLowerCase())) return line;
       const idx = teamIndexByBiernik(shielded);
       if (idx < 0) return line;
-      const bindLabel = LISTA_BINDOW[idx] ?? '';
+      const bindLabel = teamBindLabel(idx, api);
 
       rewrite(line, [
         [' *** ', hi],

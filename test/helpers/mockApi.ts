@@ -256,6 +256,9 @@ export function createMockApi(options?: { room?: any }) {
     output: {
       print: vi.fn(),
     },
+    objects: {
+      getObjectsOnLocation: vi.fn(() => []),
+    },
     objectListFilters: {
       register: vi.fn(),
       unregister: vi.fn(),

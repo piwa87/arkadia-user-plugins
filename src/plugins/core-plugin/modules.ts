@@ -71,6 +71,7 @@ export { setupLocationTriggers } from './triggers/location';
 export { setupMiscTriggers } from './triggers/misc';
 export { setupFooter } from './ui/footer';
 export { setupAtakPyk } from './pyk/pyk';
+export { setupAutoCover } from './walka/auto_cover';
 export { setupAntyflood } from './antyflood';
 export { setupAtakiTriggers } from './walka/atak_triggers';
 export { setupCombatAliases } from './walka/walka_aliasy';

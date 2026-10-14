@@ -24,7 +24,8 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'set <target>', desc: 'set targets 1–4 with ordinal prefixes' },
       { cmd: 'set1–4 <what>', desc: 'set individual target verbatim' },
       { cmd: 'xxx', desc: 'stop fighting' },
-      { cmd: 'pyk+ / pyk-', desc: 'auto-attack and team cover for 15 min / off (cover: own HP at least 4/7)' },
+      { cmd: 'pyk+ / pyk-', desc: 'auto-attack for 15 min / off' },
+      { cmd: 'zas+ / zas-', desc: 'preview automatic team cover / off; prints command and reason (own HP at least 4/7)' },
       { cmd: 'next!', desc: 'print N E X T visual banner' },
 
       { section: 'BATTLE PRESETS' },

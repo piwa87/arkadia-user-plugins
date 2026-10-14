@@ -431,6 +431,31 @@ describe('mod_team', () => {
   });
 
   describe('atak triggers', () => {
+    it('uses live shortcuts when the member list has a different order', () => {
+      const mock = createMockApi();
+      vi.mocked(mock.api.team.getMembers).mockReturnValue(['Arcain', 'Eldur', 'Zutzer']);
+      let objects = [
+        { num: 1, desc: 'Zutzer', __category: 'team' as const, shortcut: 'A' },
+        { num: 2, desc: 'Eldur', __category: 'team' as const, shortcut: 'B' },
+        { num: 3, desc: 'Arcain', __category: 'team' as const, shortcut: 'C' },
+      ];
+      mock.api.objects.getObjectsOnLocation = () => objects;
+      setupTeam(mock.api);
+
+      const attack = 'Trupioblady ohydny mezczyzna atakuje Zutzera.';
+      expect(runLine(mock, attack)!.text).toContain('[QQ]');
+      expect(runLine(mock, 'Trupioblady ohydny mezczyzna atakuje Arcaina.')!.text).toContain('[EE]');
+      expect(runLine(mock, 'Eldur probuje zaslonic Zutzera przed ciosami orka, jednak nie jest w stanie tego uczynic.')!.text).toContain('[QQ]');
+
+      // Shortcut reassignment does not have to change team membership.
+      objects = objects.map((o) => ({ ...o, shortcut: o.desc === 'Zutzer' ? 'B' : 'A' }));
+      expect(runLine(mock, attack)!.text).toContain('[WW]');
+      objects = objects.map((o) => ({ ...o, shortcut: '' }));
+      expect(runLine(mock, attack)!.text).not.toContain('[EE]');
+
+      destroyTeam(mock.api);
+    });
+
     it('rewrites "atakuje cie!" into the atak banner with a ding', () => {
       const mock = createMockApi();
       (mock.api.team.getMembers as any).mockReturnValue([]);

@@ -2,7 +2,9 @@ import type { LocationObject, PluginApi } from '@arkadia/plugin-types';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
 import { getCurrentTeam } from '../mod_team/team_state';
 
-const TAG = 'pykCover';
+const TAG = 'autoCover';
+const REACTION_MIN_MS = 850;
+const REACTION_MAX_MS = 3400;
 const MANEUVER_MS = 5000;
 const FAILURE_WINDOW_MS = 15000;
 // GMCP uses 0..6, while the displayed condition uses 1..7.
@@ -13,8 +15,14 @@ const normalizeName = (name: string) => name.replace(/[\[\]]/g, '').trim().toLow
 const validHp = (hp: unknown): hp is number =>
   typeof hp === 'number' && Number.isInteger(hp) && hp >= 0 && hp <= 6;
 
-/** One cover decision at a time; sending a command never implies success. */
-export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reactionDelay: () => number) {
+type CoverDecision = { target: LocationObject; reason: string; count: number };
+
+/** Preview one cover decision at a time without sending game commands. */
+export function setupAutoCover(api: PluginApi): () => void {
+  let enabled = false;
+  const isEnabled = () => enabled;
+  const reactionDelay = () => REACTION_MIN_MS +
+    Math.floor(Math.random() * (REACTION_MAX_MS - REACTION_MIN_MS + 1));
   let reactionTimer: ReturnType<typeof setTimeout> | null = null;
   let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
   let maneuverUntil = 0;
@@ -30,7 +38,7 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
     cooldownTimer = null;
   };
 
-  // Turning PYK off or moving clears decisions, not the game's cooldown.
+  // Turning automatic cover off or moving clears decisions, not the game's cooldown.
   const reset = () => {
     cancelReaction();
     cancelCooldownWake();
@@ -44,7 +52,7 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
     return recent;
   };
 
-  const chooseTarget = (): LocationObject | undefined => {
+  const chooseTarget = (): CoverDecision | undefined => {
     if (api.team.getMembers().length === 0) return;
     const hp: unknown = api.gmcp.get()?.char?.state?.hp;
     if (!validHp(hp) || hp < MIN_HP) return;
@@ -66,16 +74,20 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
     const candidates = team.flatMap(target => {
       const count = attackers.get(target.num) ?? 0;
       if (count === 0) return [];
+      const failureCount = recentFailures(target.num).length;
       const priority = target.defense_target === true ? 3
-        : recentFailures(target.num).length >= 3 ? 2
+        : failureCount >= 3 ? 2
         : validHp(target.hp) && Math.abs(hp - target.hp) <= 1 && count - mine >= 3 ? 1
         : 0;
-      return priority ? [{ target, priority, count }] : [];
+      const reason = priority === 3 ? 'wskazany cel obrony'
+        : priority === 2 ? '3 nieudane proby zasloniecia tego czlonka druzyny w 15 s'
+        : `wyrownanie liczby atakujacych: cel ${count}, ty ${mine}; podobny stan zdrowia`;
+      return priority ? [{ target, priority, count, reason }] : [];
     });
     // Stable tie-breaks: most attackers, then weakest condition, then object ID.
     candidates.sort((a, b) => b.priority - a.priority || b.count - a.count ||
       (a.target.hp ?? 7) - (b.target.hp ?? 7) || a.target.num - b.target.num);
-    return candidates[0]?.target;
+    return candidates[0];
   };
 
   const request = () => {
@@ -105,11 +117,12 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
         return;
       }
       // Re-read HP, attackers, team and defense mark after the reaction delay.
-      const target = chooseTarget();
-      if (!target) return;
-      failures.delete(target.num); // one intervention per set of failures
+      const decision = chooseTarget();
+      if (!decision) return;
+      failures.delete(decision.target.num); // one preview per set of failures
       reserveManeuver(Date.now() + MANEUVER_MS);
-      api.command.send(`zaslon ob_${target.num}`, false);
+      api.output.print(`Potencjalnie wyslana komenda: zaslon ob_${decision.target.num}`);
+      api.output.print(`Powod: ${decision.reason}`);
     }, reactionDelay());
   };
 
@@ -129,6 +142,7 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
     }
   };
   const onDisconnect = () => {
+    enabled = false;
     reset();
     maneuverUntil = 0;
   };
@@ -184,6 +198,18 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
     if (MANEUVER_COMMAND.test(command.trim())) onManeuver();
     return undefined;
   });
+  const plusId = api.aliases.register(/^zas\+$/i, () => {
+    enabled = true;
+    api.output.print('--> zas');
+    request();
+    return true;
+  });
+  const minusId = api.aliases.register(/^zas-$/i, () => {
+    enabled = false;
+    reset();
+    api.output.print('--> juz nie zas');
+    return true;
+  });
   api.events.on('gmcp.objects.data', request);
   api.events.on('gmcp.objects.nums', request);
   api.events.on('gmcp.char.state', request);
@@ -193,21 +219,20 @@ export function setupPykCover(api: PluginApi, isEnabled: () => boolean, reaction
   api.events.on('mapMove', reset);
   api.events.on('client.disconnect', onDisconnect);
 
-  return {
-    request,
-    reset,
-    destroy: () => {
-      reset();
-      api.triggers.removeByTag(TAG);
-      api.commandHooks.unregister(hookId);
-      api.events.off('gmcp.objects.data', request);
-      api.events.off('gmcp.objects.nums', request);
-      api.events.off('gmcp.char.state', request);
-      api.events.off('teamChange', onTeamChange);
-      api.events.off('coverTimer', onCoverTimer);
-      api.events.off('maneuverAttempted', onManeuver);
-      api.events.off('mapMove', reset);
-      api.events.off('client.disconnect', onDisconnect);
-    },
+  return () => {
+    enabled = false;
+    reset();
+    api.triggers.removeByTag(TAG);
+    api.aliases.remove(plusId);
+    api.aliases.remove(minusId);
+    api.commandHooks.unregister(hookId);
+    api.events.off('gmcp.objects.data', request);
+    api.events.off('gmcp.objects.nums', request);
+    api.events.off('gmcp.char.state', request);
+    api.events.off('teamChange', onTeamChange);
+    api.events.off('coverTimer', onCoverTimer);
+    api.events.off('maneuverAttempted', onManeuver);
+    api.events.off('mapMove', reset);
+    api.events.off('client.disconnect', onDisconnect);
   };
 }

@@ -2,7 +2,6 @@ import type { PluginApi } from '@arkadia/plugin-types';
 import { col13 } from '../../../lib/colors/my-colors';
 import { renderFooterChip } from '../../../lib/footerChip';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
-import { setupPykCover } from './cover';
 
 const TAG = 'atakPyk';
 
@@ -66,7 +65,6 @@ export function setupAtakPyk(api: PluginApi): () => void {
     enabledUntil = 0;
     cancelReaction();
     resetWeaponRecovery();
-    cover.reset();
     if (expiryTimer !== null) clearTimeout(expiryTimer);
     expiryTimer = null;
     footer.setVisible(false);
@@ -83,8 +81,6 @@ export function setupAtakPyk(api: PluginApi): () => void {
     }
     return true;
   };
-
-  const cover = setupPykCover(api, isEnabled, reactionDelay);
 
   const requestAttack = () => {
     if (!isEnabled() || weaponRecovery !== 'idle' || reactionTimer !== null || Date.now() < nextAttackAt) return;
@@ -188,7 +184,6 @@ export function setupAtakPyk(api: PluginApi): () => void {
     expiryTimer = setTimeout(() => { isEnabled(); }, SESSION_MS);
     footer.setVisible(true);
     say('--> pyk');
-    cover.request();
     return true;
   });
 
@@ -212,7 +207,6 @@ export function setupAtakPyk(api: PluginApi): () => void {
 
   return () => {
     disable();
-    cover.destroy();
     if (controller === session) controller = null;
     api.triggers.removeByTag(TAG);
     api.aliases.remove(idPlus);
