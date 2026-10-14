@@ -405,6 +405,64 @@ describe('rkg! creation dialogue', () => {
   });
 });
 
+describe('old club restoration', () => {
+  const nazwa = 'Spolka Handlowa Smetnego Kalafiora';
+  const ziarno = {
+    typ: 'spolka handlowa', przymiotnik: 'smetny', rzeczownik: 'kalafior',
+    liczba: 'pojedynczej', przypadek: 'dopelniaczu',
+  } as const;
+
+  function replay(mock: Mock, wynik: string) {
+    podaj(mock, 'Jaki charakter ma miec klub?');
+    podaj(mock, 'Jakiego typu ma to byc klub?', '\t* spolka handlowa');
+    podaj(mock, 'Jakiej plci maja byc czlonkowie klubu?');
+    podaj(mock, 'Jaka ma byc nazwa klubu?');
+    podaj(mock, 'Podaj rzeczownik lub wyswietl dopuszczone do uzytku z jednej z kategorii:');
+    podaj(mock, 'Podaj przymiotnik, ktory ma okreslac wybrany rzeczownik.');
+    podaj(mock, 'Nazwa klubu ma byc w liczbie pojedynczej czy mnogiej?');
+    podaj(mock, 'W jakim przypadku gramatycznym ma byc nazwa wlasna klubu?');
+    podaj(mock, 'Wybierz tytul dla przywodcy:', '\t* przywodca');
+    podaj(mock, 'Wybierz tytul dla zastepcy przywodcy:', '\t* zaufany');
+    podaj(mock, 'Wybierz tytul dla szeregowego czlonka klubu:', '\t* uczestnik');
+    podaj(mock, 'Wybierz gest charakterystyczny dla klubu:');
+    podaj(mock, 'Wybierz symbol klubu.');
+    podaj(mock,
+      'Podsumowujac, nowy klub bedzie sie nazywal:', `\t${wynik}`,
+      'Przywodca bedzie nosil tytul:', `\tPrzywodca ${wynik}`,
+      'Zastepca przywodcy bedzie nosil tytul:', `\tZaufany w ${wynik}`,
+      'Szeregowy czlonek klubu bedzie nosil tytul:', `\tUczestnik ${wynik}`,
+      'Czy chcesz stworzyc taki klub?',
+    );
+  }
+
+  it('uses the chosen name components and saves roles only after an exact match', () => {
+    const mock = createMockApi();
+    const baza = utworzBaze();
+    const kreator = setupKreator(mock.api, baza, createRkgStyles(mock.api));
+    kreator.odtworz(nazwa, ziarno);
+    replay(mock, nazwa);
+    expect(wyslane(mock)).toContain('smetny');
+    expect(wyslane(mock)).toContain('kalafior');
+    expect(wyslane(mock).slice(-1)[0]).toBe('**');
+    expect(baza.wpisy).toHaveLength(1);
+    expect(baza.wpisy[0].role.przywodca).toBe(`Przywodca ${nazwa}`);
+    expect(baza.stare).not.toContain(nazwa);
+    kreator.zatrzymaj();
+  });
+
+  it('keeps a name in the review queue when the game returns a different result', () => {
+    const mock = createMockApi();
+    const baza = utworzBaze();
+    const kreator = setupKreator(mock.api, baza, createRkgStyles(mock.api));
+    kreator.odtworz(nazwa, ziarno);
+    replay(mock, 'Spolka Handlowa Smetnego Pomidora');
+    expect(wyslane(mock).slice(-1)[0]).toBe('**');
+    expect(baza.wpisy).toHaveLength(0);
+    expect(baza.stare).toContain(nazwa);
+    kreator.zatrzymaj();
+  });
+});
+
 function doRzeczownika(mock: Mock) {
   odpal(mock, 'rkg!');
   podaj(mock, 'Jaki charakter ma miec klub?');
@@ -439,7 +497,7 @@ describe('live menus and rejection recovery', () => {
   // Isolate creator timers from the unrelated ranking-window countdown.
   let stopCreator: () => void;
   const initCreator = async (mock: Mock) => {
-    stopCreator = setupKreator(mock.api, utworzBaze(), createRkgStyles(mock.api));
+    stopCreator = setupKreator(mock.api, utworzBaze(), createRkgStyles(mock.api)).zatrzymaj;
   };
   afterEach(() => stopCreator?.());
 

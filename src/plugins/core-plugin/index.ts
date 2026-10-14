@@ -130,6 +130,7 @@ const TRIGGER_TAGS = [
   'na_statek_oneshot',
   'wsiadacz_statek',
   'wsiadacz_woz',
+  'wsiadacz_woz_boarding',
   'wsiadacz_statek_ned',
   'wsiadacz_transport_arrival',
   'siad_oneshot',

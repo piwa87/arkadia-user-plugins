@@ -152,6 +152,7 @@ export function createPublisher(options: PublisherOptions): Publisher {
       przypadek: wpis.przypadek,
       wynik: wpis.wynik,
       role: wpis.role,
+      tryb: wpis.tryb,
       nick: nick || undefined,
       glosujacy: wall.voterId(),
     };

@@ -15,9 +15,11 @@ export function setupAliasy(api: PluginApi, baza: Baza, styles: RkgStyles): void
   // ── rkg / rkghelp — short help ────────────────────────────────────────────
   const POMOC: [string, string][] = [
     ['rkg!', 'przejdz dialog "utworz klub", losuj nazwe i tytuly, na koncu anuluj'],
+    ['rkgman!', 'przejdz dialog samodzielnie; zapisz podglad nazwy i tytuly'],
     ['rkg-', 'przerwij trwajacy run'],
     ['rkgshow!', 'pokaz zebrane kluby wraz z tytulami wladz'],
     ['rkghof', 'okno RKG: lokalne kluby + ranking online'],
+    ['rkghof → Stare', 'przejrzyj dawne nazwy; odtworz wybrane lub usun z kolejki'],
     ['rkgstatus', 'sprawdz, kiedy dzienny slot wysylki bedzie gotowy'],
     ['rkgwyslij [x]', 'wyslij ostatni klub (limit 1 na 24h; x = nick, - = anonimowo)'],
     ['rkgnick <x>', 'ustaw publiczny nick (rkgnick - = anonimowo)'],

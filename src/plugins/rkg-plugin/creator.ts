@@ -1,16 +1,19 @@
 import type { FormatStateSnapshot, PluginApi } from '@arkadia/plugin-types';
-import type { Liczba, Przypadek, Role, WpisLokalny } from '../../shared/rkg-api';
+import type { Liczba, Przypadek, Role, WpisLokalny, Ziarno } from '../../shared/rkg-api';
 import { LICZBY, PRZYPADKI } from '../../shared/rkg-api';
 import type { Baza } from './store';
 import type { RkgStyles } from './styles';
 import { RKG_PRZYMIOTNIKI } from './data/adjectives';
 import { RZECZOWNIKI_SEED } from './data/seed';
+import { RKG_TYPY } from './data/types';
 import { pick } from './generator';
 import { printClubTable } from './presentation';
+import { registerTokenGate } from '../../lib/registerTokenGate';
+import { showClubInput } from './visible-input';
 
 /**
- * `rkg!` — drive the club-creation dialogue, harvesting type and title menus live, and
- * record the full generated club. PREVIEW ONLY: at the final "Czy chcesz
+ * `rkg!` drives the dialogue and picks options; `rkgman!` records the player's
+ * answers. Both record the full club. PREVIEW ONLY: at the final "Czy chcesz
  * stworzyc taki klub?" prompt the runner sends `**` to cancel. It NEVER sends
  * `tak`; no club is ever founded.
  *
@@ -60,6 +63,10 @@ const CHARAKTER = 'jawny';
 const PLEC = 'dowolnej';
 
 interface Ctx {
+  manual?: boolean;
+  charakter?: string;
+  odtwarzana?: string;
+  ziarno?: Ziarno;
   typ?: string;
   /** What we answered, or what the type dictated when the question was skipped. */
   plec?: string;
@@ -73,6 +80,11 @@ interface Ctx {
   pendingNazwa: boolean;
 }
 
+export interface Kreator {
+  zatrzymaj(): void;
+  odtworz(nazwa: string, ziarno: Ziarno): void;
+}
+
 export function setupKreator(
   api: PluginApi,
   baza: Baza,
@@ -80,18 +92,29 @@ export function setupKreator(
   // Called once a run has produced a complete club, so the RKG window can
   // offer to publish it. Optional so the runner stands alone in tests.
   poZakonczeniu?: (w: WpisLokalny) => void,
-): () => void {
+): Kreator {
   let ctx: Ctx | null = null;
   let delayed: ReturnType<typeof setTimeout> | null = null;
   let rejected: Prompt | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
+  let manualHookId: string | null = null;
+  let manualPrompt: string | null = null;
+  let manualSummaryArmed = false;
+  let manualFinalizing = false;
+  let restoreInput: (() => void) | null = null;
+  let watchingDisconnect = false;
 
   const drukuj = (tekst: string, kolor: FormatStateSnapshot) => {
     const buf = new api.AnsiAwareBuffer(tekst);
     buf.color([0, tekst.length], kolor);
     api.output.print(buf);
   };
-  const send = (tekst: string) => api.command.send(tekst, false);
+  const send = (tekst: string) => {
+    if (ctx && tekst !== 'utworz klub' && tekst !== '**') {
+      drukuj(`[rkg] > ${tekst}`, styles.info);
+    }
+    return api.command.send(tekst, false);
+  };
   const post = (i: number, id: string) => drukuj(`[rkg] ${i} ${id}`, styles.info);
 
   const czyscWatchdog = () => {
@@ -108,6 +131,15 @@ export function setupKreator(
     rejected = null;
     api.triggers.removeByTag(TAG_KREATOR);
     api.triggers.removeByTag(TAG_MENU);
+    if (manualHookId) api.commandHooks.unregister(manualHookId);
+    manualHookId = null;
+    manualPrompt = null;
+    manualSummaryArmed = false;
+    manualFinalizing = false;
+    restoreInput?.();
+    restoreInput = null;
+    if (watchingDisconnect) api.events.off('client.disconnect', onDisconnect);
+    watchingDisconnect = false;
     ctx = null;
   };
 
@@ -116,6 +148,16 @@ export function setupKreator(
     if (wyslijAbort) send('**');
     sprzatnij();
     drukuj(`[rkg] przerwano: ${powod}`, styles.info);
+  };
+
+  function onDisconnect(): void {
+    przerwij('rozlaczono', false);
+  }
+
+  const pokazOdpowiedzi = () => {
+    restoreInput = showClubInput();
+    api.events.on('client.disconnect', onDisconnect);
+    watchingDisconnect = true;
   };
 
   const ustawWatchdog = (gdzie: string) => {
@@ -167,7 +209,7 @@ export function setupKreator(
   /** Submit unused candidates; a repeated question keeps this attempt history. */
   const wyborKrok = (
     re: RegExp, nazwa: string, uzyj: (wybor: string) => void,
-    stale?: readonly string[],
+    stale?: readonly string[], wymus?: string,
   ) => {
     const proby = new Set<string>();
     let opcje: string[] = [];
@@ -194,7 +236,11 @@ export function setupKreator(
           przerwij(`${nazwa}: ${proby.size ? 'odrzucone odpowiedzi, brak bezpiecznej kolejnej proby' : 'brak poprawnych opcji w menu'}`, true);
           return;
         }
-        const wybor = pick(dostepne);
+        if (wymus && !dostepne.includes(wymus)) {
+          przerwij(`${nazwa}: brak wybranej opcji ${wymus}`, true);
+          return;
+        }
+        const wybor = wymus ?? pick(dostepne);
         proby.add(wybor);
         rejected = prompt;
         uzyj(wybor);
@@ -218,11 +264,11 @@ export function setupKreator(
 
   const krokTyp = () => {
     post(2, 'typ');
-    menuKrok(/Jakiego typu ma to byc klub/i, 'typ klubu', (typ) => {
+    wyborKrok(/Jakiego typu ma to byc klub/i, 'typ klubu', (typ) => {
       ctx!.typ = typ;
       send(typ);
       krokPlec();
-    });
+    }, undefined, ctx?.ziarno?.typ);
   };
 
   // Gender-locked types (`braterstwo`, ...) are never asked about plec: the game
@@ -278,7 +324,7 @@ export function setupKreator(
       ctx!.rzeczownik = noun;
       send(noun);
       krokPrzymiotnik();
-    }, RZECZOWNIKI_SEED);
+    }, RZECZOWNIKI_SEED, ctx?.ziarno?.rzeczownik);
   };
 
   const krokPrzymiotnik = () => {
@@ -287,11 +333,11 @@ export function setupKreator(
       ctx!.przymiotnik = adj;
       send(adj);
       krokLiczbaLubPrzypadek();
-    }, RKG_PRZYMIOTNIKI);
+    }, RKG_PRZYMIOTNIKI, ctx?.ziarno?.przymiotnik);
   };
 
   const wyslijPrzypadek = () => {
-    const p = pick(PRZYPADKI) as Przypadek;
+    const p = ctx?.ziarno?.przypadek ?? pick(PRZYPADKI) as Przypadek;
     ctx!.przypadek = p;
     send(p);
     krokPrzywodca();
@@ -305,7 +351,7 @@ export function setupKreator(
       {
         re: /w liczbie pojedynczej czy mnogiej/i,
         fn: () => {
-          const l = pick(LICZBY) as Liczba;
+          const l = ctx?.ziarno?.liczba ?? pick(LICZBY) as Liczba;
           ctx!.liczba = l;
           send(l);
           krokPrzypadek();
@@ -367,6 +413,29 @@ export function setupKreator(
     });
   };
 
+  const zbierzPodsumowanie = (tekst: string) => {
+    const biezacy = ctx;
+    if (!biezacy) return;
+    for (const raw of tekst.split(/\r?\n/)) {
+      const t = raw.trim();
+      if (SUMMARY_NAME.test(t)) {
+        biezacy.pendingNazwa = true;
+      } else if (biezacy.pendingNazwa && t) {
+        biezacy.wynik = t;
+        biezacy.pendingNazwa = false;
+      } else if (SUMMARY_LEADER.test(t)) {
+        biezacy.pendingRola = 'przywodca';
+      } else if (SUMMARY_DEPUTY.test(t)) {
+        biezacy.pendingRola = 'zastepca';
+      } else if (SUMMARY_MEMBER.test(t)) {
+        biezacy.pendingRola = 'czlonek';
+      } else if (biezacy.pendingRola && t) {
+        biezacy.role[biezacy.pendingRola] = t;
+        biezacy.pendingRola = null;
+      }
+    }
+  };
+
   // The summary streams several lines at once — the name and the three titles as
   // "label:" / indented-value pairs — then the final confirmation. A transient
   // collector accumulates them; the confirmation one-shot ends the run.
@@ -376,26 +445,7 @@ export function setupKreator(
     api.triggers.register(
       /\S/,
       (line) => {
-        const biezacy = ctx;
-        if (!biezacy) return line;
-        for (const raw of line.text.split(/\r?\n/)) {
-          const t = raw.trim();
-          if (SUMMARY_NAME.test(t)) {
-            biezacy.pendingNazwa = true;
-          } else if (biezacy.pendingNazwa && t) {
-            biezacy.wynik = t;
-            biezacy.pendingNazwa = false;
-          } else if (SUMMARY_LEADER.test(t)) {
-            biezacy.pendingRola = 'przywodca';
-          } else if (SUMMARY_DEPUTY.test(t)) {
-            biezacy.pendingRola = 'zastepca';
-          } else if (SUMMARY_MEMBER.test(t)) {
-            biezacy.pendingRola = 'czlonek';
-          } else if (biezacy.pendingRola && t) {
-            biezacy.role[biezacy.pendingRola] = t;
-            biezacy.pendingRola = null;
-          }
-        }
+        try { zbierzPodsumowanie(line.text); } catch { /* never abort a game output batch */ }
         return line;
       },
       TAG_MENU,
@@ -412,6 +462,14 @@ export function setupKreator(
     if (!cur) return;
     const { typ, przymiotnik, rzeczownik, liczba, przypadek, wynik } = cur;
     if (wynik && typ && przymiotnik && rzeczownik && liczba && przypadek) {
+      if (cur.odtwarzana && wynik.trim() !== cur.odtwarzana.trim()) {
+        przerwij(`gra zwrocila "${wynik}", oczekiwano "${cur.odtwarzana}"; sprawdz skladniki i sprobuj ponownie`, false);
+        return;
+      }
+      if ((cur.odtwarzana || cur.manual) && (!cur.role.przywodca || !cur.role.zastepca || !cur.role.czlonek)) {
+        przerwij('nie udalo sie zebrac wszystkich tytulow wladz', false);
+        return;
+      }
       const role: Role = {
         przywodca: cur.role.przywodca ?? '',
         zastepca: cur.role.zastepca ?? '',
@@ -424,11 +482,13 @@ export function setupKreator(
         liczba,
         przypadek,
         wynik,
-        charakter: CHARAKTER,
+        charakter: cur.charakter ?? CHARAKTER,
         plec: cur.plec ?? PLEC,
         role,
+        ...(cur.manual ? { tryb: 'manualny' as const } : {}),
       };
       const zapisany = baza.dodajWpis(wpis);
+      if (cur.odtwarzana) baza.oznaczOdtworzony(cur.odtwarzana);
       sprzatnij();
       const header = new api.AnsiAwareBuffer('[rkg] ', styles.info);
       header.append('WYLOSOWANY KLUB', styles.action);
@@ -447,6 +507,111 @@ export function setupKreator(
 
   // ── Aliases ───────────────────────────────────────────────────────────────
 
+  const startManual = () => {
+    ctx = { manual: true, role: {}, pendingRola: null, pendingNazwa: false };
+    const naPytanie = (gate: string | string[], re: RegExp, krok: string) => {
+      registerTokenGate(api, gate, re, (line) => {
+        if (ctx?.manual) manualPrompt = krok;
+        return line;
+      }, TAG_KREATOR);
+    };
+    naPytanie('charakter', /Jaki charakter ma miec klub/i, 'charakter');
+    naPytanie('typu', /Jakiego typu ma to byc klub/i, 'typ');
+    naPytanie('czlonkowie', /Jakiej plci maja byc czlonkowie/i, 'plec');
+    naPytanie('nazwa', /Jaka ma byc nazwa klubu/i, 'nazwa');
+    naPytanie('rzeczownik', /Podaj rzeczownik lub wyswietl/i, 'rzeczownik');
+    naPytanie('przymiotnik', /Podaj przymiotnik/i, 'przymiotnik');
+    naPytanie('liczbie', /w liczbie pojedynczej czy mnogiej/i, 'liczba');
+    registerTokenGate(api, 'przypadku', /W jakim przypadku gramatycznym/i, (line) => {
+      if (ctx?.manual) {
+        manualPrompt = 'przypadek';
+        if (!ctx.liczba) ctx.liczba = 'mnogiej';
+      }
+      return line;
+    }, TAG_KREATOR);
+    naPytanie('gest', /Wybierz gest charakterystyczny/i, 'gest');
+    naPytanie('symbol', /Wybierz symbol klubu/i, 'symbol');
+    registerTokenGate(api, 'pozwala', /pozwala na przyjmowanie wylacznie (mezczyzn|kobiet)/i, (line, m) => {
+      if (ctx?.manual && m?.[1]) ctx.plec = m[1].toLowerCase() === 'kobiet' ? 'zenskiej' : 'meskiej';
+      return line;
+    }, TAG_KREATOR);
+    registerTokenGate(api, 'stworzyc', /Czy chcesz stworzyc taki klub/i, (line) => {
+      if (!ctx?.manual) return line;
+      manualPrompt = null;
+      try {
+        manualFinalizing = true;
+        send('**');
+        zakoncz();
+      } catch (e) {
+        przerwij(`blad: ${String(e)}`, false);
+      }
+      return line;
+    }, TAG_KREATOR);
+
+    manualHookId = api.commandHooks.register((command: string) => {
+      const cur = ctx;
+      if (!cur?.manual) return undefined;
+      if (manualFinalizing) return undefined;
+      const answer = command.trim().toLowerCase().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '').replace(/\u0142/g, 'l');
+      if (answer === 'rkg-' || answer === 'rkg!' || answer === 'rkgman!') return undefined;
+      if (answer === '**') {
+        sprzatnij();
+        drukuj('[rkg] przerwano recznie', styles.info);
+        return undefined;
+      }
+      switch (manualPrompt) {
+        case 'charakter':
+          if (answer === 'jawny' || answer === 'niejawny') cur.charakter = answer;
+          break;
+        case 'typ':
+          if (RKG_TYPY.includes(answer)) cur.typ = answer;
+          break;
+        case 'plec':
+          if (['dowolnej', 'meskiej', 'zenskiej'].includes(answer)) cur.plec = answer;
+          break;
+        case 'nazwa':
+          if (answer !== 'nazwa') {
+            drukuj('[rkg] do zapisania w rankingu wybierz nazwa wlasna: nazwa', styles.info);
+            return null;
+          }
+          break;
+        case 'rzeczownik':
+          if (/^[a-z]{2,24}(?: [a-z]{2,24})?$/.test(answer) && answer !== 'wyswietl') cur.rzeczownik = answer;
+          break;
+        case 'przymiotnik':
+          if (/^[a-z]{3,32}$/.test(answer)) cur.przymiotnik = answer;
+          break;
+        case 'liczba':
+          if (answer === 'pojedynczej' || answer === 'mnogiej') cur.liczba = answer;
+          break;
+        case 'przypadek':
+          if (answer === 'mianowniku' || answer === 'dopelniaczu') cur.przypadek = answer;
+          break;
+        case 'symbol':
+          if (!manualSummaryArmed) {
+            manualSummaryArmed = true;
+            api.triggers.register(/\S/, (line) => {
+              try { zbierzPodsumowanie(line.text); } catch { /* keep output processing alive */ }
+              return line;
+            }, TAG_MENU);
+          }
+          break;
+      }
+      if (manualPrompt) drukuj(`[rkg] > ${answer}`, styles.info);
+      return undefined;
+    });
+    drukuj('[rkg] tryb reczny: odpowiadaj sam na pytania gry; wybierz nazwa wlasna (nazwa). Na koncu zapisze podglad i anuluje zalozenie klubu.', styles.info);
+    pokazOdpowiedzi();
+    send('utworz klub');
+  };
+
+  api.aliases.register(/^rkgman!$/i, () => {
+    if (ctx) drukuj('[rkg] juz trwa — rkg- aby przerwac', styles.info);
+    else startManual();
+    return true;
+  });
+
   api.aliases.register(/^rkg!$/i, () => {
     if (ctx) {
       drukuj('[rkg] juz trwa — rkg- aby przerwac', styles.info);
@@ -454,6 +619,7 @@ export function setupKreator(
     }
     ctx = { role: {}, pendingRola: null, pendingNazwa: false };
     drukuj('[rkg] start (podglad — klub NIE zostanie zalozony)', styles.info);
+    pokazOdpowiedzi();
     send('utworz klub');
     krokCharakter();
     return true;
@@ -468,5 +634,29 @@ export function setupKreator(
     return true;
   });
 
-  return sprzatnij;
+  return {
+    zatrzymaj: sprzatnij,
+    odtworz: (nazwa, ziarno) => {
+      if (ctx) {
+        drukuj('[rkg] juz trwa — rkg- aby przerwac', styles.info);
+        return;
+      }
+      if (!baza.stare.includes(nazwa)) {
+        drukuj('[rkg] tej nazwy nie ma juz na liscie starych', styles.info);
+        return;
+      }
+      if (!RKG_TYPY.includes(ziarno.typ) || !RKG_PRZYMIOTNIKI.includes(ziarno.przymiotnik)
+        || !RZECZOWNIKI_SEED.includes(ziarno.rzeczownik)
+        || !(LICZBY as readonly string[]).includes(ziarno.liczba)
+        || !(PRZYPADKI as readonly string[]).includes(ziarno.przypadek)) {
+        drukuj('[rkg] niepoprawne skladniki nazwy — popraw formularz', styles.info);
+        return;
+      }
+      ctx = { odtwarzana: nazwa, ziarno, role: {}, pendingRola: null, pendingNazwa: false };
+      drukuj(`[rkg] odtwarzam: ${nazwa} (podglad — klub NIE zostanie zalozony)`, styles.info);
+      pokazOdpowiedzi();
+      send('utworz klub');
+      krokCharakter();
+    },
+  };
 }

@@ -28,7 +28,7 @@ export function setupGlassSounds(api: PluginApi): void {
 
   registerTokenGate(
     api,
-    ['zatrzymuje', 'doplywa', 'przybija', 'drzenie', 'predkosc', 'kolysanie', 'zewnatrz'],
+    ['zatrzymuje', 'doplywa', 'przybija', 'drzenie', 'kolysanie'],
     [
       new RegExp(
         [
@@ -37,12 +37,9 @@ export function setupGlassSounds(api: PluginApi): void {
           '(?:z wolna doplywa|przybija) do brzegu\\.',
           'przebiega drzenie',
           'Drzenie przebiega poklad',
-          'Powoli pojazd zaczyna tracic predkosc',
           'Monotonne kolysanie ustaje',
         ].join('|'),
       ),
-      /^Z zewnatrz slyszysz glos woznicy: (?:Fermata|Przystanek)\s*-\s*\S.*$/i,
-      /^Z zewnatrz dochodzi stlumiony glos woznicy: Postoj,\s*\S.*$/i,
     ],
     (line) => {
       line.color([0, line.text.length], c3);
@@ -50,6 +47,17 @@ export function setupGlassSounds(api: PluginApi): void {
       prefix.append('[transport]', transportPrefixColor);
       prefix.append(' ', c3);
       return line.prependBuffer(prefix);
+    },
+    TAG,
+  );
+
+  registerTokenGate(
+    api,
+    'predkosc',
+    /^Powoli pojazd zaczyna tracic predkosc, by po chwili zatrzymac sie\.$/,
+    (line) => {
+      line.color([0, line.text.length], c3);
+      return line.prepend('🚌 ');
     },
     TAG,
   );

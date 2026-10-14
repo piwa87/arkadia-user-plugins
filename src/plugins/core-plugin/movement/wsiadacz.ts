@@ -23,6 +23,27 @@ export function setupWsiadaczAliases(api: PluginApi): void {
   const tagWoz = 'wsiadacz_woz';
   const tagStatekNed = 'wsiadacz_statek_ned';
 
+  const blockColor = getAnsiFormatState(34, api);
+  const printBoardingBlock = (label: string) => {
+    for (const text of ['                            ', `     ${label}     `, '                            ']) {
+      const buf = new api.AnsiAwareBuffer(text);
+      buf.color([0, text.length], blockColor);
+      api.output.print(buf);
+    }
+  };
+
+  // Add confirmed wagon boarding phrases here as they appear in game logs.
+  registerTokenGate(
+    api,
+    'woznicy',
+    /^Oplacasz podroz u woznicy i wsiadasz do (?:.+ )?(?:dylizansu|wozu|powozu)\.$/,
+    (line) => {
+      printBoardingBlock('WSIADLES DO POJAZDU!');
+      return line;
+    },
+    'wsiadacz_woz_boarding',
+  );
+
   const printFeedback = (text: string) => {
     const buf = new api.AnsiAwareBuffer(text);
     buf.color([0, text.length], feedbackColor);
@@ -31,18 +52,12 @@ export function setupWsiadaczAliases(api: PluginApi): void {
 
   // #region na_statek - arm a one-shot trigger that shows a visual block when boarding succeeds
   {
-    const blockColor = getAnsiFormatState(34, api);
-    const blockLines = ['                            ', '     WLAZLES NA STATEK!     ', '                            '];
     const oneShotTag = 'na_statek_oneshot';
 
     api.aliases.register(/^na_statek$/, () => {
       api.triggers.removeByTag(oneShotTag);
       api.triggers.registerOneTime(/^Wchodzisz/, (line) => {
-        for (const l of blockLines) {
-          const buf = new api.AnsiAwareBuffer(l);
-          buf.color([0, l.length], blockColor);
-          api.output.print(buf);
-        }
+        printBoardingBlock('WLAZLES NA STATEK!');
         return line;
       }, oneShotTag);
       return true;

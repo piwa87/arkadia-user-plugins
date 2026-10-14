@@ -187,6 +187,40 @@ describe('setupHof registration', () => {
     cleanup();
   });
 
+  it('lets the user skip an old club without adding it locally', async () => {
+    const { mock, baza, cleanup } = setup();
+    const nazwa = 'Spolka Handlowa Smetnego Kalafiora';
+    odpal(mock, 'rkghof');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    zbudujOkno(mock).przycisk('Stare').onclick?.();
+    const row = zbudujOkno(mock).szukaj((e) => e.className === 'rkg-wpis' && e.tekst.includes(nazwa));
+    expect(row).not.toBeNull();
+    row!.przycisk('Usuń').onclick?.();
+    expect(baza.stare).not.toContain(nazwa);
+    expect(utworzBaze().stare).not.toContain(nazwa);
+    expect(baza.wpisy).toHaveLength(0);
+    cleanup();
+  });
+
+  it('offers the inferred seed for a selected old club', async () => {
+    const mock = createMockApi();
+    const baza = utworzBaze();
+    const onRestore = vi.fn();
+    const hof = setupHof(mock.api, baza, undefined, onRestore);
+    const nazwa = 'Spolka Handlowa Smetnego Kalafiora';
+    odpal(mock, 'rkghof');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    zbudujOkno(mock).przycisk('Stare').onclick?.();
+    const row = zbudujOkno(mock).szukaj((e) => e.className === 'rkg-wpis' && e.tekst.includes(nazwa));
+    row!.przycisk('Odtworz').onclick?.();
+    zbudujOkno(mock).przycisk('Rozpocznij odtwarzanie').onclick?.();
+    expect(onRestore).toHaveBeenCalledWith(nazwa, {
+      typ: 'spolka handlowa', przymiotnik: 'smetny', rzeczownik: 'kalafior',
+      liczba: 'pojedynczej', przypadek: 'dopelniaczu',
+    });
+    hof.zatrzymaj();
+  });
+
   it('shows the authoritative daily-slot countdown in the local window', async () => {
     const { mock, cleanup } = setup();
     stubFetch({}, true, 200, { dostepny: false, ponownieZaMs: 2 * 3_600_000 });
@@ -540,6 +574,19 @@ describe('rkgwyslij', () => {
 
     expect(globalThis.confirm).toHaveBeenCalledWith(expect.stringContaining('uruchomi nowy okres 24 godzin'));
     expect(JSON.parse((f.mock.calls[0] as any)[1].body).nick).toBe('Piot');
+  });
+
+  it('marks a manual club in the ranking submission', async () => {
+    const { mock, baza } = setup();
+    const f = stubFetch({ id: 'manual-1', wynik: 'Klub Kupieckich Kotow', zgloszenia: 1, duplikat: false });
+    storage.set('rkg:anonim', true);
+    baza.dodajWpis({
+      ...WPIS, typ: 'klub', przymiotnik: 'kupiecki', rzeczownik: 'kot',
+      wynik: 'Klub Kupieckich Kotow', tryb: 'manualny',
+    });
+    odpal(mock, 'rkgwyslij');
+    await vi.waitFor(() => expect(f).toHaveBeenCalled());
+    expect(JSON.parse((f.mock.calls[0] as any)[1].body).tryb).toBe('manualny');
   });
 
   it('takes a nick argument, and "-" for anonymous', async () => {

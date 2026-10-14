@@ -1,22 +1,28 @@
 import type { WpisLokalny } from '../../shared/rkg-api';
 import { storage } from '../../lib/storage';
+import { NAZWY_KLUBOW } from './data/legacy-names';
+import { normalizuj } from '../../shared/rkg-grammar';
 
 /**
  * Local persistence, backed by localStorage.
  *
- * `wpisy` — the clubs this plugin has generated: the full captured object (seed
+ * `wpisy` — the clubs this plugin has captured: the full object (seed
  * answers, the inflected name, and the three leadership titles). This is the
  * record `rkgshow!` lists and the wall submits from. The noun base itself is
  * not stored here — it is fixed in `data/seed.ts`.
  */
 
 const KLUCZ_WPISY = 'rkg:wpisy';
+const KLUCZ_STARE = 'rkg:stare-decyzje';
 
 // localStorage is shared with every other plugin — stay bounded. Oldest go first.
 const LIMIT_WPISY = 500;
 
 export interface Baza {
   readonly wpisy: readonly WpisLokalny[];
+  readonly stare: readonly string[];
+  odrzucStary(nazwa: string): void;
+  oznaczOdtworzony(nazwa: string): void;
   dodajWpis(dane: Omit<WpisLokalny, 'id' | 'kiedy' | 'wyslane'>): WpisLokalny;
   oznaczWyslany(id: string, zdalneId: string): void;
   /**
@@ -53,11 +59,27 @@ export function utworzBaze(): Baza {
   const wpisy = (storage.get<WpisLokalny[]>(KLUCZ_WPISY) ?? []).filter(
     (w): w is WpisLokalny => !!w && typeof w.wynik === 'string',
   );
+  const znane = new Set(NAZWY_KLUBOW.map(normalizuj));
+  const decyzje = new Set((storage.get<string[]>(KLUCZ_STARE) ?? []).filter(
+    (n): n is string => typeof n === 'string' && znane.has(n),
+  ));
+  const zakonczStary = (nazwa: string) => {
+    const klucz = normalizuj(nazwa);
+    if (!znane.has(klucz) || decyzje.has(klucz)) return;
+    decyzje.add(klucz);
+    zapisz(KLUCZ_STARE, [...decyzje]);
+  };
 
   return {
     get wpisy() {
       return wpisy;
     },
+    get stare() {
+      const zapisane = new Set(wpisy.map((w) => normalizuj(w.wynik)));
+      return NAZWY_KLUBOW.filter((n) => !decyzje.has(normalizuj(n)) && !zapisane.has(normalizuj(n)));
+    },
+    odrzucStary: zakonczStary,
+    oznaczOdtworzony: zakonczStary,
 
     dodajWpis(dane: Omit<WpisLokalny, 'id' | 'kiedy' | 'wyslane'>): WpisLokalny {
       const wpis: WpisLokalny = { ...dane, id: nowyId(), kiedy: Date.now() };

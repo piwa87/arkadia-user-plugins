@@ -39,6 +39,15 @@ describe('utworzBaze', () => {
     expect(utworzBaze().wpisy).toHaveLength(0);
   });
 
+  it('keeps skipped old names out of the review queue across reloads', () => {
+    const nazwa = 'Spolka Handlowa Smetnego Kalafiora';
+    const baza = utworzBaze();
+    expect(baza.stare).toContain(nazwa);
+    baza.odrzucStary(nazwa);
+    expect(utworzBaze().stare).not.toContain(nazwa);
+    expect(utworzBaze().wpisy).toHaveLength(0);
+  });
+
 });
 
 describe('dodajWpis', () => {

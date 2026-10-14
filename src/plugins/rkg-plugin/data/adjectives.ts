@@ -12,24 +12,9 @@
  * `szczerze`, …) that the CMud list had picked up. The game may reject these; the creator retries
  * another unused candidate on a repeated prompt, with a bounded attempt limit.
  *
- * Otherwise this is the CMud list verbatim MINUS the 8 entries in ZABRONIONE:
- * 970 unique in, 962 out. Names generated here can end up on a public wall, and
- * these are the ones that would eventually produce something nobody wants to
- * see there. The wall's validator rejects them too, by virtue of checking
- * membership of RKG_PRZYMIOTNIKI.
+ * Otherwise this is the full CMud list: 970 unique entries after trimming and
+ * de-duplication.
  */
-
-/** Removed from the CMud list — see above. Kept named so the removal is reviewable. */
-export const ZABRONIONE: readonly string[] = [
-  'nimfomanski',
-  'oblesny',
-  'obsceniczny',
-  'perwersyjny',
-  'pozadliwy',
-  'rasistowski',
-  'sprosny',
-  'zberezny',
-];
 const SUROWE = `
 abstrakcyjny|anarchiczny|apodyktyczny|autoironiczny|agresywny|anarchistyczny|apoplektyczny|
 autokratyczny|alergiczny|anegdotyczny|arbitralny|automatyczny|aluzyjny|anielski|arogancki|
@@ -78,14 +63,14 @@ niekonkretny|nierozsadny|niewyrazny|nalogowy|niekontrolowany|nierozwazny|niezauw
 namietny|niekonwencjonalniy|niesamowity|niezawodny|nastrojowy|niemadrze|nieskromny|niezdarny|
 natarczywy|niemily|niesmialy|niezdecydowany|naturalny|niemilosierny|niespieszny|niezdrowy|
 necacy|niemoralny|niespodziewany|niezgrabny|nedzny|niemrawy|niespokojny|nieznaczny|nerwowy|
-nienaturalny|niestosowny|nieznosny|neurasteniczny|nienawistny|nieswiadomy|niezobowiazujacy|
+nienaturalny|niestosowny|nieznosny|neurasteniczny|nienawistny|nieswiadomy|niezobowiazujacy|nimfomanski|
 neurotyczny|nieobliczalny|niezreczny|niebezpieczny|nieodpowiedni|niesympatyczny|niezrozumialy|
 niecenzuralny|nieodpowiedzialny|nieszczerze|niezyczliwy|niechcacy|nieoficjalny|nieszczesliwy|
 nikczemny|niechetny|niepewny|nieszkodliwy|niechlujny|niepochlebny|nietaktowny|nobliwy|
 niecierpliwy|niepohamowany|nietypowy|nonszalancki|niedbaly|niepokorny|nieudolny|nosowy|
 niedojrzaly|niepoprawny|nieufny|nostalgiczny|niedolezny|nieporadny|nieugiety|nowobogacki|
 niedowierzajacy|niepowazny|nieumiarkowany|obcesowy|obszerny|odwazny|optymistyczny|obelzywy|
-oceniajacy|oficjalny|oryginalny|obiecujacy|ochoczy|ogledny|orzezwiajacy|oblakanczy|ochryply|
+oceniajacy|oficjalny|oryginalny|obiecujacy|ochoczy|ogledny|orzezwiajacy|oblakanczy|ochryply|oblesny|obsceniczny|
 ognisty|oschly|obledny|ociezaly|ohydny|oskarzycielski|oczekujacy|ojcowski|osmielajacy|obludny|
 okropny|osobliwy|obmierzly|odkrywczy|okrutny|ostentacyjny|obojetny|odpowiedni|olewczy|ostry|
 obrazalski|odpowiedzialny|omdlewajacy|ostrozny|obrazliwy|odpychajacy|oniesmielajacy|
@@ -93,8 +78,8 @@ ostrzegawczy|obrzydliwy|odrazajacy|oniryczny|oszczedny|odruchowy|opiekunczy|otwa
 odstreczajacy|oporny|oziebly|paranoiczny|podly|powolny|przepiekny|paranoidalny|podniecajacy|
 powolutku|przepocieszny|paskudny|podniosly|powsciagliwy|przepokorny|patetyczny|podstepny|
 przepraszajacy|pazerny|poetycki|pozegnalny|przerazajacy|pedantyczny|pogardliwy|pozerski|
-przerazliwy|perfidny|pogladowy|pracoholiczny|przesadny|pogodny|pracowity|przesliczny|
-pesymistyczny|pojednawczy|praktyczny|przesmieszny|pewny|pokorny|prawomyslny|przesmiewczy|
+przerazliwy|perfidny|perwersyjny|pogladowy|pracoholiczny|przesadny|pogodny|pracowity|przesliczny|
+pesymistyczny|pojednawczy|praktyczny|przesmieszny|pewny|pokorny|prawomyslny|przesmiewczy|pozadliwy|
 pieczolowity|pokraczny|pretensjonalny|przespieszny|piekny|pokretny|problematyczny|
 przeszywajacy|pieprzny|pokrzepiajacy|profesjonalny|przeuroczy|pieszczotliwy|polgebkiem|
 promienny|przewidujacy|pijacki|polglosem|proroczy|przewrotny|pikantny|polowiczny|prostacki|
@@ -113,7 +98,7 @@ psychotyczny|pocieszajacy|potwierdzajacy|przemyslny|purytanski|pocieszny|potworn
 pusty|pouczajacy|przeobledny|pyszalkowaty|podchwytliwy|powatpiewajacy|przeobludny|pyszny|
 poddanczy|powazny|przeobmierzly|pytajacy|podejrzany|powitalny|przeokropny|podejrzliwy|powoli|
 przeosobliwy|racjonalny|romantyczny|rozpraszajacy|rubaszny|radosny|rozbrajajacy|rozrzutny|
-ruchliwy|raptowny|rozdzierajacy|rozsmieszajacy|rykliwy|rozkazujacy|roztropny|rytmiczny|razny|
+ruchliwy|raptowny|rozdzierajacy|rozsmieszajacy|rykliwy|rozkazujacy|roztropny|rytmiczny|razny|rasistowski|
 rozkoszny|rozumny|rzeczowy|refleksyjny|rozkoszniutki|rozwazny|rzeski|rezolutny|rozpaczliwy|
 rozweselajacy|rzetelny|sadystyczny|skwapliwy|sykliwy|samokrytyczny|slaby|sprytny|sympatyczny|
 samolubny|slabowity|srodze|systematyczny|samotny|sliczny|srogi|syty|sardoniczny|slodki|
@@ -122,7 +107,7 @@ szarmancki|schizofreniczny|slony|starczy|szatanski|scisly|sluzalczy|stary|szczer
 sluzbisty|stosowny|szczesliwy|sentymentalny|sluzebny|strachliwy|szczodrobliwy|serdeczny|smetny|
 straszliwy|szczodrze|smialy|straszny|szelmowski|siarczysty|smiercionosny|strofujacy|szeroki|
 silny|smieszny|stronniczy|szlachetny|skandaliczny|smutny|subtelny|szorstki|skapy|soczysty|
-suchy|szpetny|sklerotyczny|sowizdrzalski|sugestywny|sztuczny|skoczny|spazmatyczny|sumienny|
+suchy|szpetny|sklerotyczny|sowizdrzalski|sugestywny|sztuczny|skoczny|spazmatyczny|sumienny|sprosny|
 sztywny|skromny|spieszny|surowy|szybciutki|skromniutki|swarliwy|szybki|skrupulatny|spokojny|
 swiadomy|szyderczy|skryty|spolegliwy|swidrujacy|skrzekliwy|spontaniczny|swietoszkowaty|skrzetny|
 sprezysty|swobodny|tajemniczy|tepy|transcendentalny|twardy|taksujacy|teskny|triumfalny|
@@ -135,7 +120,7 @@ waleczny|wladczy|wstretny|wyrazny|wariacki|wnikliwy|wstrzasajacy|wyrozumialy|wat
 wnioskujacy|wstrzemiezliwy|wytworny|wdzieczny|wojowniczy|wstydliwy|wyzywajacy|wesoly|wolniutki|
 wulgarny|wzgardliwy|wesolutki|wolny|wybredny|wzniosly|wiarolomny|wprawny|wyczekujacy|wiarygodny|
 wredny|wygodny|wielkoduszny|wrogi|wykretny|zdawkowy|zdecydowany|zabawny|zabojczy|zaborczy|
-zachecajacy|zebrzacy|zachlanny|zgodny|zachwycajacy|zgorzknialy|zaciekly|zgrabny|zacny|zgryzliwy|
+zachecajacy|zebrzacy|zachlanny|zgodny|zachwycajacy|zgorzknialy|zaciekly|zgrabny|zacny|zgryzliwy|zberezny|
 zaczepny|zimny|zadziorny|zjadliwy|zagadkowy|zlosliwy|zagorzaly|zlowieszczy|zalosny|zlowrogi|
 zalotny|zlowrozbny|zamaszysty|zmyslowy|zapalczywy|znaczacy|zapamietaly|zniechecajacy|zapiekly|
 zapraszajacy|zniewalajacy|zaprzeczajacy|zniewiescialy|zarliwy|zreczny|zarloczny|zrozumialy|

@@ -5,12 +5,14 @@ import type {
   Pozycja,
   StatusLimitu,
   WpisLokalny,
+  Ziarno,
 } from '../../shared/rkg-api';
+import { odgadnijZiarno } from './legacy-seed';
 import { formatWait } from './publisher';
 import type { Baza } from './store';
 import type { WallClient } from './wall-client';
 
-type Tab = 'lokalne' | 'top';
+type Tab = 'lokalne' | 'stare' | 'top';
 
 export interface HofView {
   open(tab?: Tab): Promise<void>;
@@ -25,19 +27,21 @@ interface ViewOptions {
   wall: WallClient;
   info(text: string): void;
   onSend(wpis: WpisLokalny): void;
+  onRestore(nazwa: string, ziarno: Ziarno): void;
   limitStatus(): StatusLimitu | null;
   refreshLimit(): Promise<StatusLimitu | null>;
 }
 
 /** The RKG browse popup: local captures, public ranking and votes. */
 export function createHofView(options: ViewOptions): HofView {
-  const { api, baza, wall, info, onSend, limitStatus, refreshLimit } = options;
+  const { api, baza, wall, info, onSend, onRestore, limitStatus, refreshLimit } = options;
   let popup: Awaited<ReturnType<PluginApi['ui']['registerPersistentPopup']>> | null = null;
   let tab: Tab = 'lokalne';
   let topEntries: Pozycja[] | null = null;
   let topError = '';
+  let wybranaStara: string | null = null;
   const countdown = setInterval(() => {
-    if (popup?.isOpen) refresh();
+    if (popup?.isOpen && tab !== 'stare') refresh();
   }, 60_000);
 
   const el = (tag: string, className = '', text?: string): HTMLElement => {
@@ -180,6 +184,71 @@ export function createHofView(options: ViewOptions): HofView {
     return list;
   }
 
+  function oldView(): HTMLElement {
+    const column = el('div', 'rkg-kolumna');
+    const list = el('div', 'rkg-lista');
+    const names = baza.stare;
+    column.append(el('p', 'rkg-maly', `Do przejrzenia: ${names.length}. Odtwarzaj tylko wybrane; usuniete nie wroca po przeladowaniu.`));
+    if (!names.length) {
+      list.append(el('p', 'rkg-pusto', 'Wszystkie stare nazwy zostaly przejrzane.'));
+    }
+    for (const nazwa of names) {
+      const row = el('div', 'rkg-wpis');
+      row.append(el('div', 'rkg-tresc rkg-nazwa', nazwa));
+      const restore = el('button', 'rkg-btn', 'Odtworz') as HTMLButtonElement;
+      restore.onclick = () => {
+        wybranaStara = nazwa;
+        refresh();
+      };
+      const remove = el('button', 'rkg-btn rkg-remove-old', 'Usuń') as HTMLButtonElement;
+      remove.title = 'Usun z kolejki bez odtwarzania';
+      remove.onclick = () => {
+        baza.odrzucStary(nazwa);
+        if (wybranaStara === nazwa) wybranaStara = null;
+        refresh();
+      };
+      row.append(restore, remove);
+      list.append(row);
+    }
+    column.append(list);
+
+    if (wybranaStara && names.includes(wybranaStara)) {
+      const nazwa = wybranaStara;
+      const seed = odgadnijZiarno(nazwa);
+      const form = el('div', 'rkg-legacy-form');
+      form.append(el('strong', '', nazwa));
+      form.append(el('p', 'rkg-maly', 'Sprawdz odgadniete skladniki. Gra musi zwrocic dokladnie te nazwe; inaczej nic sie nie zapisze.'));
+      const field = (label: string, value: string): HTMLInputElement => {
+        const wrapper = el('label', 'rkg-legacy-field', label);
+        const input = el('input') as HTMLInputElement;
+        input.value = value;
+        wrapper.append(input);
+        form.append(wrapper);
+        return input;
+      };
+      const typ = field('Typ', seed?.typ ?? '');
+      const przymiotnik = field('Przymiotnik (forma podstawowa)', seed?.przymiotnik ?? '');
+      const rzeczownik = field('Rzeczownik (forma podstawowa)', seed?.rzeczownik ?? '');
+      const liczba = field('Liczba: pojedynczej / mnogiej', seed?.liczba ?? 'pojedynczej');
+      const przypadek = field('Przypadek: mianowniku / dopelniaczu', seed?.przypadek ?? 'mianowniku');
+      const buttons = el('div', 'rkg-rzad');
+      const start = el('button', 'rkg-btn rkg-primary', 'Rozpocznij odtwarzanie') as HTMLButtonElement;
+      start.onclick = () => onRestore(nazwa, {
+        typ: typ.value.trim().toLowerCase(),
+        przymiotnik: przymiotnik.value.trim().toLowerCase(),
+        rzeczownik: rzeczownik.value.trim().toLowerCase(),
+        liczba: liczba.value.trim().toLowerCase() as Ziarno['liczba'],
+        przypadek: przypadek.value.trim().toLowerCase() as Ziarno['przypadek'],
+      });
+      const cancel = el('button', 'rkg-btn', 'Wroc do listy') as HTMLButtonElement;
+      cancel.onclick = () => { wybranaStara = null; refresh(); };
+      buttons.append(start, cancel);
+      form.append(buttons);
+      column.append(form);
+    }
+    return column;
+  }
+
   function build(): HTMLElement {
     const root = el('div', 'rkg-hof');
     root.append(el('style', '', STYLE));
@@ -193,9 +262,9 @@ export function createHofView(options: ViewOptions): HofView {
       };
       return button;
     };
-    tabs.append(makeTab('lokalne', 'Lokalne'), makeTab('top', 'Top (ranking)'));
+    tabs.append(makeTab('lokalne', 'Lokalne'), makeTab('stare', `Stare (${baza.stare.length})`), makeTab('top', 'Top (ranking)'));
     root.append(tabs);
-    root.append(tab === 'lokalne' ? localView() : topView());
+    root.append(tab === 'lokalne' ? localView() : tab === 'stare' ? oldView() : topView());
     return root;
   }
 
@@ -263,4 +332,8 @@ const STYLE = `
 .rkg-pusto { text-align: center; opacity: .6; padding: 24px 0; }
 .rkg-zgoda { max-width: 360px; }
 .rkg-maly { opacity: .7; font-size: .9em; }
+.rkg-legacy-form { flex: 0 0 auto; border-top: 1px solid #8884; padding-top: 10px; margin-top: 10px; }
+.rkg-legacy-field { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin: 4px 0; }
+.rkg-legacy-field input { width: 45%; min-width: 100px; box-sizing: border-box; }
+.rkg-remove-old:hover { border-color: #e2777a; color: #e2777a; }
 `;

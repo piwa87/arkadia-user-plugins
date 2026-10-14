@@ -13,16 +13,15 @@ import { RKG_PRZYMIOTNIKI } from '../../src/plugins/rkg-plugin/data/adjectives';
 /**
  * Server-side validation for the wall.
  *
- * The endpoint stores NO free-form display text. Every field is validated
- * against the very same word lists and grammar helpers the generator uses
- * (imported directly — single source of truth), and the submitted name is
- * reconstructed-checked against the seed. Anything that fails is rejected with
- * a 400; injected text simply has no route into the database.
+ * Generated names use the plugin's adjective list. Manual names may contain
+ * other adjectives, but still have a strict ASCII word shape and must match
+ * the supplied seed by stem. All display fields are bounded.
  */
 
 // Built once at module load.
 const TYPY = new Set(RKG_TYPY.map((t) => t.toLowerCase()));
 const PRZYMIOTNIKI = new Set(RKG_PRZYMIOTNIKI);
+const MANUAL_ADJ_RE = /^[a-z]{3,32}$/;
 const NAZWA_RE = wzorzecNazwy(RKG_TYPY);
 const TYP_ALT = [...RKG_TYPY].sort((a, b) => b.length - a.length);
 const ROLA_RE = /^[A-Za-z ]{3,80}$/;
@@ -61,7 +60,10 @@ export function walidujZgloszenie(body: unknown): WynikWalidacji<CzysteZgloszeni
   if (!TYPY.has(typ)) return { ok: false, blad: 'nieznany typ' };
 
   const przymiotnik = isStr(b.przymiotnik) ? b.przymiotnik.trim().toLowerCase() : '';
-  if (!PRZYMIOTNIKI.has(przymiotnik)) return { ok: false, blad: 'nieznany przymiotnik' };
+  if (b.tryb !== undefined && b.tryb !== 'manualny') return { ok: false, blad: 'zly tryb' };
+  if (b.tryb === 'manualny' ? !MANUAL_ADJ_RE.test(przymiotnik) : !PRZYMIOTNIKI.has(przymiotnik)) {
+    return { ok: false, blad: 'nieznany przymiotnik' };
+  }
 
   const rzeczownik = isStr(b.rzeczownik) ? b.rzeczownik.trim().toLowerCase() : '';
   if (!WZORZEC_RZECZOWNIKA.test(rzeczownik)) return { ok: false, blad: 'zly rzeczownik' };

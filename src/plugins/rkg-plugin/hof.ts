@@ -1,5 +1,5 @@
 import type { PluginApi } from '@arkadia/plugin-types';
-import type { WpisLokalny } from '../../shared/rkg-api';
+import type { WpisLokalny, Ziarno } from '../../shared/rkg-api';
 import { WZORZEC_NICKA } from '../../shared/rkg-grammar';
 import { createHofView, type HofView } from './hof-view';
 import { createPublisher, formatWait } from './publisher';
@@ -20,7 +20,10 @@ export interface Hof {
   zatrzymaj(): void;
 }
 
-export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(api)): Hof {
+export function setupHof(
+  api: PluginApi, baza: Baza, styles = createRkgStyles(api),
+  onRestore: (nazwa: string, ziarno: Ziarno) => void = () => {},
+): Hof {
   const wall = createWallClient();
   const info = (text: string) => {
     const buffer = new api.AnsiAwareBuffer('[rkg] ', { ...styles.info, bold: true });
@@ -42,6 +45,7 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
     wall,
     info,
     onSend: publisher.start,
+    onRestore,
     limitStatus: publisher.limitStatus,
     refreshLimit: publisher.refreshLimit,
   });
@@ -90,6 +94,7 @@ export function setupHof(api: PluginApi, baza: Baza, styles = createRkgStyles(ap
 
   function zaproponuj(wpis: WpisLokalny): void {
     try {
+      view?.refresh();
       const nick = publisher.defaultNick();
       info('Do rankingu mozesz wyslac tylko jeden klub na 24 godziny — wybierz dobrze.');
       info('WYBIERZ AKCJE');

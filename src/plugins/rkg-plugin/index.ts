@@ -2,7 +2,7 @@ import type { PluginApi, PluginInfo } from '@arkadia/plugin-types';
 import { setupAliasy } from './aliases';
 import { utworzBaze } from './store';
 import { setupHof } from './hof';
-import { setupKreator, TAG_KREATOR, TAG_MENU } from './creator';
+import { setupKreator, TAG_KREATOR, TAG_MENU, type Kreator } from './creator';
 import { createRkgStyles } from './styles';
 
 /**
@@ -18,7 +18,7 @@ import { createRkgStyles } from './styles';
 const TRIGGER_TAGS = [TAG_KREATOR, TAG_MENU];
 
 let apiRef: PluginApi | null = null;
-let zatrzymajKreator: (() => void) | null = null;
+let kreator: Kreator | null = null;
 let zatrzymajHof: (() => void) | null = null;
 
 export async function init(api: PluginApi): Promise<PluginInfo> {
@@ -28,9 +28,9 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   const styles = createRkgStyles(api);
   setupAliasy(api, baza, styles);
   // Hof first: the dialogue runner hands each finished club straight to it.
-  const hof = setupHof(api, baza, styles);
+  const hof = setupHof(api, baza, styles, (nazwa, ziarno) => kreator?.odtworz(nazwa, ziarno));
   zatrzymajHof = hof.zatrzymaj;
-  zatrzymajKreator = setupKreator(api, baza, styles, (w) => hof.zaproponuj(w));
+  kreator = setupKreator(api, baza, styles, (w) => hof.zaproponuj(w));
 
   const info: PluginInfo = {
     name: 'Rendom Klub Dżenerejtor',
@@ -43,8 +43,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 
 export async function destroy(): Promise<void> {
-  zatrzymajKreator?.();
-  zatrzymajKreator = null;
+  kreator?.zatrzymaj();
+  kreator = null;
   zatrzymajHof?.();
   zatrzymajHof = null;
   if (apiRef) {

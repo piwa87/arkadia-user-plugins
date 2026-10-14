@@ -9,7 +9,7 @@ describe('dylizansy', () => {
   it.each([
     ['centrum wioski Montlac.', 'Centrum wioski Montlac.'],
     ['w wiosce Merceaux-Descloux.', 'W wiosce Merceaux-Descloux.'],
-  ])('notifies with the description after Postoj and adds the transport prefix: %s', (stop, expected) => {
+  ])('notifies with the description after Postoj without changing the line: %s', (stop, expected) => {
     const notification = vi.fn();
     vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
     const mock = createMockApi();
@@ -17,7 +17,7 @@ describe('dylizansy', () => {
     setupDylizansy(mock.api);
 
     const announcement = `Z zewnatrz dochodzi stlumiony glos woznicy: Postoj, ${stop}`;
-    expect(runLine(mock, announcement)?.text).toBe(`[transport] ${announcement}`);
+    expect(runLine(mock, announcement)?.text).toBe(announcement);
     expect(notification).toHaveBeenCalledExactlyOnceWith(`🚏 ${expected}`);
     expect(mock.api.output.print).not.toHaveBeenCalled();
   });

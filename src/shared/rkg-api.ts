@@ -26,7 +26,7 @@ export type Przypadek = (typeof PRZYPADKI)[number];
 export interface Ziarno {
   /** Organisation type — must be a member of RKG_TYPY. */
   typ: string;
-  /** Adjective in base form — must be a member of RKG_PRZYMIOTNIKI. */
+  /** Adjective in base form; generated names use RKG_PRZYMIOTNIKI. */
   przymiotnik: string;
   /** Noun, harvested from the game's own category menus. */
   rzeczownik: string;
@@ -62,6 +62,8 @@ export interface WpisLokalny extends Ziarno {
   plec: string;
   /** The three harvested leadership titles. */
   role: Role;
+  /** Manual game dialogue, with the player's own answers. */
+  tryb?: 'manualny';
   /** Epoch ms. */
   kiedy: number;
   /** Wall id, set once the entry has been shared. */
@@ -97,6 +99,8 @@ export interface ZgloszenieRequest extends Ziarno {
   wynik: string;
   /** The three leadership titles — optional, shown on the wall for fun. */
   role?: Role;
+  /** The name was assembled in the game's dialogue by the player. */
+  tryb?: 'manualny';
   /** Optional display nick. */
   nick?: string;
   /** Stable random per-device id, also used as the vote key. */

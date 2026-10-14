@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pick, proper } from '../../../src/plugins/rkg-plugin/generator';
-import { RKG_PRZYMIOTNIKI, ZABRONIONE } from '../../../src/plugins/rkg-plugin/data/adjectives';
+import { RKG_PRZYMIOTNIKI } from '../../../src/plugins/rkg-plugin/data/adjectives';
 import { RKG_TYPY } from '../../../src/plugins/rkg-plugin/data/types';
 import { RZECZOWNIKI_SEED } from '../../../src/plugins/rkg-plugin/data/seed';
 
@@ -40,8 +40,8 @@ describe('word lists', () => {
     expect(RKG_TYPY).toContain('braterstwo');
     expect(RKG_TYPY).toContain('siostrzenstwo');
     expect(RKG_TYPY).toContain('loza');
-    // 970 unique in the CMud export, minus the 8 in ZABRONIONE.
-    expect(RKG_PRZYMIOTNIKI).toHaveLength(962);
+    // Full CMud list after trimming and de-duplication.
+    expect(RKG_PRZYMIOTNIKI).toHaveLength(970);
   });
 
   it('has no duplicates or stray whitespace', () => {
@@ -54,8 +54,11 @@ describe('word lists', () => {
     expect(zle).toEqual([]);
   });
 
-  it('excludes every denied adjective', () => {
-    for (const slowo of ZABRONIONE) expect(RKG_PRZYMIOTNIKI).not.toContain(slowo);
+  it('includes the eight previously omitted adjectives', () => {
+    for (const slowo of [
+      'nimfomanski', 'oblesny', 'obsceniczny', 'perwersyjny',
+      'pozadliwy', 'rasistowski', 'sprosny', 'zberezny',
+    ]) expect(RKG_PRZYMIOTNIKI).toContain(slowo);
   });
 });
 

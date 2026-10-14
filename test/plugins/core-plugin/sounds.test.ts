@@ -29,10 +29,7 @@ describe('glass_sound triggers', () => {
     'Statek przybija do brzegu.',
     'Przez poklad przebiega drzenie.',
     'Drzenie przebiega poklad.',
-    'Powoli pojazd zaczyna tracic predkosc, by po chwili zatrzymac sie.',
     'Monotonne kolysanie ustaje.',
-    'Z zewnatrz slyszysz glos woznicy: Fermata - incrocio alla Miragliano!',
-    'Z zewnatrz slyszysz glos woznicy: Przystanek - zielona morda',
   ])('prefixes the transport line without printing a banner: %s', (announcement) => {
     const mock = setup();
     const line = runLine(mock, announcement)!;
@@ -47,16 +44,27 @@ describe('glass_sound triggers', () => {
     expect(sentCommands(mock)).toEqual([]);
   });
 
+  it('marks only the vehicle slowdown with an emoji and keeps its existing text color', () => {
+    const mock = setup();
+    const announcement = 'Powoli pojazd zaczyna tracic predkosc, by po chwili zatrzymac sie.';
+    const line = runLine(mock, announcement)!;
+    expect(line.text).toBe(`🚌 ${announcement}`);
+    expect(line.color).toHaveBeenCalledWith([0, announcement.length], getAnsiFormatState(3, mock.api));
+    expect(line.prepend).toHaveBeenCalledWith('🚌 ');
+  });
+
   afterEach(() => vi.unstubAllGlobals());
 
-  it('preserves stop notifications when the transport prefix is added', () => {
+  it('keeps stop announcements unformatted while preserving notifications', () => {
     const notification = vi.fn();
     vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
     const mock = setup();
     setupDylizansy(mock.api);
 
     const announcement = 'Z zewnatrz slyszysz glos woznicy: Fermata - incrocio alla Viadaza!';
-    expect(runLine(mock, announcement)?.text).toBe(`[transport] ${announcement}`);
+    const line = runLine(mock, announcement)!;
+    expect(line.text).toBe(announcement);
+    expect(line.color).not.toHaveBeenCalled();
     expect(notification).toHaveBeenCalledExactlyOnceWith('🚏 Incrocio alla Viadaza!');
 
     const departure = 'Z zewnatrz slyszysz glos woznicy: Partire per Varieno in qualche minuti!';
