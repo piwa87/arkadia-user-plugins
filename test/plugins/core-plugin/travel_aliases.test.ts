@@ -1,9 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { setupTravelAliases } from '../../../src/plugins/core-plugin/movement/travel_aliases';
 import { setupWsiadaczAliases } from '../../../src/plugins/core-plugin/movement/wsiadacz';
 import { createMockApi, MockAnsiAwareBuffer, runLine } from '../../helpers/mockApi';
 
 describe('wagon boarding', () => {
+  it('boards a ship silently, without pouch aliases re-enabling echoes', () => {
+    const mock = createMockApi();
+    setupTravelAliases(mock.api);
+    expect(mock.aliases.find(({ pattern }) => pattern.test('op'))?.callback()).toBe(true);
+    expect(vi.mocked(mock.api.command.send).mock.calls).toEqual([
+      ['na_statek', false],
+      ['wem', false],
+      ['kup bilet', false],
+      ['wejdz na tratwe', false],
+      ['wejdz na statek', false],
+      ['wlm', false],
+    ]);
+  });
+
   it('sends the three boarding attempts without command echoes', () => {
     const mock = createMockApi();
     setupTravelAliases(mock.api);

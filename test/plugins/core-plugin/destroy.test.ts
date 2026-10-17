@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { destroy, init } from '../../../src/plugins/core-plugin';
 import { createMockApi } from '../../helpers/mockApi';
 
 describe('core-plugin destroy', () => {
-  it('removes every trigger, one-time trigger, token trigger and event listener', async () => {
+  it.each(['', 'Gertruda'])('removes every trigger and listener for character %s', async (name) => {
     const mock = createMockApi();
+    vi.mocked(mock.api.gmcp.get).mockReturnValue({ char: { info: { name } } });
     await init(mock.api);
 
     expect(mock.triggers.length).toBeGreaterThan(0);

@@ -13,6 +13,9 @@ export interface TroViewRow {
 interface TroViewOptions {
   api: PluginApi;
   getRows(): TroViewRow[];
+  getTypeFilter(): { available: string[]; selected: Set<string> | null };
+  setSelectedTypes(types: string[] | null): void;
+  resetTypes(): void;
   setTarget(row: TroViewRow): void;
   startWalking(row: TroViewRow): void;
   toggle(row: TroViewRow): void;
@@ -67,6 +70,33 @@ export function createTroView(options: TroViewOptions): TroView {
     style.textContent = STYLE;
     root.append(style);
 
+    const { available, selected } = options.getTypeFilter();
+    const filters = el('div', 'tro-filters');
+    filters.append(el('span', 'tro-summary', 'Typy:'));
+    for (const type of available) {
+      const active = selected === null || selected.has(type);
+      const button = actionButton(
+        `${active ? '✓ ' : ''}${type}`,
+        `tro-filter-btn${active ? ' akt' : ''}`,
+        `${active ? 'Ukryj' : 'Pokaz'} typ: ${type}`,
+        () => {
+          const next = new Set(selected ?? available);
+          if (next.has(type)) next.delete(type);
+          else next.add(type);
+          options.setSelectedTypes([...next]);
+        },
+      );
+      button.setAttribute('aria-pressed', String(active));
+      filters.append(button);
+    }
+    const shortcuts = el('div', 'tro-filter-shortcuts');
+    shortcuts.append(
+      actionButton('Wszystkie', 'tro-filter-btn', 'Pokaz wszystkie typy, takze nowo dodane', () => options.setSelectedTypes(null)),
+      actionButton('Domyslne', 'tro-filter-btn', 'Pokaz pbt i besti', options.resetTypes),
+    );
+    filters.append(shortcuts);
+    root.append(filters);
+
     const orderedRows = options.getRows();
     const visibleRows = showAll ? orderedRows : orderedRows.slice(0, DEFAULT_LIMIT);
     const toolbar = el('div', 'tro-toolbar');
@@ -91,7 +121,7 @@ export function createTroView(options: TroViewOptions): TroView {
     root.append(toolbar);
 
     if (visibleRows.length === 0) {
-      root.append(el('div', 'tro-empty', 'Brak wpisow pbt/besti.'));
+      root.append(el('div', 'tro-empty', selected?.size === 0 ? 'Nie wybrano zadnego typu.' : 'Brak wpisow dla wybranych typow.'));
       return root;
     }
 
@@ -201,6 +231,12 @@ const STYLE = `
   color: inherit;
   font: 11px/1.25 system-ui, sans-serif;
 }
+.tro-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 0 0 auto; }
+.tro-filter-shortcuts { display: flex; gap: 4px; margin-left: auto; }
+.tro-filter-btn { border: 1px solid var(--tro-line); border-radius: 4px; background: transparent; color: var(--tro-muted); padding: 3px 6px; font: inherit; cursor: pointer; }
+.tro-filter-btn.akt { border-color: #5e9b7466; background: var(--tro-green-soft); color: #a8d5b7; }
+.tro-filter-btn:hover { border-color: #78a98a; }
+.tro-filter-btn:focus-visible { outline: 2px solid #78a98a; outline-offset: 1px; }
 .tro-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 7px; flex: 0 0 auto; }
 .tro-summary { color: var(--tro-muted); font-variant-numeric: tabular-nums; }
 .tro-mode { display: inline-flex; border: 1px solid var(--tro-line); border-radius: 4px; overflow: hidden; }

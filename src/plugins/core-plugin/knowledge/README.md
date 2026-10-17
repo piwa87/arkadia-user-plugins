@@ -188,6 +188,8 @@ Przebieg:
 
 Wpisy `Ishtar/Imperium` są uznawane za pasujące zarówno do `Ishtar`, jak i `Imperium`. Wartość GMCP `Empire` jest normalizowana do `Imperium`.
 
+Domena jest zapamiętywana także przy każdym zdarzeniu `gmcp.room.info`, nawet przed pierwszym użyciem aliasu. Gdy lokacja nie podaje domeny, alias korzysta z ostatniej zapamiętanej wartości (również po przeładowaniu pluginu). Jeśli żadna domena nie jest znana, wyświetla komunikat o braku domeny zamiast zakładać Imperium.
+
 Przykładowy wynik:
 
 ```text

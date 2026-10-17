@@ -26,6 +26,7 @@ import {
   setupTorbaAliases,
   setupGertrudaEmotes,
   setupGertrudaDobywanie,
+  setupGertrudaMoby,
   setupPlecakAliases,
   setupKaraksonDobywanie,
   setupSakwaAliases,
@@ -107,6 +108,7 @@ const TRIGGER_TAGS = [
   'colMovements',
   'dylizansy',
   'eventTriggers',
+  'gertrudaMoby',
   'kol_druzyna',
   'mod_team',
   'mod_team:wylap',
@@ -262,6 +264,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
     } else if (name === 'gertruda') {
       setupGertrudaEmotes(api);
       setupGertrudaDobywanie(api, dobywanieState);
+      setupGertrudaMoby(api);
       cleanupPlecak = setupPlecakAliases(api);
     } else if (name === 'karakson') {
       setupKaraksonDobywanie(api, dobywanieState);

@@ -3,6 +3,7 @@ import { createRoomDistanceLookup } from '../../../lib/mapDistance';
 import { createMapPreviewController } from '../../../lib/mapPreview';
 import { printOutputTable } from '../../../lib/outputTable';
 import { registerTokenGate } from '../../../lib/registerTokenGate';
+import { storage } from '../../../lib/storage';
 import {
   WALKER_ROUTE_ARRIVED_EVENT,
   WALKER_ROUTE_START_EVENT,
@@ -10,8 +11,9 @@ import {
 import { createTroView, type TroViewRow } from './view';
 
 export const TRO_STORAGE_KEY = 'mobLocations';
+const TRO_MOB_TYPE_FILTER_KEY = 'troMobTypeFilter';
 const TRO_DEFAULT_ROW_LIMIT = 30;
-const VISIBLE_MOB_TYPES = new Set(['pbt', 'besti']);
+const DEFAULT_VISIBLE_MOB_TYPES = new Set(['pbt', 'besti']);
 const TAG_TRO = 'tro';
 
 export interface MobLocation {
@@ -94,13 +96,31 @@ function normalizedMobType(entry: MobLocation): string {
   return entry.mobType.trim().toLocaleLowerCase('pl-PL');
 }
 
-function getOrderedRows(api: PluginApi): MobRow[] {
+function getAvailableMobTypes(): string[] {
+  return [...new Set(loadMobLocations().map(normalizedMobType))].sort((left, right) =>
+    left.localeCompare(right, 'pl-PL'),
+  );
+}
+
+function getSelectedMobTypes(): Set<string> | null {
+  const selected = storage.get<unknown>(TRO_MOB_TYPE_FILTER_KEY);
+  if (!Array.isArray(selected) || !selected.every((type) => typeof type === 'string')) return DEFAULT_VISIBLE_MOB_TYPES;
+  if (selected.includes('*')) return null;
+  return new Set(selected.map((type) => type.trim().toLocaleLowerCase('pl-PL')).filter(Boolean));
+}
+
+function selectedMobTypesLabel(): string {
+  const selected = getSelectedMobTypes();
+  return selected === null ? 'wszystkie' : ([...selected].join(', ') || 'brak');
+}
+
+function getOrderedRows(api: PluginApi, selectedTypes = getSelectedMobTypes()): MobRow[] {
   const currentId = api.map.getRoom()?.id;
   const getDistance = currentId === undefined
     ? () => null
     : createRoomDistanceLookup(api.map, currentId);
   return loadMobLocationStore()
-    .locations.filter(({ entry }) => VISIBLE_MOB_TYPES.has(normalizedMobType(entry)))
+    .locations.filter(({ entry }) => selectedTypes === null || selectedTypes.has(normalizedMobType(entry)))
     .map((stored, sourceIndex) => ({
       stored,
       sourceIndex,
@@ -165,11 +185,12 @@ function mutateStoredEntry(api: PluginApi, selected: StoredMobLocation, mutation
 
 function reviveAllVisibleMobs(api: PluginApi): void {
   const store = loadMobLocationStore();
+  const selectedTypes = getSelectedMobTypes();
   let revived = 0;
 
   for (const stored of store.locations) {
     const { entry, storageKey } = stored;
-    if (entry.active !== '0' || !VISIBLE_MOB_TYPES.has(normalizedMobType(entry))) continue;
+    if (entry.active !== '0' || (selectedTypes !== null && !selectedTypes.has(normalizedMobType(entry)))) continue;
 
     const updated = { ...entry, active: '1' };
     if (store.kind === 'record' && storageKey !== null) store.raw[storageKey] = updated;
@@ -198,7 +219,7 @@ function printMobTable(
 ): void {
   const orderedRows = getOrderedRows(api);
   if (orderedRows.length === 0) {
-    api.output.print('[tro] Brak wpisow pbt/besti.');
+    api.output.print(`[tro] Brak wpisow ${selectedMobTypesLabel()}.`);
     return;
   }
 
@@ -338,8 +359,22 @@ export function setupTro(api: PluginApi): () => void {
       time: row.time,
     },
   });
+  const setSelectedTypes = (types: string[] | null) => {
+    storage.set(TRO_MOB_TYPE_FILTER_KEY, types === null ? ['*'] : types);
+    view.refresh();
+  };
   const view = createTroView({
     api,
+    getTypeFilter: () => {
+      const selected = getSelectedMobTypes();
+      return {
+        available: [...new Set([...getAvailableMobTypes(), ...DEFAULT_VISIBLE_MOB_TYPES, ...(selected ?? [])])]
+          .sort((left, right) => left.localeCompare(right, 'pl-PL')),
+        selected,
+      };
+    },
+    setSelectedTypes,
+    resetTypes: () => setSelectedTypes([...DEFAULT_VISIBLE_MOB_TYPES]),
     getRows: () =>
       getOrderedRows(api).map(({ stored, distance }) => ({
         storageKey: stored.storageKey,
@@ -450,13 +485,42 @@ export function setupTro(api: PluginApi): () => void {
     return true;
   });
 
+  api.aliases.register(/^\/?tro_typ(?:\s+(.+))?$/i, (matches) => {
+    const requestedTypes = matches?.[1]?.trim();
+    const availableTypes = getAvailableMobTypes();
+
+    if (!requestedTypes) {
+      const available = availableTypes.length > 0 ? availableTypes.join(', ') : 'brak zapisanych typow';
+      api.output.print(`[tro] Dostepne typy: ${available}. Wybrane: ${selectedMobTypesLabel()}. Uzyj tro_typ pbt,besti, tro_typ wszystkie albo tro_typ domyslne.`);
+      return true;
+    }
+
+    if (/^(?:wszystkie|all|\*)$/i.test(requestedTypes)) {
+      setSelectedTypes(null);
+    } else if (/^domyslne$/i.test(requestedTypes)) {
+      setSelectedTypes([...DEFAULT_VISIBLE_MOB_TYPES]);
+    } else {
+      const types = [...new Set(requestedTypes.split(',').map((type) => type.trim().toLocaleLowerCase('pl-PL')))];
+      const unknown = types.filter((type) => !availableTypes.includes(type));
+      if (unknown.length > 0) {
+        api.output.print(`[tro] Nieznany typ: ${unknown.map((type) => type || '(pusty)').join(', ')}. Dostepne: ${availableTypes.join(', ') || 'brak'}.`);
+        return true;
+      }
+      setSelectedTypes(types);
+    }
+
+    api.output.print(`[tro] Wybrane typy: ${selectedMobTypesLabel()}.`);
+    printMobTable(api, preview, TRO_DEFAULT_ROW_LIMIT, () => view.refresh());
+    return true;
+  });
+
   api.aliases.register(/^trow$/i, () => {
     void view.open();
     return true;
   });
 
   api.aliases.register(/^tro!$/i, () => {
-    const nearestTroll = getOrderedRows(api).find(
+    const nearestTroll = getOrderedRows(api, new Set(['pbt'])).find(
       ({ stored, distance }) =>
         normalizedMobType(stored.entry) === 'pbt' && stored.entry.active === '1' && distance !== null,
     );

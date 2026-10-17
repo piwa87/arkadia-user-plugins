@@ -23,6 +23,7 @@ export { setupPalenie } from './jens/palenie';
 export { setupTorbaAliases } from './jens/torba';
 export { setupGertrudaEmotes } from './gertruda/emotes';
 export { setupGertrudaDobywanie } from './gertruda/dobywanie';
+export { setupGertrudaMoby } from './gertruda/moby';
 export { setupPlecakAliases } from './gertruda/plecak';
 export { setupKaraksonDobywanie } from './karakson/dobywanie';
 export { setupSakwaAliases } from './karakson/sakwa';

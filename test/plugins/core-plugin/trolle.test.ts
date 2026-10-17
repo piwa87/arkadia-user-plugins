@@ -14,6 +14,11 @@ class FakeElement {
   type = '';
   disabled = false;
   onclick: (() => void) | null = null;
+  attributes: Record<string, string> = {};
+
+  setAttribute(name: string, value: string): void {
+    this.attributes[name] = value;
+  }
 
   constructor(public tag: string) {}
 
@@ -102,6 +107,62 @@ afterEach(() => {
 });
 
 describe('trolle mobLocations', () => {
+  it('selects multiple types, validates the whole selection and restores defaults', () => {
+    const storage = makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify(entryRecord) });
+    vi.stubGlobal('localStorage', storage);
+    const mock = createMockApi();
+    setupTro(mock.api);
+
+    runAlias(mock.aliases, 'tro_typ PBT, kamienny, pbt');
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['pbt', 'kamienny']);
+    expect(tableRows(mock).map((row) => row.text).join(' ')).not.toContain('besti');
+
+    runAlias(mock.aliases, 'tro_typ besti,nieznany');
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['pbt', 'kamienny']);
+    runAlias(mock.aliases, 'tro_typ besti,');
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['pbt', 'kamienny']);
+
+    runAlias(mock.aliases, 'tro_typ wszystkie');
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['*']);
+    runAlias(mock.aliases, 'tro_typ domyslne');
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['pbt', 'besti']);
+  });
+
+  it('shares popup type toggles with commands and keeps controls when nothing is selected', async () => {
+    const storage = makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify(entryRecord) });
+    vi.stubGlobal('localStorage', storage);
+    vi.stubGlobal('document', { createElement: (tag: string) => new FakeElement(tag) });
+    const mock = createMockApi();
+    setupTro(mock.api);
+    runAlias(mock.aliases, 'trow');
+    await vi.waitFor(() => expect(mock.api.ui.registerPersistentPopup).toHaveBeenCalled());
+    const popupOptions = vi.mocked(mock.api.ui.registerPersistentPopup).mock.calls[0][0];
+    const popup = await vi.mocked(mock.api.ui.registerPersistentPopup).mock.results[0].value;
+    popup.isOpen = true;
+    const build = () => popupOptions.createContent() as unknown as FakeElement;
+
+    build().button('✓ pbt').onclick!();
+    build().button('✓ besti').onclick!();
+    expect(build().text).toContain('Nie wybrano zadnego typu.');
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual([]);
+
+    build().button('kamienny').onclick!();
+    vi.mocked(mock.api.output.print).mockClear();
+    runAlias(mock.aliases, 'tro');
+    expect(tableRows(mock)).toHaveLength(1);
+    expect(tableRows(mock)[0].text).toContain('kamienny');
+
+    runAlias(mock.aliases, 'tro_typ pbt,besti');
+    expect(popup.setBody).toHaveBeenCalled();
+    expect(build().button('✓ pbt').attributes['aria-pressed']).toBe('true');
+    build().find((element) => element.className === 'tro-filter-shortcuts')!.button('Wszystkie').onclick!();
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['*']);
+    build().button('✓ kamienny').onclick!();
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['besti', 'pbt']);
+    build().button('Domyslne').onclick!();
+    expect(JSON.parse(storage.data.get('p:troMobTypeFilter')!)).toEqual(['pbt', 'besti']);
+  });
+
   it('reads the client object indexed by keys such as 13771pbt', () => {
     vi.stubGlobal(
       'localStorage',
@@ -258,7 +319,7 @@ describe('trolle mobLocations', () => {
     setupTro(mock.api);
 
     runAlias(mock.aliases, 'tro');
-    expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Brak wpisow pbt/besti.');
+    expect(mock.api.output.print).toHaveBeenCalledWith('[tro] Brak wpisow pbt, besti.');
     storage.data.set(TRO_STORAGE_KEY, JSON.stringify({ '13771pbt': entries[0] }));
     runAlias(mock.aliases, 'tro');
     expect(tableRows(mock)).toHaveLength(1);
@@ -331,7 +392,7 @@ describe('trolle mobLocations', () => {
     expect(windowText).toContain('ID Dist. Typ Stan Akcje');
     expect(windowText).toContain('14000 1 besti 💀');
     expect(windowText).toContain('13771 2 pbt');
-    expect(windowText).not.toContain('kamienny');
+    expect(window.find((element) => element.tag === 'tbody')!.text).not.toContain('kamienny');
     expect(windowText).toContain('Najblizsze 30 Wszystkie');
 
     window.button('1').onclick!();
@@ -414,7 +475,7 @@ describe('trolle mobLocations', () => {
     expect(mock.api.events.off).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.any(Function));
   });
 
-  it('tro! walks to the nearest reachable living pbt and ignores besti and dead trolls', () => {
+  it.each([{ selectedTypes: ['besti'] }, { selectedTypes: [] }, { selectedTypes: ['*'] }])('tro! ignores display filter $selectedTypes', ({ selectedTypes }) => {
     const nearestDead: MobLocation = { active: '0', mobType: 'pbt', roomId: 13001, time: 1 };
     const nearestBesti: MobLocation = { active: '1', mobType: 'besti', roomId: 13002, time: 1 };
     const nearestLivingTroll: MobLocation = { active: '1', mobType: 'pbt', roomId: 13003, time: 1 };
@@ -422,6 +483,7 @@ describe('trolle mobLocations', () => {
     vi.stubGlobal(
       'localStorage',
       makeLocalStorageMock({
+        'p:troMobTypeFilter': JSON.stringify(selectedTypes),
         [TRO_STORAGE_KEY]: JSON.stringify({
           '13001pbt': nearestDead,
           '13002besti': nearestBesti,

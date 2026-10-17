@@ -7,6 +7,26 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('dylizansy', () => {
   it.each([
+    ['droga kolo Novigradu.', 'Droga kolo Novigradu.'],
+    ['droga opodal Oxenfurtu.', 'Droga opodal Oxenfurtu.'],
+  ])('notifies about the Novigrad–Oxenfurt carriage stop: %s', (stop, expected) => {
+    const notification = vi.fn();
+    vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
+    const mock = createMockApi();
+    setupGlassSounds(mock.api);
+    setupDylizansy(mock.api);
+
+    const announcement = `Woznica oznajmia glosno: Postoj, ${stop}`;
+    expect(runLine(mock, announcement)?.text).toBe(announcement);
+    expect(notification).toHaveBeenCalledExactlyOnceWith(`🚏 ${expected}`);
+
+    runLine(mock, 'Woznica donosnym glosem oznajmia odjazd.');
+    runLine(mock, 'Woznica siedzacy na wozie krzyczy: Zawioze kazdego z Novigradu do Oxenfurtu za jedyne 6 srebrnikow!');
+    expect(notification).toHaveBeenCalledTimes(1);
+    expect(mock.api.output.print).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ['centrum wioski Montlac.', 'Centrum wioski Montlac.'],
     ['w wiosce Merceaux-Descloux.', 'W wiosce Merceaux-Descloux.'],
   ])('notifies with the description after Postoj without changing the line: %s', (stop, expected) => {

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { storage } from '../../../src/lib/storage';
 import { createMockApi, MockAnsiAwareBuffer } from '../../helpers/mockApi';
 import {
   matchesKnowledgeDomain,
@@ -24,6 +25,49 @@ function entry(id: number, name: string): MissingKnowledgeEntry {
 }
 
 describe('nearest knowledge alias', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('tracks a domain change before the first alias call, even when later rooms omit it', () => {
+    vi.spyOn(storage, 'get').mockReturnValue('Imperium');
+    vi.spyOn(storage, 'set').mockImplementation(() => {});
+    const mock = createMockApi({ room: { id: 1 } });
+    mock.api.map.findPath = vi.fn(() => [1, 2]);
+    const cleanup = setupNearestKnowledgeAlias(
+      mock.api,
+      () => ({ status: 'ready', character: 'gertruda', entries: [], updatedAt: 1 }),
+      () => [entry(2, 'wpis')],
+    );
+
+    mock.api.events.emit('gmcp.room.info', { map: { domain: 'Ishtar' } });
+    mock.api.events.emit('gmcp.room.info', { map: {} });
+    mock.aliases.find((candidate) => candidate.pattern.test('wiedza20'))!.callback();
+
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      '[Wiedza] 1 najblizszych brakujacych wpisow — Ishtar (z #1):',
+    );
+    expect(storage.set).toHaveBeenCalledWith('knowledge:lastDomain', 'Ishtar');
+    cleanup();
+    expect(mock.eventListeners.get('gmcp.room.info')).toEqual([]);
+  });
+
+  it('reports an unknown domain instead of assuming Imperium', () => {
+    vi.spyOn(storage, 'get').mockReturnValue(null);
+    const mock = createMockApi({ room: { id: 1 } });
+    setupNearestKnowledgeAlias(
+      mock.api,
+      () => ({ status: 'ready', character: 'gertruda', entries: [], updatedAt: 1 }),
+      () => [entry(2, 'wpis')],
+    );
+    mock.aliases.find((candidate) => candidate.pattern.test('wiedza20'))!.callback();
+    expect(mock.api.output.print).toHaveBeenCalledWith(
+      '[Wiedza] Aktualna domena nie jest dostepna w GMCP.',
+    );
+    expect(mock.api.map.findPath).not.toHaveBeenCalled();
+  });
+
   it('matches shared domains and the English GMCP name for Imperium', () => {
     expect(matchesKnowledgeDomain('Ishtar/Imperium', 'Ishtar')).toBe(true);
     expect(matchesKnowledgeDomain('Ishtar/Imperium', 'Imperium')).toBe(true);

@@ -48,7 +48,6 @@ const LOCATION_WIDTH_LIMIT = 24;
 const NAME_WIDTH_LIMIT = 36;
 const NOTE_WIDTH_LIMIT = 24;
 export const KNOWLEDGE_DOMAIN_STORAGE_KEY = 'knowledge:lastDomain';
-const DEFAULT_KNOWLEDGE_DOMAIN = 'Imperium';
 
 function printKnowledgeTable(
   api: PluginApi,
@@ -135,7 +134,28 @@ export function setupNearestKnowledgeAlias(
   const storedDomain = storage.get<unknown>(KNOWLEDGE_DOMAIN_STORAGE_KEY);
   let lastDomain = typeof storedDomain === 'string' && storedDomain.trim()
     ? storedDomain.trim()
-    : DEFAULT_KNOWLEDGE_DOMAIN;
+    : null;
+
+  const rememberDomain = (domain: unknown) => {
+    if (typeof domain !== 'string' || !domain.trim()) return;
+    const nextDomain = domain.trim();
+    if (nextDomain === lastDomain) return;
+    lastDomain = nextDomain;
+    try {
+      storage.set(KNOWLEDGE_DOMAIN_STORAGE_KEY, lastDomain);
+    } catch {
+      // The in-memory value still works when localStorage is unavailable.
+    }
+  };
+  const onRoomInfo = (info: unknown) => {
+    if (!info || typeof info !== 'object' || !('map' in info)) return;
+    const map = info.map;
+    if (map && typeof map === 'object' && 'domain' in map) {
+      rememberDomain(map.domain);
+    }
+  };
+  rememberDomain(api.gmcp.get()?.room?.info?.map?.domain);
+  api.events.on('gmcp.room.info', onRoomInfo);
 
   const preview = (entry: RankedKnowledgeEntry) => mapPreview.preview(entry.id);
 
@@ -156,16 +176,12 @@ export function setupNearestKnowledgeAlias(
       return true;
     }
 
-    const gmcpDomain = api.gmcp.get()?.room?.info?.map?.domain;
-    if (typeof gmcpDomain === 'string' && gmcpDomain.trim()) {
-      lastDomain = gmcpDomain.trim();
-      try {
-        storage.set(KNOWLEDGE_DOMAIN_STORAGE_KEY, lastDomain);
-      } catch {
-        // The in-memory value still works when localStorage is unavailable.
-      }
-    }
+    rememberDomain(api.gmcp.get()?.room?.info?.map?.domain);
     const currentDomain = lastDomain;
+    if (!currentDomain) {
+      api.output.print('[Wiedza] Aktualna domena nie jest dostepna w GMCP.');
+      return true;
+    }
 
     const missing = readEntries({ requireLocationId: true }).filter((entry) =>
       matchesKnowledgeDomain(entry.domain, currentDomain),
@@ -193,5 +209,8 @@ export function setupNearestKnowledgeAlias(
     return true;
   });
 
-  return () => mapPreview.dispose();
+  return () => {
+    api.events.off('gmcp.room.info', onRoomInfo);
+    mapPreview.dispose();
+  };
 }

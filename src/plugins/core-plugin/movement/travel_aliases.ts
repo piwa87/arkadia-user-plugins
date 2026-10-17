@@ -11,12 +11,12 @@ export function setupTravelAliases(api: PluginApi): void {
 
   // #region op - board transport: open pouch, buy ticket, board, close pouch
   api.aliases.register(/^op$/, () => {
-    api.command.send('na_statek');
-    api.command.send('otm');
-    api.command.send('kup bilet');
-    api.command.send('wejdz na tratwe');
-    api.command.send('wejdz na statek');
-    api.command.send('ztm');
+    api.command.send('na_statek', false);
+    api.command.send('wem', false);
+    api.command.send('kup bilet', false);
+    api.command.send('wejdz na tratwe', false);
+    api.command.send('wejdz na statek', false);
+    api.command.send('wlm', false);
     return true;
   });
 

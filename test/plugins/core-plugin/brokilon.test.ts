@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setupBrokilon } from '../../../src/plugins/core-plugin/brokilon';
 import { getMyColor } from '../../../src/lib/colors/my-colors';
 import { getAnsiFormatState } from '../../../src/lib/colors/my-ansi-colors';
+import { storage } from '../../../src/lib/storage';
 import {
   createMockApi,
   MockAnsiAwareBuffer,
@@ -41,6 +42,35 @@ afterEach(() => {
 });
 
 describe('Brokilon module toggle', () => {
+  it.each(['1', '2'])('persists password %s and restores it after reload', (number) => {
+    const data = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => { data.set(key, value); },
+    });
+    const mock = setup();
+    runAlias(mock, `ha${number} Nowe haslo`);
+    expect(data.get(`p:brokilon:haslo${number}`)).toBe(JSON.stringify('Nowe haslo'));
+    runAlias(mock, `ha${number}`);
+    expect(sentCommands(mock)).toEqual(['powiedz Nowe haslo']);
+    mock.cleanup();
+
+    const reloaded = setup();
+    runAlias(reloaded, `ha${number}`);
+    expect(sentCommands(reloaded)).toEqual(['powiedz Nowe haslo']);
+    reloaded.cleanup();
+  });
+
+  it('keeps a password in memory and reports when persistence fails', () => {
+    vi.spyOn(storage, 'set').mockImplementation(() => { throw new Error('storage unavailable'); });
+    const mock = setup();
+    runAlias(mock, 'ha2 Awaryjne haslo');
+    runAlias(mock, 'ha2');
+    expect(sentCommands(mock)).toEqual(['powiedz Awaryjne haslo']);
+    expect(printedTexts(mock)).toContain('[Brokilon] Nie udalo sie zapisac hasla na stale; bedzie dostepne do przeladowania pluginu.');
+    mock.cleanup();
+  });
+
   it('defaults to disabled: triggers and aliases are inert', () => {
     const mock = createMockApi();
     setupBrokilon(mock.api);

@@ -10,6 +10,7 @@ import { BROKILON_SEARCH_PLACES, setupBrokilonSearch } from './brokilon-search';
 
 const TAG = 'brokilon';
 const HASLO1_KEY = 'brokilon:haslo1';
+const HASLO2_KEY = 'brokilon:haslo2';
 const DEFAULT_HASLO1 = 'Kirkaran';
 const COUNTDOWN_SECONDS = 100;
 const TRAP_PREFIX = /^\[ PULAPKA \]\s*/;
@@ -32,7 +33,7 @@ export function setupBrokilon(api: PluginApi): () => void {
   const dangerColor = getMyColor(6, api);
 
   let haslo1 = storage.get<string>(HASLO1_KEY) ?? DEFAULT_HASLO1;
-  const haslo2 = '';
+  let haslo2 = storage.get<string>(HASLO2_KEY) ?? '';
   let countdownTimer: ReturnType<typeof setInterval> | null = null;
   let countdownDeadline: number | null = null;
   let countdownFooter: ReturnType<PluginApi['ui']['registerFooterComponent']> | null = null;
@@ -278,6 +279,24 @@ export function setupBrokilon(api: PluginApi): () => void {
     },
     TAG,
   );
+
+  api.aliases.register(/^ha([12])\s+(.*)$/i, (matches) => {
+    const number = matches?.[1];
+    const password = matches?.[2]?.trim();
+    if (!password) {
+      api.output.print('[Brokilon] Uzycie: ha1 <haslo> / ha2 <haslo>');
+      return true;
+    }
+    if (number === '1') haslo1 = password;
+    else haslo2 = password;
+    try {
+      storage.set(number === '1' ? HASLO1_KEY : HASLO2_KEY, password);
+    } catch {
+      api.output.print('[Brokilon] Nie udalo sie zapisac hasla na stale; bedzie dostepne do przeladowania pluginu.');
+    }
+    api.output.print(`[Brokilon] Ustawiono haslo ${number}: '${password}'`);
+    return true;
+  });
 
   api.aliases.register(/^ha1$/i, () => {
     if (!brokilonEnabled) return true;
