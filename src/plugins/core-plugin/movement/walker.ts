@@ -4,6 +4,7 @@ import { createMapPreviewController } from '../../../lib/mapPreview';
 import { notify, requestPermission } from '../../../lib/notifications';
 import { printOutputTable } from '../../../lib/outputTable';
 import { getCharName, onCharName } from '../../../lib/getCharName';
+import { renderFooterChip } from '../../../lib/footerChip';
 
 const TAG_GATE = 'gate_knock';
 
@@ -342,9 +343,10 @@ function setupZcAndShortcutWalker(api: PluginApi): { cleanup: () => void; hasPen
   const finishRoute = (arrived: boolean) => {
     clearRouteTimer();
     const target = routeTargetId;
+    const notifyArrival = !altExitWalkModeEnabled;
     routeTargetId = null;
     turnOffAltExitMode();
-    if (arrived) notify('Arrived 🏁');
+    if (arrived && notifyArrival) notify('Arrived 🏁');
     if (arrived && reportRouteArrival && target !== null) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (api.events as any).emit(WALKER_ROUTE_ARRIVED_EVENT, { roomId: target });
@@ -414,13 +416,11 @@ function setupZcAndShortcutWalker(api: PluginApi): { cleanup: () => void; hasPen
       ensureAltExitWalkMode();
       void api.command.send(`/prowadz ${shortcut.id}`);
       void api.command.send(`/idz ${shortcut.id} ${routeDelay}`);
-      void api.command.send('/walkerw');
       return;
     }
     turnOffAltExitMode();
     routeDelay = 2;
     void api.command.send(`/idz ${shortcut.id} ${routeDelay}`);
-    void api.command.send('/walkerw');
   };
 
   const onWalkerRouteStart = (request: unknown) => {
@@ -645,7 +645,22 @@ function setupZcAndShortcutWalker(api: PluginApi): { cleanup: () => void; hasPen
 export function setupWalker(api: PluginApi): () => void {
   const shortcutWalker = setupZcAndShortcutWalker(api);
   const cleanupStandardWalker = setupStandardWalker(api, shortcutWalker.hasPendingRoute);
+  const homeFooter = api.ui.registerFooterComponent(
+    'home',
+    `<button type="button" title="wk s" style="all: unset; cursor: pointer;">${renderFooterChip({ value: 'HOME' })}</button>`,
+  );
+  const updateHomeVisibility = () => homeFooter.setVisible(getCharName(api) === 'gertruda');
+  homeFooter.element.onclick = () => {
+    if (getCharName(api) === 'gertruda') void api.command.send('wk s');
+  };
+  updateHomeVisibility();
+  api.events.on('gmcp', updateHomeVisibility);
+  api.events.on('gmcp.char.info', updateHomeVisibility);
   return () => {
+    api.events.off('gmcp', updateHomeVisibility);
+    api.events.off('gmcp.char.info', updateHomeVisibility);
+    homeFooter.element.onclick = null;
+    homeFooter.remove();
     shortcutWalker.cleanup();
     cleanupStandardWalker();
   };

@@ -116,7 +116,8 @@ export function createTroView(options: TroViewOptions): TroView {
       showAll = true;
       refresh();
     });
-    mode.append(nearest, all);
+    const reload = actionButton('Odswiez', 'tro-mode-btn', 'Odczytaj aktualne wpisy i przelicz odleglosci', refresh);
+    mode.append(nearest, all, reload);
     toolbar.append(summary, mode);
     root.append(toolbar);
 

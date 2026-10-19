@@ -420,15 +420,20 @@ export function setupTro(api: PluginApi): () => void {
   const markCurrentTrollDead = () => {
     const roomId = api.map.getRoom()?.id;
     if (roomId === undefined) return;
-    const current = loadMobLocationStore().locations.find(
-      ({ entry }) => entry.roomId === roomId && normalizedMobType(entry) === 'pbt' && entry.active === '1',
-    );
+    const selectedTypes = getSelectedMobTypes();
+    const matchesCurrentSelection = ({ entry }: StoredMobLocation) =>
+      entry.roomId === roomId && entry.active === '1' &&
+      (selectedTypes === null || selectedTypes.has(normalizedMobType(entry)));
+    const current = pendingTarget && matchesCurrentSelection(pendingTarget)
+      ? pendingTarget
+      : loadMobLocationStore().locations.find(matchesCurrentSelection);
     if (!current) return;
     mutateStoredEntry(api, current, 'kill');
     view.refresh();
   };
 
-  registerTokenGate(api, 'umarl', /^Wielki cuchnacy troll umarl\.$/i, (line) => {
+  registerTokenGate(api, 'umarl', /^\S+\s+\S+\s+troll umarl\.$/i, (line) => {
+    markCurrentTrollDead();
     if (api.map.getRoom()?.id === pendingTarget?.entry.roomId) {
       pendingArrivalCleanup?.();
       pendingArrivalCleanup = null;
@@ -436,12 +441,24 @@ export function setupTro(api: PluginApi): () => void {
       pendingTarget = null;
       observedAttack = false;
     }
-    markCurrentTrollDead();
     return line;
   }, TAG_TRO);
 
-  registerTokenGate(api, 'atakuje', /^(?:atak\s+)?Wielki cuchnacy troll atakuje cie!$/i, (line) => {
-    if (pendingTarget && api.map.getRoom()?.id === pendingTarget.entry.roomId) observedAttack = true;
+  registerTokenGate(api, 'trolla', /^(?:Cialo\s+\S+\s+\S+|Sterta\s+szczatkow)\s+trolla\.$/i, (line) => {
+    markCurrentTrollDead();
+    if (pendingTarget?.entry.roomId === api.map.getRoom()?.id) {
+      pendingArrivalCleanup?.();
+      pendingArrivalCleanup = null;
+      cancelAttackWatch();
+      pendingTarget = null;
+      observedAttack = false;
+    }
+    return line;
+  }, TAG_TRO);
+
+  registerTokenGate(api, 'atakuje', /^(?:atak\s+)?\S+\s+\S+\s+troll atakuje cie!$/i, (line) => {
+    if (!pendingTarget || api.map.getRoom()?.id !== pendingTarget.entry.roomId) return line;
+    observedAttack = true;
     if (attackTimer !== null) {
       cancelAttackWatch();
       pendingTarget = null;
@@ -520,9 +537,9 @@ export function setupTro(api: PluginApi): () => void {
   });
 
   api.aliases.register(/^tro!$/i, () => {
-    const nearestTroll = getOrderedRows(api, new Set(['pbt'])).find(
+    const nearestTroll = getOrderedRows(api).find(
       ({ stored, distance }) =>
-        normalizedMobType(stored.entry) === 'pbt' && stored.entry.active === '1' && distance !== null,
+        stored.entry.active === '1' && distance !== null,
     );
     if (!nearestTroll) {
       api.output.print('[tro] Brak osiagalnego zywego trolla.');

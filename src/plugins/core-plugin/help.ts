@@ -272,7 +272,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'tro_all', desc: 'show every entry of selected types' },
       { cmd: 'tro_typ [typ,typ / wszystkie / domyslne]', desc: 'show or change the shared mob type filter' },
       { cmd: 'trow', desc: 'open the graphical troll locations window' },
-      { cmd: 'tro!', desc: 'walk to the nearest reachable living pbt troll' },
+      { cmd: 'tro!', desc: 'walk to the nearest reachable living troll of the selected types' },
       { cmd: 'gt+ / gt-', desc: 'enable / disable automatic troll map notes (Gertruda)' },
 
       { section: 'LOCATIONS' },

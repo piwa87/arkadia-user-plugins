@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadMobLocations, setupTro, TRO_STORAGE_KEY, type MobLocation } from '../../../src/plugins/core-plugin/trolle';
 import {
+  setupWalker,
   WALKER_ROUTE_ARRIVED_EVENT,
   WALKER_ROUTE_START_EVENT,
 } from '../../../src/plugins/core-plugin/movement/walker';
@@ -475,7 +476,7 @@ describe('trolle mobLocations', () => {
     expect(mock.api.events.off).toHaveBeenCalledWith(WALKER_ROUTE_ARRIVED_EVENT, expect.any(Function));
   });
 
-  it.each([{ selectedTypes: ['besti'] }, { selectedTypes: [] }, { selectedTypes: ['*'] }])('tro! ignores display filter $selectedTypes', ({ selectedTypes }) => {
+  it.each([{ selectedTypes: ['besti'], target: 13002 }, { selectedTypes: [], target: null }, { selectedTypes: ['*'], target: 13002 }, { selectedTypes: ['pbt'], target: 13003 }])('tro! respects display filter $selectedTypes', ({ selectedTypes, target }) => {
     const nearestDead: MobLocation = { active: '0', mobType: 'pbt', roomId: 13001, time: 1 };
     const nearestBesti: MobLocation = { active: '1', mobType: 'besti', roomId: 13002, time: 1 };
     const nearestLivingTroll: MobLocation = { active: '1', mobType: 'pbt', roomId: 13003, time: 1 };
@@ -501,18 +502,20 @@ describe('trolle mobLocations', () => {
 
     runAlias(mock.aliases, 'tro!');
 
-    expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, {
-      roomId: 13003,
-    });
+    if (target === null) {
+      expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, expect.anything());
+    } else {
+      expect(mock.api.events.emit).toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, { roomId: target });
+    }
   });
 
-  it('tro! reports when no living pbt is reachable', () => {
+  it('tro! reports when no selected living troll is reachable', () => {
     vi.stubGlobal(
       'localStorage',
       makeLocalStorageMock({
         [TRO_STORAGE_KEY]: JSON.stringify({
           '13001pbt': { active: '0', mobType: 'pbt', roomId: 13001, time: 1 },
-          '13002besti': { active: '1', mobType: 'besti', roomId: 13002, time: 1 },
+          '13002besti': { active: '0', mobType: 'besti', roomId: 13002, time: 1 },
         }),
       }),
     );
@@ -526,8 +529,28 @@ describe('trolle mobLocations', () => {
     expect(mock.api.events.emit).not.toHaveBeenCalledWith(WALKER_ROUTE_START_EVENT, expect.anything());
   });
 
-  it('marks an unattended troll dead after 2.5 seconds at the destination', async () => {
-    const storage = makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) });
+  it('marks the target dead after the real walker confirms arrival', async () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock({
+      [TRO_STORAGE_KEY]: JSON.stringify([entries[0]]),
+    }));
+    let roomId = 13000;
+    const mock = createMockApi();
+    mock.api.map.getRoom = vi.fn(() => ({ id: roomId, area: 52 })) as any;
+    mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+    const stopWalker = setupWalker(mock.api);
+    const stopTro = setupTro(mock.api);
+    runAlias(mock.aliases, 'tro!');
+    (mock.api.events as any).emit('walker.update', { active: true, paused: false, delay: 2 });
+    roomId = 13771;
+    (mock.api.events as any).emit('walker.update', { active: false, paused: false, delay: 2 });
+    await vi.advanceTimersByTimeAsync(2900);
+    expect(loadMobLocations()[0].active).toBe('0');
+    stopTro();
+    stopWalker();
+  });
+
+  it.each(['pbt', 'besti'])('marks an unattended %s dead after 2.5 seconds at the destination', async (mobType) => {
+    const storage = makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': { ...entries[0], mobType } }) });
     vi.stubGlobal('localStorage', storage);
     let roomId = 13000;
     const mock = createMockApi();
@@ -545,7 +568,7 @@ describe('trolle mobLocations', () => {
     expect(mock.api.command.send).not.toHaveBeenCalledWith('zabij trolla');
   });
 
-  it.each(['Wielki cuchnacy troll atakuje cie!', 'atak   Wielki cuchnacy troll atakuje CIE!'])(
+  it.each(['Stary kamienny troll atakuje cie!', 'Wielki cuchnacy troll atakuje cie!', 'atak   Wielki cuchnacy troll atakuje CIE!'])(
     'keeps the troll alive when it attacks: %s', async (attack) => {
       vi.stubGlobal('localStorage', makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) }));
       let roomId = 13000;
@@ -563,13 +586,73 @@ describe('trolle mobLocations', () => {
     },
   );
 
-  it('marks a troll dead from its death line after manual travel', () => {
+
+  it.each(['Cialo wielkiego cuchnacego trolla.', 'Sterta szczatkow trolla.'])(
+    'marks the selected target dead immediately from %s before arrival confirmation', (corpse) => {
+      vi.stubGlobal('localStorage', makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify([{ ...entries[0], mobType: 'besti' }]),
+      }));
+      let roomId = 13000;
+      const mock = createMockApi();
+      mock.api.map.getRoom = vi.fn(() => ({ id: roomId, area: 52 })) as any;
+      mock.api.map.findPath = vi.fn(() => [13000, 13771]);
+      setupTro(mock.api);
+      runAlias(mock.aliases, 'tro!');
+      runLine(mock, corpse);
+      expect(loadMobLocations()[0].active).toBe('1');
+      roomId = 13771;
+      runLine(mock, corpse);
+      expect(loadMobLocations()[0].active).toBe('0');
+    },
+  );
+
+  it.each(['Wielki cuchnacy troll umarl.', 'Maly zielony troll umarl.', 'Ogromny brodaty troll umarl.'])(
+    'marks a troll dead after manual travel from %s', (deathLine) => {
     vi.stubGlobal('localStorage', makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) }));
     const mock = createMockApi({ room: { id: 13771, area: 52 } });
     setupTro(mock.api);
 
-    runLine(mock, 'Wielki cuchnacy troll umarl.');
+    runLine(mock, deathLine);
     expect(loadMobLocations()[0].active).toBe('0');
+  });
+
+  it('does not mark a troll dead when another creature dies', () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock({ [TRO_STORAGE_KEY]: JSON.stringify({ '13771pbt': entries[0] }) }));
+    const mock = createMockApi({ room: { id: 13771, area: 52 } });
+    setupTro(mock.api);
+
+    runLine(mock, 'Wielki cuchnacy ogr umarl.');
+    expect(loadMobLocations()[0].active).toBe('1');
+  });
+
+  it.each(['besti', 'custom'])(
+    'marks only the selected %s entry dead on the current room', (mobType) => {
+      vi.stubGlobal('localStorage', makeLocalStorageMock({
+        [TRO_STORAGE_KEY]: JSON.stringify([
+          { ...entries[0], mobType: 'pbt' },
+          { ...entries[0], mobType },
+          { ...entries[0], mobType, roomId: 99999 },
+        ]),
+      }));
+      const mock = createMockApi({ room: { id: 13771, area: 52 } });
+      setupTro(mock.api);
+      runAlias(mock.aliases, `tro_typ ${mobType}`);
+
+      runLine(mock, 'Maly zielony troll umarl.');
+      expect(loadMobLocations().map(({ active }) => active)).toEqual(['1', '0', '1']);
+    },
+  );
+
+  it('leaves an unselected entry alive when no selected type exists in the current room', () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock({
+      [TRO_STORAGE_KEY]: JSON.stringify([entries[0]]),
+      'p:troMobTypeFilter': JSON.stringify(['besti']),
+    }));
+    const mock = createMockApi({ room: { id: 13771, area: 52 } });
+    setupTro(mock.api);
+
+    runLine(mock, 'Maly zielony troll umarl.');
+    expect(loadMobLocations()[0].active).toBe('1');
   });
 
   it('counts an attack received just before the walker reports arrival', async () => {
