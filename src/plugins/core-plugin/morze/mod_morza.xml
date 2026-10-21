@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<cmud>
+  <class name="mod_morza" initenable="true">
+    <trigger name="woda_przeplywasz" priority="19290" regex="true">
+      <pattern>(?:Udaje ci sie sprawnie przeplynac|asdjagshdgasd)\.</pattern>
+      <value>#SUB {%ansi(111)" * "%ansi(reset) %trigger}
+#IF (@wyplyn) {
+  #WAIT %random(234,678)
+  u}
+#IF (@nurkuj) {
+  #IF (@glebokosc_akt != @glebokosc_cel) {
+    #WAIT %random(234,678)
+    d
+    glebokosc_akt = @glebokosc_akt + 1
+    } {
+    nurkuj = 0
+    sig Dno!
+    #WAIT %random(234,478)
+    #IF (@nurek) {per8}}
+  }
+#IF (@wodorosty) {
+  #WAIT %random(234,678)
+  wez wodorosty
+  @wodorosty_kier
+}</value>
+    </trigger>
+    <trigger name="air_uwaga" priority="21460" regex="true">
+      <pattern>^Przebywanie pod woda staje sie coraz trudniejsze\. Pomysl o wyplynieciu na powierzchnie\.</pattern>
+      <value>#SUB {%ansi(37)"      powietrze:   UWAGA      "%ansi(reset) %trigger}</value>
+    </trigger>
+    <trigger name="woda_powietrze" priority="19290" regex="true">
+      <pattern>(?:Wynurzasz sie na powierzchnie|Wynurzasz sie z wody|Wynurzasz sie na powierzchnie lapczywie lapiac powietrze w pluca)\.</pattern>
+      <value>wyplyn = 0
+glebokosc_akt = 0
+#SUB {%ansi(111)" A I R "%ansi(reset) %trigger}</value>
+    </trigger>
+    <trigger name="air_krytycznie" priority="21460" regex="true">
+      <pattern>^(?:W twych plucach braknie juz tlenu. Lepiej wyplyn natychmiast.|Czujesz ze za chwile pluca pekna ci z braku tlenu. Wyplyn natychmiast!|Twoje pluca rozdziera ogromny bol. Dusisz sie!|Woda wdziera sie do twoich pluc. Dlawisz sie i krztusisz, az w koncu ciemnosc zasnuwa ci oczy.)</pattern>
+      <value>#SUB {%ansi(42)"      powietrze:   WYPLYN      "%ansi(reset) %trigger}
+play_tink
+#IF (@wodor) {
+  wodorosty = 0
+  #WAIT %random(245, 533)
+  przestan plynac
+  #WAIT %random(245, 533)
+  wyp!
+  }</value>
+    </trigger>
+    <class name="viadaza">
+      <trigger priority="1179220" regex="true">
+        <pattern>^((?:@via_glebokosc))\.$</pattern>
+        <value>#SUB {%ansi(126)"["%ismember(%1, @via_glebokosc)"]"%ansi(reset) %trigger}</value>
+      </trigger>
+      <var name="via_glebokosc">na plyciznie|pod woda|glebiny|mroczne glebiny|dno morskie</var>
+    </class>
+    <class name="archive" enabled="false">
+      <trigger name="air_troche" priority="21200" regex="true">
+        <pattern>^Zapas powietrza wystarczy ci jeszcze na troche\.</pattern>
+        <value>#SUB {%ansi(35)"      powietrze:   troche     "%ansi(reset) %trigger}</value>
+      </trigger>
+      <trigger name="air_dlugo" priority="21200" regex="true">
+        <pattern>^Zapas powietrza wystarczy ci jeszcze na dlugo\.</pattern>
+        <value>#SUB {%ansi(35)"      powietrze:   dlugo      "%ansi(reset) %trigger}</value>
+      </trigger>
+    </class>
+    <trigger name="szukam_nic" priority="1179260" regex="true">
+      <pattern>^Nie udalo ci sie znalezc niczego interesujacego\.$</pattern>
+      <value>#CW @kolorDarkgrey
+</value>
+    </trigger>
+    <var name="wyplyn" type="Integer">0</var>
+    <alias name="wyp!">
+      <value>wodorosty = 0
+nurek = 0
+nurkuj = 0
+wyplyn = 1
+u</value>
+    </alias>
+    <trigger name="woda_nurek" priority="117" regex="true">
+      <pattern>^Zanurzasz sie pod wode\.$</pattern>
+      <value>#SUB {%ansi(111)" * "%ansi(reset) %trigger}
+glebokosc_akt = 1
+#IF (@nurkuj) {
+  #IF (@glebokosc_akt != @glebokosc_cel) {
+    #WAIT %random(234,678)
+    d
+    glebokosc_akt = @glebokosc_akt + 1
+    } {
+    nurkuj = 0
+    sig Dno!}
+  }</value>
+    </trigger>
+    <trigger name="woda_muszla" priority="1179" trigontrig="false" regex="true">
+      <pattern>^Znalazles (.* muszle)\.$</pattern>
+      <value>#SUB {%ansi(3)Znalazles %ansi(12)%1}</value>
+    </trigger>
+    <class name="nilfgaard">
+      <trigger priority="1202760">
+        <pattern>Nie masz juz sil walczyc z zywiolem i dajesz sie poniesc pradowi na dol.</pattern>
+        <value>#SAY %ansi(6)"OJ OJ OJ OJ"
+play_basso</value>
+      </trigger>
+      <trigger priority="1179220" regex="true">
+        <pattern>^((?:@nilf_glebokosc))\.$</pattern>
+        <value>#SUB {%ansi(126)"["%ismember(%1, @nilf_glebokosc)"]"%ansi(reset) %trigger}</value>
+      </trigger>
+      <var name="nilf_glebokosc" type="StringList">
+        <value>tuz pod powierzchnia morza|morska glebina|w mrocznej glebinie</value>
+        <json>["tuz pod powierzchnia morza","morska glebina","w mrocznej glebinie"]</json>
+      </var>
+    </class>
+    <var name="nurkuj" type="Integer">0</var>
+    <var name="glebokosc_cel" type="Integer">3</var>
+    <var name="glebokosc_akt" type="Integer">0</var>
+    <alias name="nur!">
+      <value>glebokosc_cel = %-1
+nurkuj = 1
+d</value>
+    </alias>
+    <var name="wodorosty" type="Integer">0</var>
+    <var name="wodorosty_kier">n</var>
+    <alias name="wodor!">
+      <value>wodorosty = 1
+wodorosty_kier = %-1
+wez wodorosty
+@wodorosty_kier</value>
+    </alias>
+    <alias name="wrak!">
+      <value>#LOOP 8 {
+  szukaj wraku
+  #WAIT %random(6200,6700)}
+play_tink
+#MESSAGE 2 "DALEJ"
+#IF (@nurek) {
+  wyp!
+  nurek = 0
+  }</value>
+    </alias>
+    <alias name="qu">
+      <value>bur = 0
+nurek = 0
+nurkuj = 0
+wodorosty = 0
+wyplyn = 0
+sig Quit done!</value>
+    </alias>
+    <class name="bursztyny">
+      <alias name="bur!!">
+        <value>#IF (@next_dir = %null) {
+  sig Koniec trasy.
+  #MESSAGE 3 "KONIEC TRASY"
+  bur = 0
+  } {
+  #SEND @next_dir
+  #LOOP 4 {
+    przeszukaj dno
+    #WAIT %random(6200,6700)
+    }
+  #IF (@bur) {
+    #WAIT %random(234,890)
+    bur!!
+    }
+} </value>
+      </alias>
+      <var name="bur" type="Integer">0</var>
+      <alias name="bur!">
+        <value>bur = 1
+#IF (@next_dir = %null) {
+  sig Koniec trasy.
+  bur = 0
+  } {
+  #SEND @next_dir
+  #LOOP 4 {
+    przeszukaj dno
+    #WAIT %random(6200,6700)
+    }
+  #IF (@bur) {
+    #WAIT %random(234,890)
+    bur!!
+    }
+}</value>
+      </alias>
+      <trigger priority="1377" regex="true">
+        <pattern>^.*az w koncu natrafiasz na zoltawobrazowy bursztyn\.</pattern>
+        <value>#SUB {%ansi(111)" * "%ansi(reset) %trigger}
+#PLAY goodies.wav </value>
+      </trigger>
+    </class>
+    <class name="perly">
+      <trigger name="perla_jest" priority="19290" regex="true">
+        <pattern>Ostroznie wyjmujesz perle z .*</pattern>
+        <value>#SUB {%ansi(111)" PERLA "%ansi(reset) %trigger}</value>
+      </trigger>
+      <alias name="perly!">
+        <value>dobs
+#LOOP 5 {
+  otworz muszle sztyletem
+  wez perle z muszli
+  wlz muszle}
+opus
+</value>
+      </alias>
+      <alias name="per8">
+        <value>#LOOP 8 {
+  przeszukaj dno
+  #WAIT %random(6200,6700)}
+play_tink
+#MESSAGE 2 "DALEJ"
+#IF (@nurek) {
+  wyp!
+  nurek = 0
+  }</value>
+      </alias>
+      <alias name="per4">
+        <value>#LOOP 4 {
+  przeszukaj dno
+  #WAIT %random(6200,6700)
+  }
+play_tink
+#MESSAGE 2 "DALEJ"</value>
+      </alias>
+      <alias name="nurk">
+        <value>#T+ sa_wodo
+#LOOP 3 {      
+  #IF (@sa_wodo) {wez wodorosty;sa_wodo = 0}
+  d
+  #WAIT %random(6200,6600)
+}
+#WAIT 789
+sp
+#LOOP 5 {
+  przeszukaj dno
+  #WAIT %random(6200,6600)
+  }
+#IF (@sa_wodo) {wez wodorosty;sa_wodo = 0}
+%-1
+#WAIT %random(6400,6800)
+#LOOP 5 {
+  przeszukaj dno
+  #WAIT %random(6100,6700)}
+#LOOP 3 {      
+  #IF (@sa_wodo) {wez wodorosty;sa_wodo = 0}
+  u
+  #WAIT %random(6200,6600)
+}
+#MESSAGE 4 "NEXT MOVE"</value>
+      </alias>
+      <var name="nurek" type="Integer">0</var>
+      <alias name="nurek!">
+        <value>glebokosc_cel = 3
+nurkuj = 1
+nurek = 1
+d</value>
+      </alias>
+      <var name="sa_wodo" type="Integer">1</var>
+      <trigger name="sa_wodo" priority="137" regex="true" enabled="false">
+        <pattern>(wodorosty)</pattern>
+        <value>sa_wodo = 1
+#T- sa_wodo</value>
+      </trigger>
+      <alias name="per!">
+        <value>%-1
+#WAIT %random(6200,6700)
+#LOOP 5 {
+  przeszukaj dno
+  #WAIT %random(6200,6700)
+  }
+play_tink
+#MESSAGE 2 "DALEJ"</value>
+      </alias>
+    </class>
+  </class>
+</cmud>

@@ -1,283 +1,135 @@
 import type { PluginApi } from '@arkadia/plugin-types';
 import type { MorzeState } from './state';
-import { resetMorzeFlags } from './state';
-import { loopSearch } from './triggers';
-import { getAnsiFormatState } from '../../../lib/colors/my-ansi-colors';
+import type { MorzeActions } from './actions';
 
-/**
- * Random delay helper — mirrors CMUD's #WAIT %random(min,max).
- */
-function randWait(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-/**
- * Play a notification beep + message.
- * Mirrors CMUD's play_tink / #MESSAGE pattern.
- */
-function notify(api: PluginApi, msg: string): void {
-  api.command.send('', true);
-  const buf = new api.AnsiAwareBuffer();
-  buf.append(msg, getAnsiFormatState(13, api));
-  api.output.print(buf);
-}
-
-/**
- * Sequential command executor.
- * Each step: runs a command/function, then waits the given delay.
- * Mirrors CMUD's flat list of #SEND / #WAIT pairs.
- */
-interface Step {
-  cmd?: string;
-  fn?: () => void;
-  wait: [number, number];
-}
-
-function runSeq(api: PluginApi, steps: Step[]): void {
-  let t = 0;
-  for (const s of steps) {
-    const delay = randWait(s.wait[0], s.wait[1]);
-    if (s.cmd || s.fn) {
-      setTimeout(() => {
-        if (s.cmd) api.command.send(s.cmd, false);
-        s.fn?.();
-      }, t);
-    }
-    t += delay;
-  }
-}
-
-/**
- * Run N iterations of the same command with delays between each.
- * Mirrors CMUD's #LOOP N { command; #WAIT %random(min,max) }.
- */
-function loopCmd(
+export function setupMorzeAliases(
   api: PluginApi,
-  count: number,
-  cmd: string,
-  waitMin: number,
-  waitMax: number,
-  preCmd?: (i: number) => void,
+  state: MorzeState,
+  actions: MorzeActions,
+  nextDirection: () => string | null,
 ): void {
-  let t = 0;
-  for (let i = 0; i < count; i++) {
-    if (preCmd) {
-      setTimeout(() => preCmd(i), t);
+  const register = (pattern: RegExp, callback: (m: RegExpMatchArray) => void) => {
+    api.aliases.register(pattern, m => {
+      if (!state.enabled) api.output.print('[Morze] Modul wylaczony. Wlacz: mr+');
+      else if (m) callback(m);
+      return true;
+    });
+  };
+
+  register(/^wyp!$/i, () => actions.surface());
+  register(/^nur!\s*(\d+)$/i, m => {
+    const depth = Number(m[1]);
+    if (!Number.isSafeInteger(depth) || depth < 1 || depth <= state.glebokoscAkt) {
+      api.output.print('[Morze] Podaj glebokosc wieksza od aktualnej (co najmniej 1).');
+      return;
     }
-    setTimeout(() => {
-      api.command.send(cmd, false);
-    }, t);
-    t += randWait(waitMin, waitMax);
-  }
-}
-
-// ── Alias registration ──────────────────────────────────────────────────────
-
-export function setupMorzeAliases(api: PluginApi, state: MorzeState): void {
-  // ── wyp! — emergency surface ──────────────────────────────────────────
-  api.aliases.register(/^wyp!$/i, () => {
-    state.wodorosty = false;
-    state.nurek = false;
-    state.nurkuj = false;
-    state.wyplyn = true;
-    api.command.send('u');
-    return true;
-  });
-
-  // ── nur! <depth> — dive to specific depth ─────────────────────────────
-  api.aliases.register(/^nur!\s*(\d+)$/i, (m) => {
-    state.glebokoscCel = parseInt(m![1], 10);
+    actions.stop();
+    state.glebokoscCel = depth;
     state.nurkuj = true;
     api.command.send('d');
-    return true;
+    if (state.glebokoscAkt > 0) state.glebokoscAkt++;
   });
-
-  // ── wodor! <dir> — seaweed gathering mode ─────────────────────────────
-  api.aliases.register(/^wodor!\s*(\w+)$/i, (m) => {
+  register(/^wodor!\s+(.+)$/i, m => {
+    actions.stop();
     state.wodorosty = true;
-    state.wodorostyKier = m![1];
+    state.wodorostyKier = m[1];
     api.command.send('wez wodorosty', false);
     api.command.send(state.wodorostyKier);
-    return true;
   });
+  register(/^wrak!$/i, () => actions.search(8, 'szukaj wraku', true));
+  register(/^per8$/i, () => actions.search(8, 'przeszukaj dno', true));
+  register(/^per4$/i, () => actions.search(4));
 
-  // ── wrak! — 8 wrecks searches, then exit ──────────────────────────────
-  api.aliases.register(/^wrak!$/i, () => {
-    loopSearch(api, 8, undefined, undefined, undefined, () => {
-      notify(api, 'DALEJ');
-      if (state.nurek) {
-        state.nurek = false;
-        state.wyplyn = true;
-        api.command.send('u');
-      }
-    });
-    return true;
-  });
-
-  // ── qu — quit all sea modes ───────────────────────────────────────────
   api.aliases.register(/^qu$/i, () => {
-    resetMorzeFlags(state);
-    api.output.print(new api.AnsiAwareBuffer('Quit done!'));
+    actions.stop();
+    api.command.send('sig Quit done!');
     return true;
   });
 
-  // ── bur! — start amber searching (4× search, then loop) ──────────────
-  api.aliases.register(/^bur!$/i, () => {
+  function* amber(continuation: boolean): Generator<readonly [number, number], void, unknown> {
+    do {
+      const direction = nextDirection();
+      if (!direction) {
+        state.bur = false;
+        api.command.send('sig Koniec trasy.');
+        if (continuation) actions.message('KONIEC TRASY');
+        return;
+      }
+      const from = api.map.getRoom()?.id;
+      api.command.send(direction);
+      yield* actions.searches(4);
+      if (!state.bur) return;
+      // Do not repeat a stale next_dir when the movement failed.
+      if (api.map.getRoom()?.id === from) {
+        actions.stop();
+        api.output.print('[Morze] Brak zmiany lokacji — zatrzymano szukanie bursztynow.');
+        return;
+      }
+      yield [234, 890];
+      continuation = true;
+    } while (state.bur);
+  }
+  register(/^bur!$/i, () => {
+    actions.stop();
     state.bur = true;
-    loopSearch(api, 4, undefined, undefined, undefined, () => {
-      if (state.bur) {
-        setTimeout(() => {
-          loopSearch(api, 4, undefined, undefined, undefined, () => {
-            if (state.bur) {
-              setTimeout(() => loopSearch(api, 4), randWait(234, 890));
-            }
-          });
-        }, randWait(234, 890));
+    actions.run(amber(false));
+  });
+  register(/^bur!!$/i, () => {
+    actions.cancel();
+    actions.run(amber(true));
+  });
+
+  register(/^perly!$/i, () => {
+    actions.stop();
+    api.command.send('dobs');
+    for (let i = 0; i < 5; i++) {
+      api.command.send('otworz muszle sztyletem', false);
+      api.command.send('wez perle z muszli', false);
+      api.command.send('wlz muszle');
+    }
+    api.command.send('opus');
+  });
+
+  register(/^nurk\s+(.+)$/i, m => {
+    actions.stop();
+    state.seaweedArmed = true;
+    actions.run((function* () {
+      for (let i = 0; i < 3; i++) {
+        actions.takeSeaweed();
+        api.command.send('d');
+        yield [6200, 6600];
       }
-    });
-    return true;
-  });
-
-  // ── perly! — open shells with dagger ──────────────────────────────────
-  api.aliases.register(/^perly!$/i, () => {
-    runSeq(api, [
-      { cmd: 'dobs', wait: [0, 0] },
-      { cmd: 'otworz muszle sztyletem', wait: [200, 400] },
-      { cmd: 'wez perle z muszli', wait: [200, 400] },
-      { cmd: 'wlz muszle', wait: [200, 400] },
-      { cmd: 'otworz muszle sztyletem', wait: [200, 400] },
-      { cmd: 'wez perle z muszli', wait: [200, 400] },
-      { cmd: 'wlz muszle', wait: [200, 400] },
-      { cmd: 'otworz muszle sztyletem', wait: [200, 400] },
-      { cmd: 'wez perle z muszli', wait: [200, 400] },
-      { cmd: 'wlz muszle', wait: [200, 400] },
-      { cmd: 'otworz muszle sztyletem', wait: [200, 400] },
-      { cmd: 'wez perle z muszli', wait: [200, 400] },
-      { cmd: 'wlz muszle', wait: [200, 400] },
-      { cmd: 'otworz muszle sztyletem', wait: [200, 400] },
-      { cmd: 'wez perle z muszli', wait: [200, 400] },
-      { cmd: 'wlz muszle', wait: [200, 400] },
-      { cmd: 'opus', wait: [200, 400] },
-    ]);
-    return true;
-  });
-
-  // ── per8 — 8 bottom searches ──────────────────────────────────────────
-  api.aliases.register(/^per8$/i, () => {
-    loopSearch(api, 8, undefined, undefined, undefined, () => {
-      notify(api, 'DALEJ');
-      if (state.nurek) {
-        state.nurek = false;
-        state.wyplyn = true;
+      yield [789, 789];
+      api.command.send('sp');
+      yield* actions.searches(5, 'przeszukaj dno', [6200, 6600]);
+      actions.takeSeaweed();
+      api.command.send(m[1]);
+      yield [6400, 6800];
+      yield* actions.searches(5, 'przeszukaj dno', [6100, 6700]);
+      for (let i = 0; i < 3; i++) {
+        actions.takeSeaweed();
         api.command.send('u');
+        yield [6200, 6600];
       }
-    });
-    return true;
+      actions.message('NEXT MOVE');
+    })());
   });
 
-  // ── per4 — 4 bottom searches ──────────────────────────────────────────
-  api.aliases.register(/^per4$/i, () => {
-    loopSearch(api, 4, undefined, undefined, undefined, () => {
-      notify(api, 'DALEJ');
-    });
-    return true;
-  });
-
-  // ── nurk <dir> — full pearl diving routine ───────────────────────────
-  api.aliases.register(/^nurk\s+(.+)$/i, (m) => {
-    const dir = m![1];
-
-    // Phase 1: dive 3 steps with optional seaweed
-    loopCmd(api, 3, 'd', 6200, 6600, () => {
-      if (state.saWodo) {
-        api.command.send('wez wodorosty', false);
-        state.saWodo = false;
-      }
-    });
-
-    // Phase 2: after diving, sp + 5 searches
-    const phase1End = 3 * randWait(6200, 6600);
-    setTimeout(() => {
-      api.command.send('sp', false);
-    }, phase1End + 789);
-
-    const searchStart = phase1End + 789 + randWait(6200, 6600);
-    loopCmdDelayed(api, 5, 'przeszukaj dno', 6200, 6600, searchStart);
-
-    // Phase 3: move direction, 5 more searches
-    const moveStart = searchStart + 5 * randWait(6200, 6600);
-    setTimeout(() => {
-      // seaweed check before moving
-      if (state.saWodo) {
-        api.command.send('wez wodorosty', false);
-        state.saWodo = false;
-      }
-      api.command.send(dir);
-    }, moveStart);
-
-    const afterMoveStart = moveStart + randWait(6400, 6800);
-    loopCmdDelayed(api, 5, 'przeszukaj dno', 6100, 6700, afterMoveStart);
-
-    // Phase 4: surface 3 steps with optional seaweed
-    const surfaceStart = afterMoveStart + 5 * randWait(6100, 6700);
-    loopCmdDelayed(api, 3, 'u', 6200, 6600, surfaceStart, () => {
-      if (state.saWodo) {
-        api.command.send('wez wodorosty', false);
-        state.saWodo = false;
-      }
-    });
-
-    // Final notification
-    const endTime = surfaceStart + 3 * randWait(6200, 6600);
-    setTimeout(() => {
-      notify(api, 'NEXT MOVE');
-    }, endTime);
-
-    return true;
-  });
-
-  // ── nurek! — pearl diver mode (depth 3, auto-dive) ───────────────────
-  api.aliases.register(/^nurek!$/i, () => {
+  register(/^nurek!$/i, () => {
+    actions.stop();
     state.glebokoscCel = 3;
     state.nurkuj = true;
     state.nurek = true;
     api.command.send('d');
-    return true;
+    if (state.glebokoscAkt > 0) state.glebokoscAkt++;
   });
-
-  // ── per! <dir> — search bottom path once ──────────────────────────────
-  api.aliases.register(/^per!\s+(.+)$/i, (m) => {
-    const dir = m![1];
-    api.command.send(dir);
-    setTimeout(() => {
-      loopSearch(api, 5, undefined, undefined, undefined, () => {
-        notify(api, 'DALEJ');
-      });
-    }, randWait(6200, 6700));
-    return true;
+  register(/^per!\s+(.+)$/i, m => {
+    actions.stop();
+    actions.run((function* () {
+      api.command.send(m[1]);
+      yield [6200, 6700];
+      yield* actions.searches(5);
+      actions.message('DALEJ', true);
+    })());
   });
-}
-
-/**
- * Like loopCmd but starts at a specific absolute time offset.
- */
-function loopCmdDelayed(
-  api: PluginApi,
-  count: number,
-  cmd: string,
-  waitMin: number,
-  waitMax: number,
-  startAt: number,
-  preCmd?: (i: number) => void,
-): void {
-  let t = startAt;
-  for (let i = 0; i < count; i++) {
-    if (preCmd) {
-      setTimeout(() => preCmd(i), t);
-    }
-    setTimeout(() => {
-      api.command.send(cmd, false);
-    }, t);
-    t += randWait(waitMin, waitMax);
-  }
 }

@@ -18,7 +18,7 @@ describe('per-line trigger budget', () => {
     const core = createMockApi();
     await initCore(core.api);
 
-    expect(core.triggers.length).toBeLessThanOrEqual(11);
+    expect(core.triggers.length).toBeLessThanOrEqual(7);
     expect(core.oneTimeTriggers).toHaveLength(0);
 
     // Sanity: the converted triggers actually registered as token gates. The

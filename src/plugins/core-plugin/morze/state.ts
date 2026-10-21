@@ -20,6 +20,8 @@ export interface MorzeState {
   nurek: boolean;
   /** Seaweed present at current location flag. */
   saWodo: boolean;
+  /** CMud's sa_wodo trigger is armed by nurk and disables itself on a match. */
+  seaweedArmed: boolean;
   /** Amber searching mode flag. */
   bur: boolean;
   /** Module on/off flag. */
@@ -35,9 +37,10 @@ export function createMorzeState(): MorzeState {
     wodorosty: false,
     wodorostyKier: 'n',
     nurek: false,
-    saWodo: false,
+    saWodo: true,
+    seaweedArmed: false,
     bur: false,
-    enabled: false,
+    enabled: true,
   };
 }
 
@@ -48,5 +51,5 @@ export function resetMorzeFlags(state: MorzeState): void {
   state.nurkuj = false;
   state.wodorosty = false;
   state.wyplyn = false;
-  state.glebokoscAkt = 0;
+  state.seaweedArmed = false;
 }
