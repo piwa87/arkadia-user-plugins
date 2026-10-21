@@ -1,0 +1,1016 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<cmud>
+  <class name="ZIOLA" initenable="true">
+    <class name="Inne">
+      <alias name="innein4" autoappend="true">
+        <value>#T+ wlozco
+#IF (@w_inne) {
+    otworz czarne woreczki
+    wloz ziola do czarnego woreczka
+    wloz ziola do drugiego czarnego woreczka
+    wloz ziola do trzeciego czarnego woreczka
+    wloz ziola do czwartego czarnego woreczka
+    zamknij czarne woreczki
+  } {
+    otworz skorzane woreczki
+    wloz ziola do skorzanego woreczka
+    wloz ziola do drugiego skorzanego woreczka
+    wloz ziola do trzeciego skorzanego woreczka
+    wloz ziola do czwartego skorzanego woreczka
+    zamknij skorzane woreczki
+  }
+;#T- wlozco</value>
+      </alias>
+      <alias name="inneout4" autoappend="true">
+        <value>#IF (@w_inne) {
+    otworz czarne woreczki
+    wez ziola z czarnego woreczka
+    wez ziola z drugiego czarnego woreczka
+    wez ziola z trzeciego czarnego woreczka
+    wez ziola z czwartego czarnego woreczka
+    zamknij czarne woreczki
+  } {
+    otworz skorzane woreczki
+    wez ziola z skorzanego woreczka
+    wez ziola z drugiego skorzanego woreczka
+    wez ziola z trzeciego skorzanego woreczka
+    wez ziola z czwartego skorzanego woreczka
+    zamknij skorzane woreczki
+}</value>
+      </alias>
+      <alias name="innein" autoappend="true">
+        <value>#T+ wlozco
+otworz @w_inne.1 woreczki
+wloz ziola do 1. @w_inne.2 woreczka
+wloz ziola do 2. @w_inne.2  woreczka
+wloz ziola do 3. @w_inne.2  woreczka
+wloz ziola do 4. @w_inne.2  woreczka
+zamknij @w_inne.1 woreczki</value>
+      </alias>
+      <alias name="inneout" autoappend="true">
+        <value>otworz @w_inne.1 woreczki
+wez ziola z 1. @w_inne.2 woreczka
+wez ziola z 2. @w_inne.2  woreczka
+wez ziola z 3. @w_inne.2  woreczka
+wez ziola z 4. @w_inne.2  woreczka
+zamknij @w_inne.1 woreczki</value>
+      </alias>
+    </class>
+    <class name="Lec1">
+      <class name="Suby">
+        <trigger priority="24720" regex="true">
+          <pattern>(czterokanciast\w+ rozgalezion\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Dziurawiec - rozgryz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24730" regex="true">
+          <pattern>(fioletow\w+ zwart\w+ kwiatosta\w+)</pattern>
+          <value>#sub {%1 (Lawenda - zjedz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24740" regex="true">
+          <pattern>(rozetkowat\w+ lancetowat\w+ lis\w+)</pattern>
+          <value>#sub {%1 (Babka - przyloz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24750" regex="true">
+          <pattern>(jasnopomaranczow\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Nagietek - przyloz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24770" regex="true">
+          <pattern>(fioletow\w+ lejkowat\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Barwinek - przyloz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24780" regex="true">
+          <pattern>(zdrewnial\w+ rozgalezion\w+ krzewin\w+)</pattern>
+          <value>#sub {%1 (Macznica - rozgryz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24800" regex="true">
+          <pattern>(ciemn\w+ poskrecan\w+ klacz\w+)</pattern>
+          <value>#sub {%1 (Pieciornik - rozgryz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25020" regex="true">
+          <pattern>(zlocistozolt\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Mniszek - przezuj)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25030" regex="true">
+          <pattern>(bial\w+ mal\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Glog - przezuj)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25040" regex="true">
+          <pattern>(okraglaw\w+ aromatyczn\w+ lis\w+)</pattern>
+          <value>#sub {%1 (Mieta - rozetrzyj)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25070" regex="true">
+          <pattern>(zaostrzon\w+ podluzn\w+ lis\w+)</pattern>
+          <value>#sub {%1 (Szalwia - przyloz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="24950" regex="true">
+          <pattern>(macznistoowlosion\w+ szaraw\w+ rosli\w+)</pattern>
+          <value>#sub {%1 (Komosa - przezuj/zjedz?)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25000" regex="true">
+          <pattern>(kremow\w+ owlosion\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Przelot - ususzyc)}</value>
+        </trigger>
+        <trigger priority="25010" regex="true">
+          <pattern>(kremow\w+ owlosion\w+ ususzon\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Przelot - sproszkuj)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25030" regex="true">
+          <pattern>(cienk\w+ kosm\w+ lodyz\w+)</pattern>
+          <value>#sub {%1 (Poslonek - zjedz)}
+#cw $208406</value>
+        </trigger>
+        <trigger priority="25070" regex="true">
+          <pattern>(zielon\w+ galez\w+ pe\w+)</pattern>
+          <value>#sub {%1 (Rdest ptasi - przyloz)}
+#cw $208406</value>
+        </trigger>
+      </class>
+      <alias name="lec1in" autoappend="true">
+        <value>#T+ wlozco
+otworz @w_lec1.1
+#forall @lec1 {wloz 4 %i do @w_lec1.2}
+zamknij @w_lec1.1</value>
+      </alias>
+      <alias name="lec1">
+        <value>otworz @w_lec1.1
+wez %-1 z @w_lec1.2
+zamknij @w_lec1.1</value>
+      </alias>
+      <alias name="lec9" autoappend="true">
+        <value>#T+ coco
+opusc bronie
+otworz @w_lec1.1
+#FORALL @lec1_use {wez 1 %i z @w_lec1.2}
+przezuj 2 biale male kwiaty
+rozgryz 2 ciemne poskrecane klacza
+zjedz 2 cienkie kosmate lodyzki
+rozgryz 2 czterokanciaste lodygi
+przyloz 2 fioletowe lejkowate kwiaty
+zjedz 2 fioletowe kwiatostany
+przyloz 2 jasnopomaranczowe kwiaty
+sproszkuj 2 kremowe kwiaty
+przezuj 2 szarawe rosliny
+rozetrzyj 2 okraglawe aromatyczne liscie
+przyloz 2 rozetkowate liscie
+przyloz 2 zaostrzone podluzne liscie
+rozgryz 2 zdrewniale krzewinki
+przezuj 2 zlocistozolte kwiaty
+przyloz 2 galeziste pedy
+zamknij @w_lec1.1
+dob
+#WAIT 800
+#T- coco</value>
+      </alias>
+      <alias name="kuplec" autoappend="true">
+        <value>otm
+#FORALL @lec1 {kup 2 %i}
+lec1in
+zaplec1in</value>
+      </alias>
+      <var name="lec1" type="StringList" sorted="1">
+        <value>biale male kwiaty|ciemne poskrecane klacza|cienkie kosmate lodyzki|czterokanciaste rozgalezione lodygi|fioletowe lejkowate kwiaty|fioletowe zwarte kwiatostany|jasnopomaranczowe kwiaty|kremowe owlosione kwiaty|kremowe owlosione ususzone kwiaty|macznistoowlosione szarawe rosliny|okraglawe aromatyczne liscie|rozetkowate lancetowate liscie|zaostrzone podluzne liscie|zdrewniale rozgalezione krzewinki|zielone galeziste pedy|zlocistozolte kwiaty</value>
+        <json>["biale male kwiaty","ciemne poskrecane klacza","cienkie kosmate lodyzki","czterokanciaste rozgalezione lodygi","fioletowe lejkowate kwiaty","fioletowe zwarte kwiatostany","jasnopomaranczowe kwiaty","kremowe owlosione kwiaty","kremowe owlosione ususzone kwiaty","macznistoowlosione szarawe rosliny","okraglawe aromatyczne liscie","rozetkowate lancetowate liscie","zaostrzone podluzne liscie","zdrewniale rozgalezione krzewinki","zielone galeziste pedy","zlocistozolte kwiaty"]</json>
+      </var>
+      <var name="lec1_use" type="StringList" sorted="1">
+        <value>bialy maly kwiat|ciemne poskrecane klacze|cienka kosmata lodyzke|czterokanciasta rozgaleziona lodyge|fioletowy lejkowaty kwiat|fioletowy zwarty kwiatostan|jasnopomaranczowy kwiat|kremowy ususzony kwiat|okraglawy aromatyczny lisc|rozetkowaty lancetowaty lisc|szarawa rosline|zaostrzony podluzny lisc|zdrewniala rozgaleziona krzewinke|zielony galezisty ped|zlocistozolty kwiat</value>
+        <json>["bialy maly kwiat","ciemne poskrecane klacze","cienka kosmata lodyzke","czterokanciasta rozgaleziona lodyge","fioletowy lejkowaty kwiat","fioletowy zwarty kwiatostan","jasnopomaranczowy kwiat","kremowy ususzony kwiat","okraglawy aromatyczny lisc","rozetkowaty lancetowaty lisc","szarawa rosline","zaostrzony podluzny lisc","zdrewniala rozgaleziona krzewinke","zielony galezisty ped","zlocistozolty kwiat"]</json>
+      </var>
+      <class name="A">
+        <alias name="babk" autoappend="true">
+          <value>opusc bron
+lec1 rozetkowaty lisc
+przyloz rozetkowaty lisc
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="dzi" autoappend="true">
+          <value>opusc bron
+lec1 czterokanciasta rozgaleziona lodyge
+rozgryz czterokanciasta rozgaleziona lodyge
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="komos" autoappend="true">
+          <value>opusc bron
+lec1 2 macznistoowlosione szarawe rosliny
+przezuj 2 macznistoowlosione szarawe rosliny
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="lawen" autoappend="true">
+          <value>opusc bron
+lec1 fioletowy kwiatostan
+zjedz fioletowy kwiatostan
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="pieci" autoappend="true">
+          <value>opusc bron
+lec1 poskrecane klacze
+rozgryz poskrecane klacze
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="glog" autoappend="true">
+          <value>opusc bron
+lec1 1 bialy maly kwiat
+przezuj 1 bialy maly kwiat
+dobadz wszystkich broni</value>
+        </alias>
+      </class>
+    </class>
+    <class name="Lec2">
+      <class name="Suby">
+        <trigger priority="24810" regex="true">
+          <pattern>(bial\w+ rozgalezion\w+ korze\w+)</pattern>
+          <value>#SUB {%1 (Mandragora[int+] - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24820" regex="true">
+          <pattern>(eliptyczn\w+ zaostrzon\w+ lis\w+)</pattern>
+          <value>#SUB {%1 (Ogorecznik[+odw] - przezuj)}
+#CW @col_lec2
+//niepozorna sinozielona roslinka</value>
+        </trigger>
+        <trigger priority="24830" regex="true">
+          <pattern>(lsniac\w+ czerwon\w+ owo\w+)</pattern>
+          <value>#SUB {%1 (Deren[wyt+] - zjedz)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24840" regex="true">
+          <pattern>(mazist\w+ bulwiast\w+ grzy\w+)</pattern>
+          <value>#SUB {%1 (Casur[sila+] - zjedz)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24850" regex="true">
+          <pattern>(soczyst\w+ karminow\w+ m\w+)</pattern>
+          <value>#SUB {%1 (Drath[wyt+] - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24860" regex="true" enabled="false">
+          <pattern>(dlug\w+ lody\w+)</pattern>
+          <value>#SUB {%1 (Konopie - ususzyc!!)}</value>
+        </trigger>
+        <trigger priority="24870" regex="true">
+          <pattern>(kanciast\w+ parzac\w+ lody\w+)</pattern>
+          <value>#SUB {%1 (Pokrzywa - zjedz)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24880" regex="true">
+          <pattern>(dlug\w+ ususzon\w+ lody\w+)</pattern>
+          <value>#SUB {%1 (Konopie - spal)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24890" regex="true">
+          <pattern>(zoltoszar\w+ niepozorn\w+ korze\w+)</pattern>
+          <value>#SUB {%1 (Ranog - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24900" regex="true">
+          <pattern>(zoltoszar\w+ niepozorn\w+ ususzon\w+ korze\w+)</pattern>
+          <value>#SUB {%1 (Ranog - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24910" regex="true">
+          <pattern>(duz\w+ granatow\w+ jago\w+)</pattern>
+          <value>#SUB {%1 (Siezygron - rozgryz)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="26550" regex="true">
+          <pattern>(drobn\w+ ukwiecon\w+ galaz\w+)</pattern>
+          <value>#SUB {%1 (Swietlik[+spost] - rozgryz)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24810" regex="true">
+          <pattern>(brudnozol\w+ fioletowo-zylkowa\w+ ususzo\w+ kwia\w+)</pattern>
+          <value>#SUB {%1 (Lulek[+intelekt] - rozgryz)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="48380" regex="true">
+          <pattern>(pachnac\w+ jasnozielo\w+ lis\w+)</pattern>
+          <value>#SUB {%1 (Krasnodrzew(wyt+) - powachaj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24900" regex="true">
+          <pattern>(ciemn\w+ gruzlowat\w+ grzy\w+)</pattern>
+          <value>#SUB {%1 (Skedar)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24810" regex="true">
+          <pattern>(czarn\w+ aromatycz\w+ ziar\w+)</pattern>
+          <value>#SUB {%1 (Bulawinka[+mana] - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <var name="col_lec2">$a8890a</var>
+        <trigger priority="24810" regex="true">
+          <pattern>(dziwn\w+ zoltosz\w+ nasion\w+)</pattern>
+          <value>#SUB {%1 (Kulczyba[+sila] - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24810" regex="true">
+          <pattern>(duz\w+ bial\w+ kwia\w+)</pattern>
+          <value>#SUB {%1 (Bielun[zreka+] - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24810" regex="true">
+          <pattern>(szar\w+ kolczast\w+ korze\w+)</pattern>
+          <value>#SUB {%1 (Aralia[zre+] - przezuj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24820" regex="true">
+          <pattern>(niepozor\w+ sinozielo\w+ roslin\w+)</pattern>
+          <value>#SUB {%1 (Urzet[+odw] - wetrzyj)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24810" regex="true">
+          <pattern>(bialokwitn\w+ drobn\w+ roslin\w+)</pattern>
+          <value>#SUB {%1 (Rosiczka[-kac, -panika] - polknij)}
+#CW @col_lec2</value>
+        </trigger>
+        <trigger priority="24810" regex="true">
+          <pattern>(drobn\w+ bial\w+ kwiat\w+)</pattern>
+          <value>#SUB {%1 (Konwalia[-pan] - powachaj)}
+#CW @col_lec2</value>
+        </trigger>
+      </class>
+      <alias name="lec2">
+        <value>otworz @w_lec2.1
+wez %-1 z @w_lec2.2
+zamknij @w_lec2.1</value>
+      </alias>
+      <alias name="lec2in" autoappend="true">
+        <value>#T+ wlozco
+otworz @w_lec2.1
+#forall @lec2 {wloz 4 %i do @w_lec2.2}
+zamknij @w_lec2.1</value>
+      </alias>
+      <var name="lec2" type="StringList" sorted="1">
+        <value>biale rozgalezione korzenie|bialokwitnace drobne roslinki|brudnozolte fioletowo-zylkowane ususzone kwiaty|ciemne gruzlowate grzyby|czarne aromatyczne ziola|dlugie ususzone lodygi|drobne biale kwiatki|drobne ukwiecone galazki|duze biale kwiaty|duze granatowe jagody|dziwne zoltoszare nasionka|eliptyczne zaostrzone liscie|kanciaste parzace lodygi|lsniace czerwone owoce|maziste bulwiaste grzyby|niepozorne sinozielone roslinki|pachnace jasnozielone liscie|soczyste karminowe mchy|szare kolczaste korzenie|zoltoszare niepozorne korzenie</value>
+        <json>["biale rozgalezione korzenie","bialokwitnace drobne roslinki","brudnozolte fioletowo-zylkowane ususzone kwiaty","ciemne gruzlowate grzyby","czarne aromatyczne ziola","dlugie ususzone lodygi","drobne biale kwiatki","drobne ukwiecone galazki","duze biale kwiaty","duze granatowe jagody","dziwne zoltoszare nasionka","eliptyczne zaostrzone liscie","kanciaste parzace lodygi","lsniace czerwone owoce","maziste bulwiaste grzyby","niepozorne sinozielone roslinki","pachnace jasnozielone liscie","soczyste karminowe mchy","szare kolczaste korzenie","zoltoszare niepozorne korzenie"]</json>
+      </var>
+      <alias name="kuplec2" autoappend="true">
+        <value>otm
+#FORALL @lec2 {kup 1 %i}
+lec2in
+//zaplec2in</value>
+      </alias>
+      <class name="A">
+        <alias name="pokrz" autoappend="true">
+          <value>opusc bron
+lec2 parzaca lodyge
+zjedz parzaca lodyge
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="ogore" autoappend="true">
+          <value>opusc bron
+lec2 eliptyczny lisc
+przezuj eliptyczny lisc
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="swiet" autoappend="true">
+          <value>opusc bron
+lec2 drobna ukwiecona galazke
+rozgryz drobna ukwiecona galazke
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="siezy" autoappend="true">
+          <value>opusc bron
+lec2 granatowa jagode
+rozgryz granatowa jagode
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="mandr" autoappend="true">
+          <value>opusc bron
+lec2 bialy korzen
+przezuj bialy korzen
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="rosic" autoappend="true">
+          <value>opusc bron
+lec2 drobna roslinke
+polknij drobna roslinke
+dobadz broni</value>
+        </alias>
+        <alias name="drath" autoappend="true">
+          <value>opusc bron
+lec2 karminowy mech
+przezuj karminowy mech
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="ranog" autoappend="true">
+          <value>opusc bron
+lec2 niepozorny korzen
+przezuj korzen
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="krasn" autoappend="true">
+          <value>opusc bron
+lec2 pachnacy lisc
+powachaj lisc
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="casur" autoappend="true">
+          <value>opusc bron
+lec2 mazisty grzyb
+zjedz mazisty grzyb
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="skeda" autoappend="true">
+          <value>opusc bron
+lec2 gruzlowaty grzyb
+zjedz gruzlowaty grzyb
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="bulaw" autoappend="true">
+          <value>opusc bron
+lec2 czarne ziarenko
+przezuj czarne ziarenko
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="wyt++">
+          <value>opusc bron
+otworz @w_lec2.1
+wez karminowy mech z @w_lec2.2
+wez pachnacy lisc z @w_lec2.2
+wez lsniacy owoc z @w_lec2.2
+zamknij @w_lec2.1
+przezuj karminowy mech
+powachaj lisc
+zjedz lsniacy owoc
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="l2boost">
+          <value>opusc bron
+otworz @w_lec2.1
+#FORALL {kolczasty korzen|duzy bialy kwiat|karminowy mech|pachnacy lisc|lsniacy owoc|mazisty grzyb|bialy korzen|eliptyczny lisc|niepozorna sinozielona roslinke|dziwne nasionko} {wez %i z @w_lec2.2}
+zamknij @w_lec2.1
+przezuj kolczasty korzen
+powachaj bialy kwiat
+przezuj karminowy mech
+powachaj pachnacy lisc
+zjedz lsniacy owoc
+zjedz mazisty grzyb
+przezuj dziwne nasionko
+przezuj bialy korzen
+przezuj eliptyczny lisc
+wetrzyj niepozorna roslinke
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="zre++">
+          <value>opusc bron
+otworz @w_lec2.1
+wez duzy bialy kwiat z @w_lec2.2
+wez szary kolczasty korzen z @w_lec2.2
+zamknij @w_lec2.1
+przezuj duzy bialy kwiat
+przezuj kolczasty korzen
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="lulek" autoappend="true">
+          <value>opusc bron
+lec2 brudnozolty kwiat
+rozgryz brudnozolty ususzony kwiat
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="-pan" autoappend="true">
+          <value>opusc bron
+lec2 drobny bialy kwiatek
+powachaj drobny bialy kwiatek
+dobadz wszystkich broni</value>
+        </alias>
+      </class>
+    </class>
+    <class name="Reg">
+      <class name="Suby">
+        <trigger priority="24930" regex="true">
+          <pattern>(jasnozielon\w+ nieowlosion\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Lulecznica - przezuj/przyloz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="24940" regex="true">
+          <pattern>(zolt\w+ jasn\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Deliona - zjedz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="24970" regex="true">
+          <pattern>(srebrzystoszar\w+ owlosion\w+ lis\w+)</pattern>
+          <value>#sub {%1 (Naparstnica - zjedz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="24980" regex="true">
+          <pattern>(sztywn\w+ smukl\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Lak - przezuj/rozgryz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="24990" regex="true">
+          <pattern>(\bkanciast\w+ rozgalezion\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Bylica - przyloz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(brazow\w+ okragl\w+ nasion\w+)</pattern>
+          <value>#sub {%1 (Kola - rozgryz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="25060" regex="true">
+          <pattern>(kosmatoowlosion\w+ kwiatosta\w+)</pattern>
+          <value>#sub {%1 (Kasztanowiec - przyloz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(czarn\w+ blyszcz\w+ fasol\w+)</pattern>
+          <value>#sub {%1 (Bobotrutka - polknij)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(owlosi\w+ aromaty\w+ lis\w+)</pattern>
+          <value>#sub {%1 (Melisa - zjedz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(rozdet\w+ aromaty\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Szczwol - przyloz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(smukl\w+ zielon\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Nostrzyk - przezuj)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="24980" regex="true">
+          <pattern>(zlocistopomaranczow\w+ duz\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Arnika - zjedz)}
+#cw $078BED</value>
+        </trigger>
+        <trigger priority="24940" regex="true">
+          <pattern>(zolt\w+ jaskraw\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Podbial - powachaj)}
+#cw $078BED</value>
+        </trigger>
+      </class>
+      <alias name="reg">
+        <value>otworz @w_reg.1
+wez %-1 z @w_reg.2
+zamknij @w_reg.1</value>
+      </alias>
+      <alias name="regin" autoappend="true">
+        <value>#T+ wlozco
+otworz @w_reg.1
+wloz 4 zolte jasne kwiaty do @w_reg.2
+#forall @reg {wloz 4 %i do @w_reg.2}
+zamknij @w_reg.1</value>
+      </alias>
+      <alias name="reg99" autoappend="true">
+        <value>opusc bron
+otworz @w_reg.1
+// BRANIE:
+wez brazowe okragle nasionko z @w_reg.2         // kola
+wez jasnozielona nieowlosiona lodyge z @w_reg.2 // lulecznica
+wez smukla zielona lodyge z @w_reg.2            // nostrzyk
+wez srebrzystoszary owlosiony lisc z @w_reg.2   // naparstnica
+wez sztywna smukla lodyge z @w_reg.2            // lak
+wez zlocistopomaranczowy duzy kwiat z @w_reg.2  // arnika
+// UZYCIE:
+rozgryz brazowe okragle nasionko         // kola
+przezuj jasnozielona nieowlosiona lodyge // lulecznica
+przezuj smukla zielona lodyge            // nostrzyk
+zjedz srebrzystoszary owlosiony lisc     // naparstnica
+przezuj sztywna smukla lodyge            // lak
+zjedz zlocistopomaranczowy duzy kwiat    // arnika
+zamknij @w_reg.1
+dobadz wszystkich broni</value>
+      </alias>
+      <alias name="kupreg" autoappend="true">
+        <value>otm
+#FORALL @reg {kup 2 %i}
+regin
+zapregin</value>
+      </alias>
+      <var name="reg" type="StringList" sorted="1">
+        <value>brazowe okragle nasionka|czarne blyszczace fasolki|jasnozielone nieowlosione lodygi|kanciaste rozgalezione lodygi|kosmatoowlosione kwiatostany|owlosione aromatyczne liscie|rozdete aromatyczne lodygi|smukle zielone lodygi|srebrzystoszare owlosione liscie|sztywne smukle lodygi|zlocistopomaranczowe duze kwiaty|zolte jaskrawe kwiaty|zolte jasne kwiaty</value>
+        <json>["brazowe okragle nasionka","czarne blyszczace fasolki","jasnozielone nieowlosione lodygi","kanciaste rozgalezione lodygi","kosmatoowlosione kwiatostany","owlosione aromatyczne liscie","rozdete aromatyczne lodygi","smukle zielone lodygi","srebrzystoszare owlosione liscie","sztywne smukle lodygi","zlocistopomaranczowe duze kwiaty","zolte jaskrawe kwiaty","zolte jasne kwiaty"]</json>
+      </var>
+      <alias name="reg9" autoappend="true">
+        <value>opusc bron
+otworz @w_reg.1
+// BRANIE:
+wez czarna blyszczaca fasolke z @w_reg.2     // bobotrutka
+wez kanciasta rozgaleziona lodyge z @w_reg.2 // bylica pospolita
+wez kosmatoowlosiony kwiatostan z @w_reg.2   // kasztanowiec
+wez owlosiony aromatyczny lisc z @w_reg.2    // melisa
+wez rozdeta aromatyczna lodyge z @w_reg.2    // szczwol
+wez 2 zolte jaskrawe kwiay z @w_reg.2        // podbial
+wez smukla zielona lodyge z @w_reg.2         // nostrzyk
+// UZYCIE:
+polknij czarna blyszczaca fasolke     // bobotrutka
+przyloz kanciasta rozgaleziona lodyge // bylica pospolita
+przyloz kosmatoowlosiony kwiatostan   // kasztanowiec
+zjedz owlosiony aromatyczny lisc      // melisa
+przyloz rozdeta aromatyczna lodyge    // szczwol
+powachaj zolte jaskrawe kwiaty        // podbial
+przezuj smukla zielona lodyge         // nostrzyk
+zamknij @w_reg.1
+dobadz wszystkich broni</value>
+      </alias>
+      <class name="A">
+        <alias name="bylic" autoappend="true">
+          <value>opusc bron
+reg 2 kanciaste rozgalezione lodygi
+przyloz 2 kanciaste rozgalezione lodygi
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="del" autoappend="true">
+          <value>opusc bron
+otworz @w_reg.1
+wez zolty jasny kwiat z @w_reg.2
+zjedz zolty jasny kwiat
+wloz zolty jasny kwiat do @w_reg.2
+zamknij @w_reg.1
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="lulec" autoappend="true">
+          <value>opusc bron
+reg 2 jasnozielone nieowlosione lodygi
+przezuj 2 jasnozielone nieowlosione lodygi
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="arnik" autoappend="true">
+          <value>opusc bron
+reg zlocistopomaranczowy duzy kwiat
+zjedz zlocistopomaranczowy duzy kwiat
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="napar" autoappend="true">
+          <value>opusc bron
+reg 2 srebrzystoszare owlosione liscie
+zjedz 2 srebrzystoszare owlosione liscie
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="kaszt" autoappend="true">
+          <value>opusc bron
+reg 2 kosmatoowlosione kwiatostany
+przyloz 2 kosmatoowlosione kwiatostany
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="lulec2" autoappend="true">
+          <value>opusc bron
+reg 1 jasnozielona nieowlosiona lodyge
+przyloz jasnozielone nieowlosione lodygi
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="szczw" autoappend="true">
+          <value>opusc bron
+reg 2 rozdete aromatyczne lodygi
+przyloz aromatyczne lodygi
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="nostr" autoappend="true">
+          <value>opusc bron
+reg 1 smukla zielona lodyge
+przezuj smukla zielona lodyge
+dobadz wszystkich broni</value>
+        </alias>
+        <alias name="podbi" autoappend="true">
+          <value>opusc bron
+reg 2 zolte jaskrawe kwiaty
+powachaj zolte jaskrawe kwiaty
+dobadz wszystkich broni</value>
+        </alias>
+      </class>
+    </class>
+    <class name="Zapas">
+      <alias name="zap">
+        <value>otworz @w_zapas.1
+wez %-1 z @w_zapas.2
+wez %-1 z drugiego @w_zapas.2
+wez %-1 z trzeciego @w_zapas.2
+zamknij @w_zapas.1</value>
+      </alias>
+      <alias name="zapin" autoappend="true">
+        <value>otworz @w_zapas.1
+#T+ wlozco
+// Pierwszy woreczek
+#FORALL @lec1 {wloz %i do 1. @w_zapas.2}
+#FORALL @reg {wloz %i do 1. @w_zapas.2}
+// Drugi woreczek
+#FORALL @lec1 {wloz %i do 2. @w_zapas.2}
+#FORALL @lec2 {wloz %i do 2. @w_zapas.2}
+#FORALL @reg {wloz %i do 2. @w_zapas.2}
+// Trzeci woreczek
+#FORALL @lec1 {wloz %i do 3. @w_zapas.2}
+#FORALL @lec2 {wloz %i do 3. @w_zapas.2}
+#FORALL @reg {wloz %i do 3. @w_zapas.2}
+#FORALL @trut {wloz %i do 3. @w_zapas.2}
+zamknij @w_zapas.1</value>
+      </alias>
+      <alias name="zapregin">
+        <value>otworz @w_zapas.1
+#T+ wlozco
+#forall @reg {wloz %i do trzeciego @w_zapas.2}
+zamknij @w_zapas.1</value>
+      </alias>
+      <alias name="zaplec1in">
+        <value>otworz @w_zapas.1
+#T+ wlozco
+#forall @lec1 {wloz %i do 1. @w_zapas.2;wloz %i do 2. @w_zapas.2}
+zamknij @w_zapas.1</value>
+      </alias>
+      <alias name="zaplec2in">
+        <value>otworz @w_zapas.1
+#T+ wlozco
+#forall @lec2 {wloz %i do 1. @w_zapas.2;wloz %i do 2. @w_zapas.2}
+zamknij @w_zapas.1</value>
+      </alias>
+      <alias name="trutin">
+        <value>otworz @w_zapas.1
+#T+ wlozco
+#forall @trut {wloz %i do trzeciego @w_zapas.2}
+zamknij @w_zapas.1</value>
+      </alias>
+    </class>
+    <alias name="obz" autoappend="true">
+      <value>subyoff
+ziolka=%null
+z_counter=0
+zajrzyj do @w_lec1.2
+zajrzyj do @w_lec2.2
+zajrzyj do @w_reg.2</value>
+    </alias>
+    <alias name="spziola" autoappend="true">
+      <value>inneout
+lec2 kanciaste parzace lodygi
+lec2in
+sprzedaj ziola</value>
+    </alias>
+    <alias name="zisort" autoappend="true">
+      <value>#T+ wlozco
+wyj woreczki
+inneout
+zap ziola
+lec1in
+#WAIT %random(145,300)
+lec2in
+#WAIT %random(145,300)
+regin
+#WAIT %random(99,212)
+zapin
+#WAIT %random(99,212)
+innein</value>
+    </alias>
+    <alias name="zx" autoappend="true">
+      <value>innein</value>
+    </alias>
+    <trigger priority="21730" regex="true">
+      <pattern>^Rozwiazujesz na chwile rzemyk,.*woreczka.*\. W srodku dostrzegasz (.*)\.</pattern>
+      <value>#ADD z_counter 1
+#ADDITEM ziolka {" woreczek "@z_counter":"}
+#ADDITEM ziolka {%1}
+ziolka_sort
+#IF (@z_counter&gt;=3) {
+  subyon
+  #SHOW %ansi( 0)+---------------------------- Z I O L A ----------------------------+
+  #SAY
+  #LOOP 1,%numitems(@ziolka) {#SHOW {- %item( @ziolka, %i)}}
+  #SAY
+  #SHOW %ansi( 0)+---------------------------- Z I O L A ----------------------------+
+  }</value>
+    </trigger>
+    <trigger priority="21740" regex="true">
+      <pattern>^Rozwiazujesz na chwile rzemyk, sprawdzajac zawartosc.*W jego srodku nic jednak nie ma\.</pattern>
+      <value>#ADD z_counter 1
+#IF (@z_counter&gt;=3) {
+  subyon
+  #SHOW %ansi( 0)+---------------------------- Z I O L A ----------------------------+
+  #SAY
+  #LOOP %numitems(@ziolka) {#SHOW {- %item( @ziolka, %i)}}
+  #SAY
+  #SHOW %ansi( 0)+---------------------------- Z I O L A ----------------------------+
+  }</value>
+    </trigger>
+    <alias name="obzap">
+      <value>subyoff
+ziolka=%null
+z_counter=0
+wyj @w_zapas.1
+zajrzyj do @w_zapas.2
+zajrzyj do drugiego @w_zapas.2
+zajrzyj do trzeciego @w_zapas.2</value>
+    </alias>
+    <trigger name="ziolo_brak" priority="49000" regex="true">
+      <pattern>^(?:Szukasz wszedzie, ale |)nie znajdujesz zadnych ziol\.</pattern>
+      <value>#CW @kolorDarkgrey</value>
+    </trigger>
+    <alias name="obw">
+      <value>ziolka=%null
+z_counter=3
+#IF %match(%-1, "") {zajrzyj do woreczka} {zajrzyj do %-1. woreczka}</value>
+    </alias>
+    <trigger name="gag_woreczek" priority="59100" regex="true">
+      <pattern>^(?:Otwierasz|Zamykasz)( prosty | )(?:@gag_woreczek) woreczek</pattern>
+      <value>#GAG</value>
+    </trigger>
+    <trigger name="deliona off" priority="22722">
+      <pattern>Wraz z koncem dzialania ziola dochodzi do ciebie fakt tego, jak*</pattern>
+      <value>#SUB {%ansi(6)[DELIONA - OFF!] %ansi(0)Wraz z koncem dzialania ziola dochodzi do ciebie fakt tego, jak...}</value>
+    </trigger>
+    <trigger name="deliona_on" priority="22770">
+      <pattern>Powoli opuszczaja cie wszelkie emocje. Zadne odczucia nie zaklocaja twoich mysli. Bardziej opanowany juz chyba byc nie mozesz.</pattern>
+      <value>#SUB {%ansi(34)"                              "}
+#SAY {%ansi(34)"       ZJADLES DELIONE        "}
+#SAY {%ansi(34)"                              "}</value>
+    </trigger>
+    <alias name="zisort!" autoappend="true">
+      <value>#T+ wlozco
+ot
+wyj woreczki
+inneout
+zap ziola
+lec1 ziola
+lec2 ziola
+reg ziola
+lec1in
+lec1in
+//lec1in
+lec2in
+lec2in
+//lec2in
+regin
+regin
+//regin
+zapin
+innein</value>
+    </alias>
+    <class name="col_ziola">
+      <trigger priority="2583028" regex="true">
+        <pattern>^Czujesz sie (lepiej|mniej zmeczony|mniej spragniony|bardziej syty)\.</pattern>
+        <value>#SUB {%ansi(110)" + "%ansi(reset) %trigger}</value>
+      </trigger>
+      <trigger priority="2583028" regex="true">
+        <pattern>^Czujesz sie bardziej wytrzymaly\.</pattern>
+        <value>#SUB {%ansi(110)" + wytrzymalosc "%ansi(reset) %trigger}</value>
+      </trigger>
+      <trigger priority="2583028" regex="true">
+        <pattern>^Czujesz sie bardziej spragniony\.</pattern>
+        <value>#SUB {%ansi(106)" - pragnienie "%ansi(reset) %trigger}</value>
+      </trigger>
+    </class>
+    <alias name="ztest!">
+      <value>rozgryz
+przezuj
+przyloz
+spal
+sproszkuj
+powachaj
+rozetrzyj</value>
+    </alias>
+    <class name="Odtrutki">
+      <alias name="trut">
+        <value>#SH
+#SHOW Odtrutki:
+#SHOW {Sieciarze - Nostrzyk}
+#SHOW {Pchly     - rurkowaty oliwkowobrunatny kwiat}
+#SHOW {          - zolty rurkowaty kwiat}
+#SHOW {          - brudnobrazowa cuchnaca galazka}
+#SHOW {Pluskwy   - jasnobrazowa ulistniona lodyga}
+#SHOW {          - galeziasta szaroowlosiona lodyga (wetrzyj) -pluskwy -ghoule?}
+#SHOW {          - deren (przezuj)}
+#SHOW {Kergulena - babka, chaber}
+#SHOW {Ghoule    - jasnobrunatna popekana galazka (przezuj)}
+#SHOW {          - biala pachnaca cebulka}
+#SHOW {          - zoltawy powyginany korzen (przezuj)}</value>
+      </alias>
+      <var name="col_trut" type="Literal">8958b8</var>
+      <var name="trut" type="StringList" sorted="1">
+        <value>biale pachnace cebulki|brudne cuchnace galazki|brudnobrazowe cuchnace galazki|jasnobrazowe ulistnione lodygi|rurkowate oliwkowobrunatne kwiaty|sztywne rozgalezione korzenie|wysokie blekitne kwiaty|zolte rurkowate kwiaty</value>
+        <json>["biale pachnace cebulki","brudne cuchnace galazki","brudnobrazowe cuchnace galazki","jasnobrazowe ulistnione lodygi","rurkowate oliwkowobrunatne kwiaty","sztywne rozgalezione korzenie","wysokie blekitne kwiaty","zolte rurkowate kwiaty"]</json>
+      </var>
+      <alias name="kuptrut" autoappend="true">
+        <value>otm
+#FORALL @trut {kup 2 %i}
+lec1in
+trutin</value>
+      </alias>
+      <alias name="uleczsmrod">
+        <value>opusc bron
+zap jasnobrazowa ulistniona lodyge
+przyloz jasnobrazowa ulistniona lodyge
+dobadz broni</value>
+      </alias>
+      <class name="Suby">
+        <trigger priority="25050" regex="true">
+          <pattern>(jasnobrazo\w+ ulistn\w+ lody\w+)</pattern>
+          <value>#sub {%1 (Pluskwy: przyloz)}
+#cw $@col_trut</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(bia\w+ pach\w+ cebu\w+)</pattern>
+          <value>#sub {%1 (Ghoule: zjedz)}
+#cw $@col_trut</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(rurko\w+ oliw\w+ kwi\w+)</pattern>
+          <value>#sub {%1 (Pchly: wetrzyj)}
+#cw $@col_trut</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(zolt\w+ rur\w+ kwi\w+)</pattern>
+          <value>#sub {%1 (Pchly: zjedz)}
+#cw $@col_trut</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(brudn\w+ cuchn\w+ galaz\w+)</pattern>
+          <value>#sub {%1 (Pchly: przyloz)}
+#cw $@col_trut</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(wysok\w+ bleki\w+ kwia\w+)</pattern>
+          <value>#sub {%1 (Toksyna roslinna: przezuj)}
+#cw $@col_trut</value>
+        </trigger>
+        <trigger priority="25050" regex="true">
+          <pattern>(sztywn\w+ rozgale\w+ korze\w+)</pattern>
+          <value>#sub {%1 (Lukrecja [trad, przyloz])}
+#cw $@col_trut</value>
+        </trigger>
+      </class>
+    </class>
+    <trigger name="ziolo_jest" priority="121" regex="true" enabled="false">
+      <pattern>^Znajdujesz (.*)\.$</pattern>
+      <value>#IF (%word(%-1, 1) != "sie") {#SUB {%ansi(3)Znajdujesz %ansi(12)%1}}
+</value>
+    </trigger>
+    <class name="Techniczne">
+      <alias name="subyoff" autoappend="true">
+        <value>#T- ZIOLA|Lec1|Suby
+#T- ZIOLA|Lec2|Suby
+#T- ZIOLA|Reg|Suby</value>
+      </alias>
+      <alias name="subyon" autoappend="true">
+        <value>#T+ ZIOLA|Lec1|Suby
+#T+ ZIOLA|Lec2|Suby
+#T+ ZIOLA|Reg|Suby</value>
+      </alias>
+      <alias name="ziolka_sort" autoappend="true">
+        <value>ziolka=%replace( @ziolka, ", ", "|")
+ziolka=%replace( @ziolka, " i ", "|")
+ziolka=%replace( @ziolka, " oraz ", "|")
+ziolka=%replace( @ziolka, "dwa ", " 2 ")
+ziolka=%replace( @ziolka, "dwie ", " 2 ")
+ziolka=%replace( @ziolka, "trzy ", " 3 ")
+ziolka=%replace( @ziolka, "cztery ", " 4 ")
+ziolka=%replace( @ziolka, "piec ", " 5 ")
+ziolka=%replace( @ziolka, "szesc ", " 6 ")
+ziolka=%replace( @ziolka, "siedem ", " 7 ")
+ziolka=%replace( @ziolka, "osiem ", " 8 ")
+ziolka=%replace( @ziolka, "dziewiec ", " 9 ")
+ziolka=%replace( @ziolka, "dziesiec ", "10 ")
+ziolka=%replace( @ziolka, "jedenascie ", "11 ")
+ziolka=%replace( @ziolka, "dwanascie ", "12 ")
+ziolka=%replace( @ziolka, "trzynascie ", "13 ")
+ziolka=%replace( @ziolka, "czternascie ", "14 ")
+ziolka=%replace( @ziolka, "pietnascie ", "15 ")
+ziolka=%replace( @ziolka, "szesnascie ", "16 ")
+ziolka=%replace( @ziolka, "siedemnascie ", "17 ")
+ziolka=%replace( @ziolka, "osiemnascie ", "18 ")
+ziolka=%replace( @ziolka, "dziewietnascie ", "19 ")
+ziolka=%replace( @ziolka, "dwadziescia ", "20 ")
+ziolka=%replace( @ziolka, "wiele ", "?? ")
+// ziolka=%sort( @ziolka)</value>
+      </alias>
+      <var name="z_counter">15</var>
+      <var name="ziolka"> woreczek 1:| 2 zlocistozolte kwiaty| 7 zielonych galezistych pedow| 2 zaostrzone podluzne liscie| 8 rozetkowatych lancetowatych lisci|okraglawy aromatyczny lisc|macznistoowlosiona szarawa rosline|kremowy owlosiony kwiat| 2 jasnopomaranczowe kwiaty| 4 fioletowe zwarte kwiatostany| 3 czterokanciaste rozgalezione lodygi| 2 ciemne poskrecane klacza| woreczek 2:| 8 niepozornych sinozielonych roslinek|kanciasta parzaca lodyge| 2 eliptyczne zaostrzone liscie| 7 dziwnych zoltoszarych nasionek| 3 duze biale kwiaty| 8 drobnych bialych kwiatkow| 6 czarnych aromatycznych ziarenek| 2 brudnozolte fioletowo-zylkowane ususzone kwiaty| 2 bialokwitnace drobne roslinki| woreczek 3:| 8 zoltych jaskrawych kwiatow| 2 smukle zielone lodygi| 2 rozdete aromatyczne lodygi| 7 owlosionych aromatycznych lisci| 8 kanciastych rozgalezionych lodyg|czarna blyszczaca fasolke| woreczek 4:|owlosiony aromatyczny lisc| 2 kanciaste rozgalezione lodygi|jasnobrunatna popekana galazke| 2 rozetkowate lancetowate liscie|wiotka drobna lodyzke| 2 ciemne poskrecane klacza| 4 strzalkowate aromatyczne liscie| 3 male czerwone kwiaty| 2 czarne aromatyczne ziarenka| 3 dziwne zoltoszare nasionka| 2 szorstkie ciemnozielone galazki|dluga lodyge|jasnobrazowa ulistniona lodyge| 6 zielonych galezistych pedow|kanciasta parzaca lodyge|czterokanciasta rozgaleziona lodyge|drobny bialy kwiatek| 2 duze fioletowe kwiaty|piekny czerwony kwiat|jasnopomaranczowy kwiat|brudnozolty fioletowo-zylkowany kwiat|kolczasta wysuszona rosline| woreczek 5:| 2 kanciaste parzace lodygi|zielona trzeszczaca galazke|okazaly pachnacy kwiat|brudnozolty fioletowo-zylkowany kwiat|niepozorna sinozielona roslinke| 2 ciemne poskrecane klacza|galeziasta szaroowlosiona lodyge|czterokanciasta rozgaleziona lodyge|zolty jaskrawy kwiat|jaskrawozolty drobny kwiat|duzy bialy kwiat| 2 zielone galeziste pedy|jasnopomaranczowy kwiat| 2 sztywne rozgalezione korzenie| 2 pomaranczowe male korzenie|drobny bialy kwiatek|wiotka kwitnaca galazke|czarne aromatyczne ziarenko| 5 rozgalezionych owlosionych lodyg| 2 rozetkowate lancetowate liscie| 2 duze fioletowe kwiaty|kolczasta wysuszona rosline| 5 zlocistozoltych kwiatow|eliptyczny zaostrzony lisc| 2 owlosione aromatyczne liscie| 2 czerwonawe duze liscie|jasnobrunatna popekana galazke| woreczek 6:|macznistoowlosiona szarawa rosline| 2 jasnobrunatne popekane galazki|duzy fioletowy kwiat| 2 wzniesione owlosione lodygi|jasnobrazowa ulistniona lodyge|kanciasta rozgaleziona lodyge|kolczasta wysuszona rosline|okraglawy aromatyczny lisc| 2 duze biale kwiaty|owlosiony aromatyczny lisc|zolty jaskrawy kwiat|zielony galezisty ped| 2 wiotkie kwitnace galazki| 2 zielone trzeszczace galazki| 2 rozetkowate lancetowate liscie|strzalkowaty aromatyczny lisc|jaskrawozolty drobny kwiat|brudnozolty fioletowo-zylkowany kwiat|pomaranczowy maly korzen| 2 czerwonawe duze liscie|zlocistozolty kwiat|drobny bialy kwiatek|jasnopomaranczowy kwiat| 3 rozgalezione owlosione lodygi| 4 okazale pachnace kwiaty|wiotka drobna lodyzke| 2 galeziaste szaroowlosione lodygi| 2 sztywne rozgalezione korzenie| 2 dziwne zoltoszare nasionka|wysoki zolty kwiat| woreczek 7:| woreczek 8:| 4 brudnozolte fioletowo-zylkowane ususzone kwiaty|rozdeta aromatyczna lodyge|fioletowy zwarty kwiatostan|duzy bialy kwiat| 6 szarawych pogietych klaczy| 3 wiotkie drobne lodyzki|kanciasta parzaca lodyge|czterokanciasta rozgaleziona lodyge| 2 dlugie lodygi|jasnobrunatna popekana galazke| 2 zolte jaskrawe kwiaty| 2 okraglawe aromatyczne liscie|drobny bialy kwiatek| 3 niepozorne sinozielone roslinki| 3 owlosione aromatyczne liscie|ciemne poskrecane klacze| 4 okazale pachnace kwiaty| 2 jasnopomaranczowe kwiaty| 2 pomaranczowe male korzenie|jaskrawozolty drobny kwiat|wysoki zolty kwiat|kolczasta wysuszona rosline| woreczek 9:|wysoki blekitny kwiat| 2 zlocistozolte kwiaty| 2 macznistoowlosione szarawe rosliny|owlosiony aromatyczny lisc|kanciasta parzaca lodyge|wiotka kwitnaca galazke|wiotka drobna lodyzke| 3 wzniesione owlosione lodygi|jasnobrunatna popekana galazke| 7 sztywnych rozgalezionych korzeni| 5 strzalkowatych aromatycznych lisci| 3 szorstkie ciemnozielone galazki| 2 galeziaste szaroowlosione lodygi|kolczasta wysuszona rosline| 2 rozgalezione owlosione ususzone lodygi|ciemne poskrecane klacze|fioletowy lejkowaty kwiat|okraglawy aromatyczny lisc|rozetkowaty lancetowaty lisc|fioletowy zwarty kwiatostan| 3 czarne aromatyczne ziarenka|soczysty karminowy mech|duzy bialy kwiat| 3 dziwne zoltoszare nasionka| woreczek 10:|okazaly pachnacy kwiat| 3 piekne czerwone kwiaty| 2 wysokie blekitne kwiaty| 2 galeziste sinozielone lodygi|rozgaleziona wzniesiona lodyge|wiotka kwitnaca galazke|dluga lodyge| 2 rozetkowate lancetowate liscie|13 drobnych bialych kwiatkow| 7 niepozornych sinozielonych roslinek| 8 kanciastych rozgalezionych lodyg| 2 zolte jaskrawe kwiaty|ciemne poskrecane klacze| woreczek 11:|niepozorna sinozielona roslinke|galezista sinozielona lodyge|duzy bialy kwiat|zielona trzeszczaca galazke|zolty jaskrawy kwiat|jasnobrazowa ulistniona lodyge| 2 kanciaste parzace lodygi|drobny bialy kwiatek| 2 zlocistozolte kwiaty| 8 zielonych galezistych pedow| 2 zaostrzone podluzne liscie| 8 rozetkowatych lancetowatych lisci| 2 okraglawe aromatyczne liscie| 3 macznistoowlosione szarawe rosliny|kremowy owlosiony kwiat| 2 jasnopomaranczowe kwiaty| 4 fioletowe zwarte kwiatostany| 3 czterokanciaste rozgalezione lodygi| woreczek 12:|fioletowy zwarty kwiatostan|okazaly pachnacy kwiat|jasnobrunatna popekana galazke| 8 niepozornych sinozielonych roslinek| 2 kanciaste parzace lodygi| 2 eliptyczne zaostrzone liscie| 8 dziwnych zoltoszarych nasionek| 3 duze biale kwiaty| 8 drobnych bialych kwiatkow| 7 czarnych aromatycznych ziarenek| 2 bialokwitnace drobne roslinki|brudnozolty fioletowo-zylkowany ususzony kwiat| woreczek 13:| 2 czerwonawe duze liscie|jaskrawozolty drobny kwiat| 2 ciemne poskrecane klacza|zielona trzeszczaca galazke|piekny czerwony kwiat| 2 czarne aromatyczne ziarenka|wiotka kwitnaca galazke| 3 zielone galeziste pedy| 5 wzniesionych owlosionych lodyg| 8 zoltych jaskrawych kwiatow| 3 smukle zielone lodygi| 3 rozdete aromatyczne lodygi| 7 owlosionych aromatycznych lisci| 8 kanciastych rozgalezionych lodyg|czarna blyszczaca fasolke| woreczek 15:| 4 zolte jasne kwiaty|owlosiony aromatyczny lisc| 2 kanciaste rozgalezione lodygi|jasnobrunatna popekana galazke| 2 rozetkowate lancetowate liscie|wiotka drobna lodyzke| 2 ciemne poskrecane klacza| 4 strzalkowate aromatyczne liscie| 3 male czerwone kwiaty| 2 czarne aromatyczne ziarenka| 3 dziwne zoltoszare nasionka| 2 szorstkie ciemnozielone galazki|dluga lodyge|jasnobrazowa ulistniona lodyge| 6 zielonych galezistych pedow|kanciasta parzaca lodyge|czterokanciasta rozgaleziona lodyge|drobny bialy kwiatek| 2 duze fioletowe kwiaty|piekny czerwony kwiat|jasnopomaranczowy kwiat|brudnozolty fioletowo-zylkowany kwiat|kolczasta wysuszona rosline</var>
+      <trigger name="wlozco" priority="49010" regex="true">
+        <pattern>(?:Wloz co do czego\?)</pattern>
+        <value>#GAG</value>
+      </trigger>
+      <trigger name="coco" priority="49010" regex="true" enabled="false">
+        <pattern>^.*\?</pattern>
+        <value>#GAG</value>
+      </trigger>
+    </class>
+    <alias name="kupzi" autoappend="true">
+      <value>#T+ wlozco
+otm
+wyj woreczki
+kuplec
+kupreg
+kuplec2
+lec1in
+lec2in
+regin
+zapin</value>
+    </alias>
+    <var name="gag_woreczek" type="StringList">
+      <value>skorzany|czarny|czarny zielarski|czarno-zloty zdobiony|pomaranczowy</value>
+      <json>["skorzany","czarny","czarny zielarski","czarno-zloty zdobiony","pomaranczowy"]</json>
+    </var>
+  </class>
+</cmud>
