@@ -16,6 +16,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'wiedza20', desc: '20 nearest missing knowledge entries in the current GMCP domain' },
 
       { section: 'COMBAT' },
+      { cmd: 'bd / bd-', desc: 'advance with c1 after own/team kills / stop (5s cooldown)' },
       { cmd: 'c', desc: 'attack target 1 (zabij CEL)' },
       { cmd: 'c<n>', desc: "attack enemy <n> from the client's list (/z n)" },
       { cmd: 'z [target/1–4]', desc: 'zabij named target or by slot' },
@@ -115,6 +116,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'zwal', desc: 'refill bag, take out and equip weapons + armor' },
 
       { section: 'LOOT' },
+      { cmd: 'b+', desc: 'once after death: loot body, ground weapons/armor, then skk' },
       { cmd: 'w1–w20', desc: 'take everything from body N' },
       { cmd: 'm1–m20', desc: 'take coins from body N' },
       { cmd: 'b1–b20', desc: 'take weapon from body N' },

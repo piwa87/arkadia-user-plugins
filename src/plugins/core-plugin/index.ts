@@ -90,6 +90,8 @@ import {
   storage,
 } from './modules';
 import { setupGertrudaZiizc } from './gertruda/ziizc';
+import { setupBd } from './walka/bd';
+import { setupBossLoot } from './loot-boss';
 import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 
 // Every trigger tag registered by core-plugin modules. The client's cleanup()
@@ -97,6 +99,7 @@ import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 // removeByTag each of these or reloading the plugin duplicates every trigger.
 // Completeness is enforced by test/plugins/core-plugin/destroy.test.ts.
 const TRIGGER_TAGS = [
+  'lootBoss',
   'antyflood',
   'autoCover',
   'bramy',
@@ -144,6 +147,8 @@ const TRIGGER_TAGS = [
   'tro',
 ];
 
+let cleanupBd: (() => void) | null = null;
+let cleanupBossLoot: (() => void) | null = null;
 let cleanupZiizc: (() => void) | null = null;
 let cleanupCombat: (() => void) | null = null;
 let cleanupBrokilon: (() => void) | null = null;
@@ -228,6 +233,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
   cleanupKnowledgeReport = await setupKnowledgeReportData(api);
   cleanupNearestKnowledgeAlias = setupNearestKnowledgeAlias(api);
   setupLootAliases(api);
+  cleanupBossLoot = setupBossLoot(api);
+  cleanupBd = setupBd(api);
   setupLootShitAliases(api);
   setupMapAliases(api);
   setupMgfnAlias(api);
@@ -289,6 +296,10 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 
 export async function destroy(): Promise<void> {
+  cleanupBd?.();
+  cleanupBd = null;
+  cleanupBossLoot?.();
+  cleanupBossLoot = null;
   cleanupZiizc?.();
   cleanupZiizc = null;
   cleanupBindAliases?.();
