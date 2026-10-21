@@ -142,6 +142,7 @@ export function setupHelpAliases(api: PluginApi): void {
 
       { section: 'HERBS' },
       { cmd: 'zi', desc: 'search for herbs (with repeat, /zio_szukaj)' },
+      { cmd: 'ziizc [N] / ziizc stop', desc: 'Gertruda: follow Droga Czaszek gathering herbs (default 4 steps) / stop' },
       { cmd: 'zii [dir] [N]', desc: 'walk N times searching herbs, then pack (default idz, 4×)' },
       { cmd: 'zx[N]', desc: 'pack herbs into pouches (/zio_pakuj)' },
       { cmd: 'ziel [N] / ziel!', desc: 'auto-gather across N rooms / stop route' },
@@ -331,7 +332,7 @@ export function setupHelpAliases(api: PluginApi): void {
       { cmd: 'idl', desc: 'send stan every 15–25 min for 3 hours' },
       { cmd: 'ti!', desc: 'stopwatch toggle (start/stop)' },
       { cmd: 'ti!+', desc: 'stopwatch force reset' },
-      { cmd: 'prr', desc: 'stop current action, herb route and PYK' },
+      { cmd: 'prr', desc: 'stop current action, zii / ziel / ziizc sequences and PYK' },
       { cmd: 'zakrec!', desc: 'spin the wheel (random result)' },
       { cmd: 'gale!', desc: 'navigate through galeon with random delays' },
       { cmd: 'hide+ / hide-', desc: 'toggle association listing + signet ring' },

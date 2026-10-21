@@ -1,5 +1,5 @@
 import type { HerbForms, HerbUse, PluginApi } from '@arkadia/plugin-types';
-import { withDelay } from '../../../lib/withDelay';
+import { registerSequenceStop } from '../../../lib/sequenceStop';
 import { notify } from '../../../lib/notifications';
 import { pakujZiola } from './pakuj';
 
@@ -253,7 +253,29 @@ export async function sellJunkHerbs(api: PluginApi): Promise<void> {
  * - `spziola` — take junk herbs from bags and sell them
  * - `zisort` — sort all herbs into bags by category (healing, -zmc, stat, rest)
  */
+const gatherCleanups = new WeakMap<PluginApi, () => void>();
+
+export function cleanupGatherAliases(api: PluginApi): void {
+  gatherCleanups.get(api)?.();
+  gatherCleanups.delete(api);
+}
+
 export function setupGatherAliases(api: PluginApi): string[] {
+  cleanupGatherAliases(api);
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  const stop = (): void => {
+    timers.forEach(timer => clearTimeout(timer));
+    timers.clear();
+  };
+  const unregister = registerSequenceStop(api, stop);
+  gatherCleanups.set(api, () => { stop(); unregister(); });
+  const withDelay = (min: number, max: number, callback: () => void): void => {
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      callback();
+    }, Math.floor(Math.random() * (max - min) + min));
+    timers.add(timer);
+  };
   const ids: string[] = [];
 
   ids.push(

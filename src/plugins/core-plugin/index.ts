@@ -89,6 +89,7 @@ import {
   setupZiolaAliases,
   storage,
 } from './modules';
+import { setupGertrudaZiizc } from './gertruda/ziizc';
 import { TEMP_TRIGGER_TAG } from '../../lib/registerTempTrigger';
 
 // Every trigger tag registered by core-plugin modules. The client's cleanup()
@@ -106,9 +107,11 @@ const TRIGGER_TAGS = [
   'colEkwipunek',
   'colEventy',
   'colMovements',
+  'col_ziola',
   'dylizansy',
   'eventTriggers',
   'gertrudaMoby',
+  'gertrudaZiizc',
   'kol_druzyna',
   'mod_team',
   'mod_team:wylap',
@@ -141,6 +144,7 @@ const TRIGGER_TAGS = [
   'tro',
 ];
 
+let cleanupZiizc: (() => void) | null = null;
 let cleanupCombat: (() => void) | null = null;
 let cleanupBrokilon: (() => void) | null = null;
 let cleanupPalenie: (() => void) | null = null;
@@ -265,6 +269,7 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
       setupGertrudaEmotes(api);
       setupGertrudaDobywanie(api, dobywanieState);
       setupGertrudaMoby(api);
+      cleanupZiizc = setupGertrudaZiizc(api);
       cleanupPlecak = setupPlecakAliases(api);
     } else if (name === 'karakson') {
       setupKaraksonDobywanie(api, dobywanieState);
@@ -284,6 +289,8 @@ export async function init(api: PluginApi): Promise<PluginInfo> {
 }
 
 export async function destroy(): Promise<void> {
+  cleanupZiizc?.();
+  cleanupZiizc = null;
   cleanupBindAliases?.();
   cleanupBindAliases = null;
   cleanupCombat?.();
